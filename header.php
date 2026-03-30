@@ -44,17 +44,17 @@
 					$custom_logo = get_theme_mod( 'bite_logo' );
 					$show_site_name = get_theme_mod( 'bite_show_site_name', true );
 					
-					if ( ! empty( $custom_logo ) ) :
+					if ( ! empty( $custom_logo ) ) {
 						// Display custom logo
 						echo '<img src="' . esc_url( $custom_logo ) . '" alt="' . esc_attr( get_bloginfo( 'name' ) ) . '" class="bite-custom-logo">';
 						if ( $show_site_name ) {
 							echo '<span class="bite-site-name">' . esc_html( get_bloginfo( 'name' ) ) . '</span>';
 						}
-					else :
+					} else {
 						// Fallback: Display default branding
 						echo '<span class="bite-logo-icon"></span>';
 						echo '<span class="bite-site-name">BITE Dashboard</span>';
-					endif;
+					}
 					?>
 				</a>
 			</div>
