@@ -72,13 +72,13 @@ get_header();
             <div class="bite-feature-card">
                 <div class="bite-feature-icon bite-icon-opportunity"></div>
                 <h3>Opportunity Finder</h3>
-                <p>Discover keywords your competitors rank for that you're missing. Find quick wins and content gaps.</p>
+                <p>Compare keywords across your own sites. Find what works on one site and apply it to another.</p>
             </div>
             
             <div class="bite-feature-card">
                 <div class="bite-feature-icon bite-icon-champions"></div>
                 <h3>Global Champions</h3>
-                <p>Identify top-performing keywords across entire niches. See what's working in your industry.</p>
+                <p>Identify top-performing keywords across your own sites and niches. See what's working in your portfolio.</p>
             </div>
             
             <div class="bite-feature-card">
