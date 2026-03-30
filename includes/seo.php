@@ -292,6 +292,39 @@ function bite_llms_txt_link() {
 add_action( 'wp_head', 'bite_llms_txt_link', 0 );
 
 // ============================================
+// 8. Matomo Analytics (public pages only)
+// ============================================
+
+/**
+ * Add Matomo tracking code for non-logged-in users only
+ */
+function bite_matomo_tracking() {
+    // Only track for non-logged-in users
+    if ( is_user_logged_in() ) {
+        return;
+    }
+    ?>
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="https://matomo.orangewidow.com/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '10']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img referrerpolicy="no-referrer-when-downgrade" src="https://matomo.orangewidow.com/matomo.php?idsite=10&amp;rec=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Matomo Code -->
+    <?php
+}
+add_action( 'wp_head', 'bite_matomo_tracking', 100 );
+
+// ============================================
 // 6. Add theme color for mobile browsers
 // ============================================
 
