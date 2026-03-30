@@ -8,26 +8,41 @@ Version: 1.0.0
 */
 
 :root {
-    --primary-color: #2c3e50;
-    --secondary-color: #3498db;
-    --accent-color: #2980b9;
-    --background-color: #ecf0f1;
-    --text-color: #34495e;
-    --light-text-color: #ffffff;
-    --border-color: #bdc3c7;
-    --success-color: #2ecc71;
-    --error-color: #e74c3c;
-    --table-header-bg: #34495e;
-    --table-row-even-bg: #fdfdfd;
-    --table-row-odd-bg: #f7f7f7;
+    /* OrangeWidow Brand Colors */
+    --primary-color: #1A1A2E;           /* Deep navy/charcoal - headers */
+    --secondary-color: #E85D04;         /* Vibrant orange - buttons, links */
+    --accent-color: #F48C06;            /* Lighter orange - hover states */
+    --accent-dark: #DC2F02;             /* Darker orange - emphasis */
+    --background-color: #F8F9FA;        /* Light gray background */
+    --card-bg: #FFFFFF;                 /* White cards/widgets */
+    --text-color: #2D3436;              /* Dark charcoal text */
+    --text-muted: #636E72;              /* Muted gray text */
+    --light-text-color: #ffffff;        /* White text */
+    --border-color: #DFE6E9;            /* Light border gray */
+    --border-light: #F1F2F6;            /* Very light border */
+    --success-color: #00B894;           /* Green for positive */
+    --error-color: #E74C3C;             /* Red for errors */
+    --warning-color: #F39C12;           /* Amber for warnings */
+    --table-header-bg: #1A1A2E;         /* Navy header */
+    --table-row-even-bg: #FFFFFF;       /* White rows */
+    --table-row-odd-bg: #F8F9FA;        /* Light gray rows */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
 }
 
 body {
     background-color: var(--background-color);
     color: var(--text-color);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     margin: 0;
     padding: 0;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* --- Basic Layout & Typography --- */
@@ -49,49 +64,98 @@ body, html {
     flex-grow: 1; /* This makes the content area fill available space */
 }
 
-main.bite-main-content,
+main.bite-main-content {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
 .bite-page-header {
     width: 100%;
-    max-width: 100%; /* Enforce full width */
-    padding: 20px;
-    box-sizing: border-box; /* Include padding in the width calculation */
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 24px;
+    box-sizing: border-box;
+    background: linear-gradient(135deg, var(--card-bg) 0%, var(--background-color) 100%);
+    border-bottom: 2px solid var(--border-light);
+}
+
+.bite-page-header h1 {
+    font-size: 2em;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bite-page-header p {
+    color: var(--text-muted);
+    font-size: 1.1em;
+    margin: 0;
 }
 
 a {
     color: var(--secondary-color);
     text-decoration: none;
+    transition: color 0.2s ease;
 }
 a:hover {
-    color: var(--accent-color);
-    text-decoration: underline;
+    color: var(--accent-dark);
+    text-decoration: none;
 }
 
 h1, h2, h3, h4, h5, h6 {
     color: var(--primary-color);
+    font-weight: 600;
+    margin-top: 0;
+    line-height: 1.3;
 }
 
 /* --- Header --- */
 .bite-site-header {
     width: 100%;
-    background-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color) 0%, #16213E 100%);
     color: var(--light-text-color);
-    padding: 10px 20px;
+    padding: 12px 24px;
     box-sizing: border-box;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
 .bite-header-inner {
     width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 20px;
 }
 
 .bite-logo a {
-    font-size: 1.5em;
-    font-weight: bold;
+    font-size: 1.6em;
+    font-weight: 700;
     color: var(--light-text-color);
     text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bite-logo a::before {
+    content: '';
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    background: var(--secondary-color);
+    border-radius: var(--radius-sm);
+    /* Simple B icon shape using gradient */
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
 }
 
 /* --- Main Navigation --- */
@@ -116,60 +180,75 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .bite-main-navigation a:hover {
-    background-color: var(--accent-color);
+    background-color: rgba(232, 93, 4, 0.2);
+    color: var(--accent-color);
     text-decoration: none;
+}
+
+.bite-main-navigation a:focus {
+    outline: 2px solid var(--secondary-color);
+    outline-offset: 2px;
 }
 
 /* --- User Info --- */
 .bite-user-info {
     display: flex;
     align-items: center;
-    color: var(--border-color);
+    color: rgba(255, 255, 255, 0.8);
+    gap: 16px;
 }
 
 .bite-server-time {
-    margin-right: 20px;
-    font-size: 0.9em;
+    font-size: 0.85em;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
 }
 
 .bite-logout-link {
-    background-color: var(--secondary-color);
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
     color: var(--light-text-color);
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-weight: bold;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.9em;
     text-decoration: none;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
 }
 
 .bite-logout-link:hover {
-    background-color: var(--accent-color);
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-dark) 100%);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
     text-decoration: none;
+    color: var(--light-text-color);
 }
 
 /* --- Footer --- */
 .bite-site-footer {
     width: 100%;
-    padding: 20px;
-    background-color: #fff;
-    border-top: 1px solid var(--border-color);
+    padding: 24px;
+    background-color: var(--primary-color);
+    border-top: 3px solid var(--secondary-color);
     box-sizing: border-box;
     text-align: center;
     font-size: 0.9em;
-    color: var(--text-color);
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: auto;
 }
 
 .bite-site-footer p {
     margin: 0;
+    font-weight: 500;
 }
 
 /* --- Filter Bar --- */
 .bite-filter-bar {
     width: 100%;
-    padding: 20px;
-    background-color: #fff;
-    border-bottom: 1px solid var(--border-color);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    padding: 24px;
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
     box-sizing: border-box;
 }
 
@@ -186,65 +265,101 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .bite-filter-group label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    font-size: 0.9em;
-    color: var(--text-color);
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 0.85em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .bite-filter-group select,
 .bite-filter-group input[type="text"] {
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-size: 1em;
+    padding: 10px 14px;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-size: 0.95em;
     min-width: 200px;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bite-filter-group select:focus,
+.bite-filter-group input[type="text"]:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(232, 93, 4, 0.15);
 }
 
 .bite-button {
-    background-color: var(--secondary-color);
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
     color: var(--light-text-color);
-    padding: 10px 20px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 1em;
+    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.95em;
     text-decoration: none;
     border: none;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 .bite-button:hover {
-    background-color: var(--accent-color);
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-dark) 100%);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
     text-decoration: none;
+}
+.bite-button:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
 }
 
 /* --- Dashboard Widgets Area --- */
 .bite-dashboard-widgets {
-    padding: 20px;
+    padding: 24px;
+    max-width: 1600px;
+    margin: 0 auto;
 }
 
 /* --- Widget Containers --- */
 .bite-widget-container {
-    background-color: #fff;
-    padding: 20px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    margin-bottom: 20px;
+    background-color: var(--card-bg);
+    padding: 24px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease;
+}
+.bite-widget-container:hover {
+    box-shadow: var(--shadow-md);
 }
 .bite-widget-container h2 {
     margin-top: 0;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 10px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--border-light);
+    padding-bottom: 12px;
+    font-size: 1.4em;
+    color: var(--primary-color);
 }
 
 /* Wrapper for the chart canvas */
 .bite-chart-wrapper {
-    height: 400px !important; /* Force the wrapper height */
+    height: 400px !important;
     position: relative;
     width: 100%;
+    background: var(--card-bg);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    box-sizing: border-box;
 }
-#bite-line-chart {
-    /* No rules needed here, JS will fill the parent */
+#bite-line-chart,
+#bite-ctr-chart {
+    max-height: 100%;
 }
 
 /* --- DataTables.js Styling --- */
@@ -285,10 +400,15 @@ table.bite-data-table td {
     border-bottom: 1px solid var(--border-color);
 }
 table.bite-data-table thead th {
-    background-color: var(--table-header-bg);
+    background: linear-gradient(135deg, var(--table-header-bg) 0%, #16213E 100%);
     color: var(--light-text-color);
     text-align: left;
     cursor: pointer;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+    padding: 14px 16px;
 }
 table.bite-data-table tbody tr:nth-child(even) {
     background-color: var(--table-row-even-bg);
@@ -297,7 +417,8 @@ table.bite-data-table tbody tr:nth-child(odd) {
     background-color: var(--table-row-odd-bg);
 }
 table.bite-data-table tbody tr:hover {
-    background-color: #e0f0ff;
+    background-color: rgba(232, 93, 4, 0.08);
+    transition: background-color 0.15s ease;
 }
 
 /* Pagination */
@@ -314,9 +435,10 @@ table.bite-data-table tbody tr:hover {
 }
 .dataTables_paginate .paginate_button.current,
 .dataTables_paginate .paginate_button.current:hover {
-    background: var(--secondary-color);
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
     color: var(--light-text-color) !important;
     border-color: var(--secondary-color);
+    font-weight: 600;
 }
 .dataTables_paginate .paginate_button:hover {
     background: var(--background-color);
@@ -336,12 +458,26 @@ table.bite-data-table tbody tr:hover {
 
 /* --- Trends Table Colors --- */
 .bite-trend-up {
-    color: #27ae60;
-    font-weight: bold;
+    color: var(--success-color);
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.bite-trend-up::before {
+    content: '▲';
+    font-size: 0.8em;
 }
 .bite-trend-down {
     color: var(--error-color);
-    font-weight: bold;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.bite-trend-down::before {
+    content: '▼';
+    font-size: 0.8em;
 }
 
 /* --- Make filter groups align --- */
@@ -361,20 +497,24 @@ th span[title] {
 
 /* --- Insight Box --- */
 .bite-insight-box {
-    background-color: #fdfaeb;
-    border: 1px solid #f6e099;
+    background: linear-gradient(135deg, #FFF8E7 0%, #FFF3D6 100%);
+    border: 1px solid #FFD699;
     border-left-width: 4px;
-    border-left-color: #f3c12a;
-    padding: 15px 20px;
-    border-radius: 4px;
+    border-left-color: var(--secondary-color);
+    padding: 20px 24px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
 }
 .bite-insight-box h2 {
     margin-top: 0;
+    color: var(--accent-dark);
+    font-size: 1.2em;
 }
 .bite-insight-box p {
-    font-size: 1.1em;
+    font-size: 1.05em;
     margin-bottom: 0;
+    line-height: 1.7;
 }
 .bite-insight-box p strong {
-    color: var(--primary-color);
+    color: var(--accent-dark);
 }

@@ -1,29 +1,34 @@
 /*
- * BITE Admin Styles
+ * BITE Admin Styles - OrangeWidow Brand
  * This styles our custom pages in the /wp-admin/ area.
  * It inherits variables from style.css.
  */
 
 .bite-admin-wrap {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background-color: var(--card-bg);
+    padding: 28px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
     max-width: 1400px;
+    border: 1px solid var(--border-light);
 }
 
 .bite-admin-wrap h1 {
-    font-size: 2em;
-    border-bottom: 2px solid var(--border-color);
-    padding-bottom: 10px;
+    font-size: 2.2em;
+    border-bottom: 3px solid var(--secondary-color);
+    padding-bottom: 12px;
     margin-top: 0;
+    margin-bottom: 24px;
     color: var(--primary-color);
+    font-weight: 700;
 }
 .bite-admin-wrap h2 {
-    font-size: 1.5em;
-    border-bottom: 1px dashed var(--border-color);
-    padding-bottom: 5px;
+    font-size: 1.4em;
+    border-bottom: 2px solid var(--border-light);
+    padding-bottom: 10px;
+    margin-top: 28px;
     color: var(--primary-color);
+    font-weight: 600;
 }
 
 /* --- Forms --- */
@@ -56,31 +61,37 @@
 .bite-admin-form input[type="number"],
 .bite-admin-form select {
     width: 100%;
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-size: 1em;
+    padding: 12px 14px;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-size: 0.95em;
     box-sizing: border-box;
+    transition: all 0.2s ease;
 }
 .bite-admin-form input[type="text"]:focus,
 .bite-admin-form input[type="number"]:focus,
 .bite-admin-form select:focus {
     border-color: var(--secondary-color);
-    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+    box-shadow: 0 0 0 4px rgba(232, 93, 4, 0.12);
     outline: none;
 }
 
 .bite-admin-form .button-primary {
-    background-color: var(--secondary-color) !important;
-    border-color: var(--accent-color) !important;
-    font-size: 1.1em;
-    padding: 10px 20px !important;
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%) !important;
+    border: none !important;
+    border-radius: var(--radius-sm) !important;
+    font-size: 1em;
+    font-weight: 600;
+    padding: 12px 24px !important;
     height: auto !important;
     text-shadow: none !important;
-    box-shadow: none !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: all 0.2s ease !important;
 }
 .bite-admin-form .button-primary:hover {
-    background-color: var(--accent-color) !important;
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-dark) 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md) !important;
 }
 
 /* --- Tables --- */
@@ -91,14 +102,17 @@
 }
 .bite-admin-table th,
 .bite-admin-table td {
-    padding: 12px 15px;
-    border: 1px solid var(--border-color);
+    padding: 14px 16px;
+    border: 1px solid var(--border-light);
     text-align: left;
 }
 .bite-admin-table th {
-    background-color: var(--table-header-bg);
+    background: linear-gradient(135deg, var(--table-header-bg) 0%, #16213E 100%);
     color: var(--light-text-color);
-    font-size: 1.1em;
+    font-size: 0.95em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 .bite-admin-table tr:nth-child(even) {
     background-color: var(--table-row-even-bg);
@@ -107,7 +121,8 @@
     background-color: var(--table-row-odd-bg);
 }
 .bite-admin-table tr:hover {
-    background-color: #e0f0ff;
+    background-color: rgba(232, 93, 4, 0.06);
+    transition: background-color 0.15s ease;
 }
 .bite-admin-table .bite-delete-form {
     display: inline;
