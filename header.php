@@ -101,7 +101,7 @@
 					<a class="bite-logout-link" href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>">Log Out</a>
 				</div>
 				<div class="bite-user-info-bottom">
-					<span class="bite-server-time">
+					<span class="bite-server-time" data-server-timestamp="<?php echo esc_attr( time() ); ?>">
                         <?php
                         // Show the server time in the new format
                         echo esc_html( date( 'd-m-Y H:i:s' ) ) . ' UTC';

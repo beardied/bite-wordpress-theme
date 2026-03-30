@@ -200,4 +200,43 @@ jQuery(document).ready(function($) {
         });
     }
 
+    // 5. Live Server Time Clock
+    (function() {
+        var $serverTime = $('.bite-server-time');
+        if ( !$serverTime.length ) return;
+        
+        // Get initial server timestamp (in seconds)
+        var serverTimestamp = parseInt( $serverTime.data('server-timestamp'), 10 );
+        if ( !serverTimestamp ) return;
+        
+        // Get local time offset to calculate server time accurately
+        var localStartTime = Math.floor( Date.now() / 1000 );
+        
+        function updateClock() {
+            var now = Math.floor( Date.now() / 1000 );
+            var elapsed = now - localStartTime;
+            var currentServerTime = serverTimestamp + elapsed;
+            
+            // Convert to Date object (UTC)
+            var date = new Date( currentServerTime * 1000 );
+            
+            // Format: dd-mm-yyyy HH:mm:ss
+            var day = String( date.getUTCDate() ).padStart( 2, '0' );
+            var month = String( date.getUTCMonth() + 1 ).padStart( 2, '0' );
+            var year = date.getUTCFullYear();
+            var hours = String( date.getUTCHours() ).padStart( 2, '0' );
+            var minutes = String( date.getUTCMinutes() ).padStart( 2, '0' );
+            var seconds = String( date.getUTCSeconds() ).padStart( 2, '0' );
+            
+            var formattedTime = day + '-' + month + '-' + year + ' ' + hours + ':' + minutes + ':' + seconds + ' UTC';
+            
+            $serverTime.text( formattedTime );
+        }
+        
+        // Update immediately, then every second
+        updateClock();
+        setInterval( updateClock, 1000 );
+        
+    })();
+
 });
