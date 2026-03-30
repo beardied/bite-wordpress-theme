@@ -11,6 +11,9 @@
 get_header();
 ?>
 
+<!-- Material Icons Font for Feature Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
 <main id="main" class="bite-landing-page" role="main">
     
     <!-- Hero Section -->
@@ -64,37 +67,49 @@ get_header();
         
         <div class="bite-features-grid">
             <div class="bite-feature-card">
-                <div class="bite-feature-icon bite-icon-dashboard"></div>
+                <div class="bite-feature-icon">
+                    <span class="material-icons">dashboard</span>
+                </div>
                 <h3>Performance Dashboard</h3>
                 <p>Track clicks, impressions, CTR, and average position across all your websites in one unified view.</p>
             </div>
             
             <div class="bite-feature-card">
-                <div class="bite-feature-icon bite-icon-opportunity"></div>
+                <div class="bite-feature-icon">
+                    <span class="material-icons">search</span>
+                </div>
                 <h3>Opportunity Finder</h3>
                 <p>Compare keywords across your own sites. Find what works on one site and apply it to another.</p>
             </div>
             
             <div class="bite-feature-card">
-                <div class="bite-feature-icon bite-icon-champions"></div>
+                <div class="bite-feature-icon">
+                    <span class="material-icons">emoji_events</span>
+                </div>
                 <h3>Global Champions</h3>
                 <p>Identify top-performing keywords across your own sites and niches. See what's working in your portfolio.</p>
             </div>
             
             <div class="bite-feature-card">
-                <div class="bite-feature-icon bite-icon-trends"></div>
+                <div class="bite-feature-icon">
+                    <span class="material-icons">trending_up</span>
+                </div>
                 <h3>Emerging Trends</h3>
                 <p>Spot keywords with rapid impression changes. Catch trends before your competitors do.</p>
             </div>
             
             <div class="bite-feature-card">
-                <div class="bite-feature-icon bite-icon-explorer"></div>
+                <div class="bite-feature-icon">
+                    <span class="material-icons">travel_explore</span>
+                </div>
                 <h3>Keyword Explorer</h3>
                 <p>Search and analyze keyword variations across your entire portfolio. Find long-tail opportunities.</p>
             </div>
             
             <div class="bite-feature-card">
-                <div class="bite-feature-icon bite-icon-ctr"></div>
+                <div class="bite-feature-icon">
+                    <span class="material-icons">speed</span>
+                </div>
                 <h3>CTR Efficiency Report</h3>
                 <p>Understand your anonymized vs. discoverable click ratios. Optimize for hidden traffic.</p>
             </div>
