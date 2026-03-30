@@ -77,7 +77,12 @@
 			<!-- User Info Section -->
 			<div class="bite-user-info">
 				<div class="bite-user-info-top">
-					<a class="bite-logout-link" href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>">Log Out</a>
+					<?php
+					// Get dashboard page URL
+					$dashboard_page = get_page_by_path( 'dashboard' );
+					$dashboard_url = $dashboard_page ? get_permalink( $dashboard_page->ID ) : home_url( '/' );
+					?>
+					<a class="bite-logout-link" href="<?php echo esc_url( $dashboard_url ); ?>">Dashboard</a>
 				</div>
 				<div class="bite-user-info-bottom">
 					<span class="bite-server-time" data-server-timestamp="<?php echo esc_attr( time() ); ?>">
