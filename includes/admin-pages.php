@@ -354,3 +354,211 @@ function bite_delete_metrics_table_for_site( $site_id ) {
     // Use a direct query to drop the table
     $wpdb->query( "DROP TABLE IF EXISTS $table_name" );
 }
+
+
+/**
+ * Register the User Access submenu page.
+ */
+function bite_register_user_access_menu() {
+    add_submenu_page(
+        'bite-admin-main',
+        __( 'User Access', 'bite-theme' ),
+        __( 'User Access', 'bite-theme' ),
+        'manage_options',
+        'bite-admin-users',
+        'bite_admin_page_user_access'
+    );
+}
+add_action( 'admin_menu', 'bite_register_user_access_menu', 20 );
+
+/**
+ * Handle user access form submissions.
+ */
+function bite_handle_user_access_actions() {
+    if ( ! isset( $_POST['bite_user_action'] ) || ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
+    // Grant access
+    if ( $_POST['bite_user_action'] === 'grant_access' && isset( $_POST['user_id'] ) && isset( $_POST['site_id'] ) ) {
+        check_admin_referer( 'bite_grant_access_nonce' );
+        
+        $user_id = absint( $_POST['user_id'] );
+        $site_id = absint( $_POST['site_id'] );
+        
+        $result = bite_grant_user_site_access( $user_id, $site_id, get_current_user_id() );
+        
+        if ( is_wp_error( $result ) ) {
+            add_action( 'admin_notices', function() use ( $result ) {
+                echo '<div class="notice notice-error"><p>' . esc_html( $result->get_error_message() ) . '</p></div>';
+            } );
+        }
+    }
+
+    // Revoke access
+    if ( $_POST['bite_user_action'] === 'revoke_access' && isset( $_POST['user_id'] ) && isset( $_POST['site_id'] ) ) {
+        check_admin_referer( 'bite_revoke_access_nonce' );
+        
+        $user_id = absint( $_POST['user_id'] );
+        $site_id = absint( $_POST['site_id'] );
+        
+        $result = bite_revoke_user_site_access( $user_id, $site_id );
+        
+        if ( is_wp_error( $result ) ) {
+            add_action( 'admin_notices', function() use ( $result ) {
+                echo '<div class="notice notice-error"><p>' . esc_html( $result->get_error_message() ) . '</p></div>';
+            } );
+        }
+    }
+}
+add_action( 'admin_init', 'bite_handle_user_access_actions' );
+
+/**
+ * Renders the User Access admin page.
+ */
+function bite_admin_page_user_access() {
+    global $wpdb;
+    
+    // Get all sites
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    $all_sites = $wpdb->get_results( "SELECT site_id, name, domain FROM $sites_table ORDER BY name ASC" );
+    
+    // Get all users with bite_viewer role (and admins for reference)
+    $users = get_users( array(
+        'fields' => array( 'ID', 'display_name', 'user_email', 'user_login' ),
+        'orderby' => 'display_name',
+    ) );
+    
+    // Get selected user for detailed view
+    $selected_user_id = isset( $_GET['view_user'] ) ? absint( $_GET['view_user'] ) : 0;
+    $selected_user = $selected_user_id ? get_userdata( $selected_user_id ) : null;
+    ?>
+    <div class="wrap bite-admin-wrap">
+        <h1><?php esc_html_e( 'User Site Access', 'bite-theme' ); ?></h1>
+        <p><?php esc_html_e( 'Manage which users can access which sites. Admins automatically have access to all sites.', 'bite-theme' ); ?></p>
+        
+        <?php if ( $selected_user ) : ?>
+            <!-- Single User View -->
+            <h2><?php echo esc_html( $selected_user->display_name ); ?> (<?php echo esc_html( $selected_user->user_email ); ?>)</h2>
+            <p><a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-users' ) ); ?>" class="button">&larr; Back to All Users</a></p>
+            
+            <?php
+            $user_site_ids = bite_get_user_sites( $selected_user_id );
+            $user_sites = array();
+            if ( ! empty( $user_site_ids ) ) {
+                $placeholders = implode( ', ', array_fill( 0, count( $user_site_ids ), '%d' ) );
+                $user_sites = $wpdb->get_results( $wpdb->prepare(
+                    "SELECT site_id, name, domain FROM $sites_table WHERE site_id IN ($placeholders) ORDER BY name ASC",
+                    $user_site_ids
+                ) );
+            }
+            ?>
+            
+            <h3><?php esc_html_e( 'Assigned Sites', 'bite-theme' ); ?></h3>
+            <?php if ( ! empty( $user_sites ) ) : ?>
+                <table class="bite-admin-table">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Site Name', 'bite-theme' ); ?></th>
+                            <th><?php esc_html_e( 'Domain', 'bite-theme' ); ?></th>
+                            <th><?php esc_html_e( 'Action', 'bite-theme' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ( $user_sites as $site ) : ?>
+                            <tr>
+                                <td><?php echo esc_html( $site->name ); ?></td>
+                                <td><?php echo esc_html( $site->domain ); ?></td>
+                                <td>
+                                    <form method="post" action="" class="bite-delete-form">
+                                        <input type="hidden" name="bite_user_action" value="revoke_access">
+                                        <input type="hidden" name="user_id" value="<?php echo esc_attr( $selected_user_id ); ?>">
+                                        <input type="hidden" name="site_id" value="<?php echo esc_attr( $site->site_id ); ?>">
+                                        <?php wp_nonce_field( 'bite_revoke_access_nonce' ); ?>
+                                        <?php submit_button( __( 'Revoke Access', 'bite-theme' ), 'secondary small', 'submit', false ); ?>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else : ?>
+                <p><?php esc_html_e( 'No sites assigned to this user.', 'bite-theme' ); ?></p>
+            <?php endif; ?>
+            
+            <h3><?php esc_html_e( 'Grant Access to Additional Sites', 'bite-theme' ); ?></h3>
+            <form method="post" action="" class="bite-admin-form">
+                <input type="hidden" name="bite_user_action" value="grant_access">
+                <input type="hidden" name="user_id" value="<?php echo esc_attr( $selected_user_id ); ?>">
+                <?php wp_nonce_field( 'bite_grant_access_nonce' ); ?>
+                
+                <p>
+                    <label for="site_id"><?php esc_html_e( 'Select Site:', 'bite-theme' ); ?></label>
+                    <select id="site_id" name="site_id" required>
+                        <option value=""><?php esc_html_e( 'Select a site...', 'bite-theme' ); ?></option>
+                        <?php foreach ( $all_sites as $site ) : 
+                            // Skip if user already has access
+                            if ( in_array( $site->site_id, $user_site_ids ) ) continue;
+                        ?>
+                            <option value="<?php echo esc_attr( $site->site_id ); ?>">
+                                <?php echo esc_html( $site->name ); ?> (<?php echo esc_html( $site->domain ); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </p>
+                
+                <?php submit_button( __( 'Grant Access', 'bite-theme' ) ); ?>
+            </form>
+            
+        <?php else : ?>
+            <!-- All Users List -->
+            <h2><?php esc_html_e( 'All Users', 'bite-theme' ); ?></h2>
+            <table class="bite-admin-table">
+                <thead>
+                    <tr>
+                        <th><?php esc_html_e( 'User', 'bite-theme' ); ?></th>
+                        <th><?php esc_html_e( 'Role', 'bite-theme' ); ?></th>
+                        <th><?php esc_html_e( 'Sites Assigned', 'bite-theme' ); ?></th>
+                        <th><?php esc_html_e( 'Actions', 'bite-theme' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $users as $user ) : 
+                        $user_data = get_userdata( $user->ID );
+                        $roles = $user_data->roles;
+                        $role_names = array_map( function( $role ) {
+                            $role_obj = get_role( $role );
+                            return $role_obj ? translate_user_role( $role_obj->name ) : $role;
+                        }, $roles );
+                        
+                        $user_site_count = count( bite_get_user_sites( $user->ID ) );
+                        $is_admin = user_can( $user->ID, 'manage_options' );
+                    ?>
+                        <tr>
+                            <td>
+                                <strong><?php echo esc_html( $user->display_name ); ?></strong><br>
+                                <small><?php echo esc_html( $user->user_email ); ?></small>
+                            </td>
+                            <td><?php echo esc_html( implode( ', ', $role_names ) ); ?></td>
+                            <td>
+                                <?php if ( $is_admin ) : ?>
+                                    <span class="bite-badge-admin"><?php esc_html_e( 'All Sites (Admin)', 'bite-theme' ); ?></span>
+                                <?php else : ?>
+                                    <?php echo esc_html( $user_site_count ); ?> sites
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ( ! $is_admin ) : ?>
+                                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-users&view_user=' . $user->ID ) ); ?>" class="button"><?php esc_html_e( 'Manage Access', 'bite-theme' ); ?></a>
+                                <?php else : ?>
+                                    <em><?php esc_html_e( 'Auto-access', 'bite-theme' ); ?></em>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+    </div>
+    <?php
+}

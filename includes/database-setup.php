@@ -74,5 +74,21 @@ function bite_create_database_tables() {
         KEY idx_date (date)
     ) $charset_collate;";
     dbDelta( $sql_summary );
+    
+    // 5. User Site Access Table
+    // This table links users to sites they have access to
+    $table_name_user_sites = $wpdb->prefix . 'bite_user_sites';
+    $sql_user_sites = "CREATE TABLE $table_name_user_sites (
+        user_site_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id BIGINT UNSIGNED NOT NULL,
+        site_id INT UNSIGNED NOT NULL,
+        assigned_by BIGINT UNSIGNED NOT NULL,
+        assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_site_id),
+        UNIQUE KEY uq_user_site (user_id, site_id),
+        KEY idx_user_id (user_id),
+        KEY idx_site_id (site_id)
+    ) $charset_collate;";
+    dbDelta( $sql_user_sites );
 }
 add_action( 'after_switch_theme', 'bite_create_database_tables' );

@@ -28,3 +28,6 @@ require_once BITE_THEME_DIR . '/includes/google-api.php';
 
 // 6. Charting & Reporting Functions
 require_once BITE_THEME_DIR . '/includes/reporting.php';
+
+// 7. User Access Control (Client isolation)
+require_once BITE_THEME_DIR . '/includes/user-access.php';

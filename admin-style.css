@@ -135,3 +135,14 @@
     background: var(--error-color) !important;
     color: var(--light-text-color) !important;
 }
+
+/* Admin Badge for User Access */
+.bite-badge-admin {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
+    color: var(--light-text-color);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85em;
+    font-weight: 600;
+}

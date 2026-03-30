@@ -9,12 +9,23 @@ get_header();
 
 global $wpdb;
 
-// --- Get data for filters ---
-$sites_table = $wpdb->prefix . 'bite_sites';
-$all_sites = $wpdb->get_results( "SELECT site_id, name FROM $sites_table ORDER BY name ASC" );
+// --- Get user's allowed sites (admins see all, users see assigned) ---
+$current_user_id = get_current_user_id();
+$user_site_ids = bite_get_user_sites( $current_user_id );
+
+// Get site details for user's sites
+$all_sites = array();
 $site_name_lookup = array();
-foreach ( $all_sites as $site ) {
-    $site_name_lookup[ $site->site_id ] = $site->name;
+if ( ! empty( $user_site_ids ) ) {
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    $placeholders = implode( ', ', array_fill( 0, count( $user_site_ids ), '%d' ) );
+    $all_sites = $wpdb->get_results( $wpdb->prepare(
+        "SELECT site_id, name FROM $sites_table WHERE site_id IN ($placeholders) ORDER BY name ASC",
+        $user_site_ids
+    ) );
+    foreach ( $all_sites as $site ) {
+        $site_name_lookup[ $site->site_id ] = $site->name;
+    }
 }
 
 // --- Get current filter values from URL ---
@@ -23,19 +34,25 @@ $selected_device = ( isset( $_GET['device'] ) ) ? sanitize_text_field( $_GET['de
 $display_start_date = ( isset( $_GET['start_date'] ) && ! empty($_GET['start_date']) ) ? sanitize_text_field( $_GET['start_date'] ) : date( 'd-m-Y', strtotime( '-30 days' ) );
 $display_end_date = ( isset( $_GET['end_date'] ) && ! empty($_GET['end_date']) ) ? sanitize_text_field( $_GET['end_date'] ) : date( 'd-m-Y', strtotime( '-1 day' ) );
 
-// --- Main Data Query ---
+// --- Check access to selected site ---
+$access_denied = false;
 $table_data = null;
 $chart_data = null;
 $selected_site_name = '';
 
 if ( $selected_site_id > 0 ) {
-    $selected_site_name = ( isset( $site_name_lookup[ $selected_site_id ] ) ) ? $site_name_lookup[ $selected_site_id ] : 'Site ID ' . $selected_site_id;
-    
-    $sql_start_date = date( 'Y-m-d', strtotime( $display_start_date ) );
-    $sql_end_date = date( 'Y-m-d', strtotime( $display_end_date ) );
+    // Verify user has access to this site
+    if ( ! bite_user_has_site_access( $current_user_id, $selected_site_id ) ) {
+        $access_denied = true;
+    } else {
+        $selected_site_name = ( isset( $site_name_lookup[ $selected_site_id ] ) ) ? $site_name_lookup[ $selected_site_id ] : 'Site ID ' . $selected_site_id;
+        
+        $sql_start_date = date( 'Y-m-d', strtotime( $display_start_date ) );
+        $sql_end_date = date( 'Y-m-d', strtotime( $display_end_date ) );
 
-    $table_data = bite_get_data_for_table( $selected_site_id, $sql_start_date, $sql_end_date, $selected_device );
-    $chart_data = bite_get_data_for_chart( $selected_site_id, $sql_start_date, $sql_end_date, $selected_device );
+        $table_data = bite_get_data_for_table( $selected_site_id, $sql_start_date, $sql_end_date, $selected_device );
+        $chart_data = bite_get_data_for_chart( $selected_site_id, $sql_start_date, $sql_end_date, $selected_device );
+    }
 }
 
 ?>
@@ -90,7 +107,14 @@ if ( $selected_site_id > 0 ) {
 
 	<div class="bite-dashboard-widgets">
         <?php
-        if ( $selected_site_id > 0 ) :
+        if ( $access_denied ) :
+        ?>
+            <div class="bite-widget-container bite-access-denied">
+                <h2><?php esc_html_e( 'Access Denied', 'bite-theme' ); ?></h2>
+                <p><?php esc_html_e( 'You do not have permission to view data for this site. Please contact your administrator if you believe this is an error.', 'bite-theme' ); ?></p>
+            </div>
+        <?php
+        elseif ( $selected_site_id > 0 ) :
         ?>
             
             <?php if ( ! empty( $chart_data['labels'] ) ) : ?>
