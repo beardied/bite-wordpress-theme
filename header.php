@@ -63,6 +63,7 @@
 				</a>
 			</div>
 
+			<?php if ( is_user_logged_in() ) : ?>
 			<!-- Navigation -->
 			<nav id="site-navigation" class="bite-main-navigation">
                 <ul>
@@ -113,6 +114,12 @@
                     </span>
 				</div>
 			</div>
+			<?php else : ?>
+			<!-- Logged Out: Show Login Button -->
+			<div class="bite-user-info">
+				<a class="bite-logout-link" href="<?php echo esc_url( wp_login_url() ); ?>">Client Login</a>
+			</div>
+			<?php endif; ?>
 		</div>
 	</header>
 

@@ -34,16 +34,25 @@ add_action( 'switch_theme', 'bite_deactivate_theme' );
 
 
 /**
- * 3. Force login for all pages.
+ * 3. Force login for all pages EXCEPT the landing page.
  *
  * Redirects any user who is not logged in to the WP login page,
- * ensuring the BITE system is 100% private.
+ * ensuring the BITE system is private. Public access allowed to landing page.
  */
 function bite_force_login() {
-    // Allow access to the login page itself.
-    if ( ! is_user_logged_in() && ! in_array( $GLOBALS['pagenow'], array( 'wp-login.php', 'wp-register.php' ) ) ) {
-        wp_redirect( wp_login_url() );
-        exit;
+    // Allow access to login/register pages and the landing page template
+    if ( ! is_user_logged_in() ) {
+        $allowed_pages = array( 'wp-login.php', 'wp-register.php' );
+        
+        // Check if current page is using the landing page template
+        if ( is_page_template( 'template-sales-landing.php' ) ) {
+            return; // Allow access to landing page
+        }
+        
+        if ( ! in_array( $GLOBALS['pagenow'], $allowed_pages ) ) {
+            wp_redirect( wp_login_url() );
+            exit;
+        }
     }
 }
 add_action( 'template_redirect', 'bite_force_login' );
@@ -88,6 +97,16 @@ function bite_enqueue_scripts() {
             array(),
             filemtime( get_stylesheet_directory() . '/style.css' ) // Auto cache bust based on file modification time
         );
+
+        // Enqueue landing page CSS if on landing page
+        if ( is_page_template( 'template-sales-landing.php' ) ) {
+            wp_enqueue_style(
+                'bite-landing-style',
+                get_template_directory_uri() . '/landing-page.css',
+                array(),
+                filemtime( get_template_directory() . '/landing-page.css' )
+            );
+        }
 
         // --- jQuery & Datepicker ---
         wp_enqueue_script( 'jquery' );
