@@ -1,0 +1,380 @@
+/*
+Theme Name: BITE-theme
+Theme URI: https://bite.orangewidow.com
+Author: Chris Mason
+Author URI: https://orangewidow.com
+Description: A custom Bulk Insight Tracking Engine theme for OrangeWidow.
+Version: 1.0.0
+*/
+
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --accent-color: #2980b9;
+    --background-color: #ecf0f1;
+    --text-color: #34495e;
+    --light-text-color: #ffffff;
+    --border-color: #bdc3c7;
+    --success-color: #2ecc71;
+    --error-color: #e74c3c;
+    --table-header-bg: #34495e;
+    --table-row-even-bg: #fdfdfd;
+    --table-row-odd-bg: #f7f7f7;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* --- Basic Layout & Typography --- */
+body, html {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.bite-site-wrapper {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.bite-site-content {
+    width: 100%;
+    flex-grow: 1; /* This makes the content area fill available space */
+}
+
+main.bite-main-content,
+.bite-page-header {
+    width: 100%;
+    max-width: 100%; /* Enforce full width */
+    padding: 20px;
+    box-sizing: border-box; /* Include padding in the width calculation */
+}
+
+a {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+a:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--primary-color);
+}
+
+/* --- Header --- */
+.bite-site-header {
+    width: 100%;
+    background-color: var(--primary-color);
+    color: var(--light-text-color);
+    padding: 10px 20px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.bite-header-inner {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bite-logo a {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--light-text-color);
+    text-decoration: none;
+}
+
+/* --- Main Navigation --- */
+.bite-main-navigation ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+}
+
+.bite-main-navigation li {
+    margin: 0 10px;
+}
+
+.bite-main-navigation a {
+    color: var(--light-text-color);
+    font-size: 1.1em;
+    padding: 10px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.bite-main-navigation a:hover {
+    background-color: var(--accent-color);
+    text-decoration: none;
+}
+
+/* --- User Info --- */
+.bite-user-info {
+    display: flex;
+    align-items: center;
+    color: var(--border-color);
+}
+
+.bite-server-time {
+    margin-right: 20px;
+    font-size: 0.9em;
+}
+
+.bite-logout-link {
+    background-color: var(--secondary-color);
+    color: var(--light-text-color);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.bite-logout-link:hover {
+    background-color: var(--accent-color);
+    text-decoration: none;
+}
+
+/* --- Footer --- */
+.bite-site-footer {
+    width: 100%;
+    padding: 20px;
+    background-color: #fff;
+    border-top: 1px solid var(--border-color);
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 0.9em;
+    color: var(--text-color);
+}
+
+.bite-site-footer p {
+    margin: 0;
+}
+
+/* --- Filter Bar --- */
+.bite-filter-bar {
+    width: 100%;
+    padding: 20px;
+    background-color: #fff;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-sizing: border-box;
+}
+
+.bite-filter-bar form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end; /* Align items to the bottom */
+    gap: 20px;
+}
+
+.bite-filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.bite-filter-group label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: var(--text-color);
+}
+
+.bite-filter-group select,
+.bite-filter-group input[type="text"] {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1em;
+    min-width: 200px;
+}
+
+.bite-button {
+    background-color: var(--secondary-color);
+    color: var(--light-text-color);
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 1em;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.bite-button:hover {
+    background-color: var(--accent-color);
+    text-decoration: none;
+}
+
+/* --- Dashboard Widgets Area --- */
+.bite-dashboard-widgets {
+    padding: 20px;
+}
+
+/* --- Widget Containers --- */
+.bite-widget-container {
+    background-color: #fff;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+.bite-widget-container h2 {
+    margin-top: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+/* Wrapper for the chart canvas */
+.bite-chart-wrapper {
+    height: 400px !important; /* Force the wrapper height */
+    position: relative;
+    width: 100%;
+}
+#bite-line-chart {
+    /* No rules needed here, JS will fill the parent */
+}
+
+/* --- DataTables.js Styling --- */
+.dataTables_wrapper {
+    width: 100%;
+}
+.dataTables_filter {
+    margin-bottom: 15px;
+}
+.dataTables_filter label {
+    font-weight: bold;
+}
+.dataTables_filter input {
+    border: 1px solid var(--border-color);
+    padding: 5px 8px;
+    border-radius: 4px;
+    margin-left: 5px;
+}
+.dataTables_length label {
+    font-weight: bold;
+}
+.dataTables_length select {
+    border: 1px solid var(--border-color);
+    padding: 5px;
+    border-radius: 4px;
+    margin: 0 5px;
+}
+
+/* Style the table itself */
+table.bite-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+}
+table.bite-data-table th,
+table.bite-data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+table.bite-data-table thead th {
+    background-color: var(--table-header-bg);
+    color: var(--light-text-color);
+    text-align: left;
+    cursor: pointer;
+}
+table.bite-data-table tbody tr:nth-child(even) {
+    background-color: var(--table-row-even-bg);
+}
+table.bite-data-table tbody tr:nth-child(odd) {
+    background-color: var(--table-row-odd-bg);
+}
+table.bite-data-table tbody tr:hover {
+    background-color: #e0f0ff;
+}
+
+/* Pagination */
+.dataTables_paginate {
+    margin-top: 15px;
+}
+.dataTables_paginate .paginate_button {
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin: 0 3px;
+    cursor: pointer;
+    background: #fff;
+}
+.dataTables_paginate .paginate_button.current,
+.dataTables_paginate .paginate_button.current:hover {
+    background: var(--secondary-color);
+    color: var(--light-text-color) !important;
+    border-color: var(--secondary-color);
+}
+.dataTables_paginate .paginate_button:hover {
+    background: var(--background-color);
+    border-color: var(--border-color);
+}
+.dataTables_paginate .paginate_button.disabled,
+.dataTables_paginate .paginate_button.disabled:hover {
+    color: #aaa !important;
+    background: #f9f9f9;
+    cursor: default;
+}
+
+/* --- Opportunity Finder Tool --- */
+.page-template-template-opportunity-finder .bite-filter-group {
+    flex: 1 1 200px; /* Allow filters to wrap better */
+}
+
+/* --- Trends Table Colors --- */
+.bite-trend-up {
+    color: #27ae60;
+    font-weight: bold;
+}
+.bite-trend-down {
+    color: var(--error-color);
+    font-weight: bold;
+}
+
+/* --- Make filter groups align --- */
+.bite-filter-group {
+    flex: 1 1 180px; /* Allow filters to wrap nicely */
+}
+.bite-filter-group button {
+    width: 100%;
+    height: 100%;
+}
+
+/* --- Help Tooltips in Tables --- */
+th span[title] {
+    text-decoration: underline dotted;
+    cursor: help;
+}
+
+/* --- Insight Box --- */
+.bite-insight-box {
+    background-color: #fdfaeb;
+    border: 1px solid #f6e099;
+    border-left-width: 4px;
+    border-left-color: #f3c12a;
+    padding: 15px 20px;
+    border-radius: 4px;
+}
+.bite-insight-box h2 {
+    margin-top: 0;
+}
+.bite-insight-box p {
+    font-size: 1.1em;
+    margin-bottom: 0;
+}
+.bite-insight-box p strong {
+    color: var(--primary-color);
+}
