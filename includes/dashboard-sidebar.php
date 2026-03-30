@@ -153,9 +153,9 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
         
         <!-- Help Section -->
         <div class="bite-sidebar-help">
-            <a href="https://orangewidow.com/contact" target="_blank" class="bite-help-link">
-                <span class="bite-menu-icon material-icons">help_outline</span>
-                <span class="bite-menu-text">Need Help?</span>
+            <a href="https://orangewidow.com" target="_blank" class="bite-help-link">
+                <span class="bite-menu-icon material-icons">language</span>
+                <span class="bite-menu-text">Visit OrangeWidow</span>
             </a>
         </div>
         

@@ -116,6 +116,16 @@ function bite_enqueue_scripts() {
             );
         }
 
+        // Enqueue contact page CSS if on contact page
+        if ( is_page_template( 'template-contact.php' ) ) {
+            wp_enqueue_style(
+                'bite-contact-style',
+                get_template_directory_uri() . '/assets/css/contact-page.css',
+                array(),
+                filemtime( get_template_directory() . '/assets/css/contact-page.css' )
+            );
+        }
+
         // --- jQuery & Datepicker ---
         wp_enqueue_script( 'jquery' );
         wp_enqueue_script( 'jquery-ui-datepicker' );

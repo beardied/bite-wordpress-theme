@@ -1,0 +1,274 @@
+/*
+ * BITE Contact Page Styles
+ * Styling for the contact/request access page
+ */
+
+/* Contact Header */
+.bite-contact-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #16213E 100%);
+    color: var(--light-text-color);
+    padding: 80px 24px 60px;
+    text-align: center;
+}
+
+.bite-contact-header-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.bite-contact-title {
+    font-size: 2.8em;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    color: var(--light-text-color);
+}
+
+.bite-contact-subtitle {
+    font-size: 1.2em;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Contact Section */
+.bite-contact-section {
+    padding: 60px 24px;
+    background: var(--background-color);
+}
+
+.bite-contact-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+/* Form Messages */
+.bite-contact-success,
+.bite-contact-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 20px 24px;
+    border-radius: var(--radius-md);
+    margin-bottom: 30px;
+}
+
+.bite-contact-success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.bite-contact-error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.bite-contact-success .material-icons,
+.bite-contact-error .material-icons {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.bite-contact-success p,
+.bite-contact-error p {
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Contact Form */
+.bite-contact-form {
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    box-shadow: var(--shadow-md);
+}
+
+/* Honeypot (hidden from users) */
+.bite-honeypot {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.bite-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.bite-form-group {
+    margin-bottom: 24px;
+}
+
+.bite-form-group-half {
+    margin-bottom: 0;
+}
+
+.bite-form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 8px;
+    font-size: 0.95em;
+}
+
+.bite-required {
+    color: var(--secondary-color);
+}
+
+.bite-form-group input[type="text"],
+.bite-form-group input[type="email"],
+.bite-form-group textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-size: 1em;
+    color: var(--text-color);
+    background: var(--background-color);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+.bite-form-group input[type="text"]:focus,
+.bite-form-group input[type="email"]:focus,
+.bite-form-group textarea:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(232, 93, 4, 0.15);
+    outline: none;
+}
+
+.bite-form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.bite-form-group input::placeholder,
+.bite-form-group textarea::placeholder {
+    color: #adb5bd;
+}
+
+/* Submit Button */
+.bite-form-submit {
+    margin-top: 30px;
+}
+
+.bite-form-submit .bite-button {
+    width: 100%;
+    padding: 16px 32px;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.bite-form-submit .bite-button .material-icons {
+    font-size: 20px;
+}
+
+/* Form Note */
+.bite-form-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-light);
+    color: var(--text-muted);
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.bite-form-note .material-icons {
+    font-size: 18px;
+    flex-shrink: 0;
+    color: var(--secondary-color);
+}
+
+/* Contact Info Section */
+.bite-contact-info-section {
+    padding: 60px 24px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-top: 1px solid var(--border-light);
+}
+
+.bite-contact-info-container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 40px;
+}
+
+.bite-contact-info-item {
+    text-align: center;
+}
+
+.bite-contact-info-item .material-icons {
+    font-size: 48px;
+    color: var(--secondary-color);
+    margin-bottom: 16px;
+}
+
+.bite-contact-info-item h3 {
+    font-size: 1.3em;
+    color: var(--primary-color);
+    margin: 0 0 10px 0;
+}
+
+.bite-contact-info-item p {
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.bite-contact-info-item a {
+    color: var(--secondary-color);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.bite-contact-info-item a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .bite-contact-header {
+        padding: 60px 20px 40px;
+    }
+    
+    .bite-contact-title {
+        font-size: 2em;
+    }
+    
+    .bite-contact-subtitle {
+        font-size: 1em;
+    }
+    
+    .bite-contact-section {
+        padding: 40px 20px;
+    }
+    
+    .bite-contact-form {
+        padding: 24px;
+    }
+    
+    .bite-form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+    
+    .bite-form-group-half {
+        margin-bottom: 24px;
+    }
+    
+    .bite-contact-info-container {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+}

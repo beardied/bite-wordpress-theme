@@ -45,6 +45,16 @@ function bite_register_admin_menu() {
         'bite-admin-niches',
         'bite_admin_page_niches'
     );
+
+    // Add the "Settings" submenu page
+    add_submenu_page(
+        'bite-admin-main',
+        __( 'BITE Settings', 'bite-theme' ),
+        __( 'Settings', 'bite-theme' ),
+        'manage_options',
+        'bite-admin-settings',
+        'bite_admin_page_settings'
+    );
 }
 add_action( 'admin_menu', 'bite_register_admin_menu' );
 
@@ -559,6 +569,78 @@ function bite_admin_page_user_access() {
                 </tbody>
             </table>
         <?php endif; ?>
+    </div>
+    <?php
+}
+
+
+/**
+ * Register BITE settings
+ */
+function bite_register_settings() {
+    register_setting( 'bite_settings', 'bite_contact_email' );
+}
+add_action( 'admin_init', 'bite_register_settings' );
+
+/**
+ * Display the Settings Page
+ */
+function bite_admin_page_settings() {
+    // Check permissions
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( __( 'You do not have permission to access this page.', 'bite-theme' ) );
+    }
+
+    // Save settings
+    if ( isset( $_POST['bite_settings_save'] ) && isset( $_POST['bite_settings_nonce'] ) && wp_verify_nonce( $_POST['bite_settings_nonce'], 'bite_save_settings' ) ) {
+        $contact_email = sanitize_email( $_POST['bite_contact_email'] );
+        update_option( 'bite_contact_email', $contact_email );
+        echo '<div class="notice notice-success"><p>Settings saved successfully.</p></div>';
+    }
+
+    // Get current settings
+    $contact_email = get_option( 'bite_contact_email', get_option( 'admin_email' ) );
+    ?>
+    <div class="wrap">
+        <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+        
+        <form method="post" action="">
+            <?php wp_nonce_field( 'bite_save_settings', 'bite_settings_nonce' ); ?>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="bite_contact_email">Contact Form Email</label>
+                    </th>
+                    <td>
+                        <input type="email" 
+                               id="bite_contact_email" 
+                               name="bite_contact_email" 
+                               value="<?php echo esc_attr( $contact_email ); ?>" 
+                               class="regular-text"
+                               placeholder="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>">
+                        <p class="description">
+                            The email address where contact form submissions will be sent. 
+                            If not set, the WordPress admin email will be used.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+            
+            <?php submit_button( 'Save Settings', 'primary', 'bite_settings_save' ); ?>
+        </form>
+        
+        <hr>
+        
+        <h2>Contact Form Information</h2>
+        <p>The contact form is available at: <code><?php echo esc_url( home_url( '/contact/' ) ); ?></code></p>
+        <p>To use the contact form:</p>
+        <ol>
+            <li>Create a new page in WordPress</li>
+            <li>Set the page slug to <code>contact</code></li>
+            <li>Select the "BITE Contact Page" template</li>
+            <li>Publish the page</li>
+        </ol>
     </div>
     <?php
 }

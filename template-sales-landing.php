@@ -27,8 +27,8 @@ get_header();
                     your websites' performance across multiple properties with enterprise-grade analytics.
                 </p>
                 <div class="bite-hero-cta">
-                    <a href="https://orangewidow.com/contact" class="bite-button bite-button-large" target="_blank">
-                        Get Access Through OrangeWidow
+                    <a href="<?php echo esc_url( home_url( '/contact/' ) ); ?>" class="bite-button bite-button-large">
+                        Request Access
                     </a>
                     <p class="bite-hero-note">Existing client? <a href="<?php echo esc_url( wp_login_url() ); ?>">Log in here</a></p>
                 </div>
@@ -174,8 +174,8 @@ get_header();
         <div class="bite-cta-content">
             <h2>Ready to Unlock Your Search Data?</h2>
             <p>B.I.T.E. is exclusively available through OrangeWidow. Contact us today to get access to this powerful analytics platform.</p>
-            <a href="https://orangewidow.com/contact" class="bite-button bite-button-large bite-button-white" target="_blank">
-                Contact OrangeWidow
+            <a href="<?php echo esc_url( home_url( '/contact/' ) ); ?>" class="bite-button bite-button-large bite-button-white">
+                Request Access
             </a>
         </div>
     </section>
