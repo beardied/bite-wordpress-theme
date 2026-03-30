@@ -40,3 +40,6 @@ require_once BITE_THEME_DIR . '/includes/login-page.php';
 
 // 9. Disable Comments System
 require_once BITE_THEME_DIR . '/includes/disable-comments.php';
+
+// 10. robots.txt Handling (disable virtual, use physical)
+require_once BITE_THEME_DIR . '/includes/robots-txt.php';
