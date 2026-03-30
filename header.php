@@ -12,6 +12,9 @@
 <head>
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+	<meta http-equiv="Pragma" content="no-cache">
+	<meta http-equiv="Expires" content="0">
 	<link rel="profile" href="https://gmpg.org/xfn/11">
     <?php // Do not output the admin bar for BITE Viewers, but do for Admins ?>
     <?php if ( ! current_user_can( 'bite_viewer' ) ) : ?>

@@ -81,12 +81,12 @@ function bite_enqueue_scripts() {
     // Check if we are on the front-end (our dashboard)
     if ( ! is_admin() ) {
         
-        // Enqueue the main stylesheet
+        // Enqueue the main stylesheet with cache busting
         wp_enqueue_style(
             'bite-theme-style',
             get_stylesheet_uri(),
             array(),
-            '1.0.3' // Incremented version
+            filemtime( get_stylesheet_directory() . '/style.css' ) // Auto cache bust based on file modification time
         );
 
         // --- jQuery & Datepicker ---
@@ -123,8 +123,8 @@ function bite_enqueue_scripts() {
         wp_enqueue_script(
             'bite-theme-js',
             get_template_directory_uri() . '/js/bite.js',
-            array( 'jquery', 'jquery-ui-datepicker', 'chart-js', 'datatables-js' ), // Add new dependencies
-            '1.1.0', // Incremented version
+            array( 'jquery', 'jquery-ui-datepicker', 'chart-js', 'datatables-js' ),
+            filemtime( get_template_directory() . '/js/bite.js' ), // Auto cache bust
             true // Load in footer
         );
     
@@ -137,14 +137,14 @@ function bite_enqueue_scripts() {
                 'bite-theme-style-vars',
                 get_stylesheet_uri(),
                 array(),
-                '1.1.1'
+                filemtime( get_stylesheet_directory() . '/style.css' )
             );
 
             wp_enqueue_style(
                 'bite-admin-style',
                 get_template_directory_uri() . '/admin-style.css',
                 array( 'bite-theme-style-vars' ),
-                '1.0.0'
+                filemtime( get_template_directory() . '/admin-style.css' )
             );
         }
     }
