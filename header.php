@@ -31,14 +31,14 @@
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
 
-<div id="page" class="kts-site-wrapper">
-	<header id="masthead" class="kts-site-header">
-		<div class="kts-header-inner">
-			<div class="kts-logo">
+<div id="page" class="bite-site-wrapper">
+	<header id="masthead" class="bite-site-header">
+		<div class="bite-header-inner">
+			<div class="bite-logo">
 				<a href="<?php echo esc_url( home_url( '/' ) ); ?>">BITE Dashboard</a>
 			</div>
 
-			<nav id="site-navigation" class="kts-main-navigation">
+			<nav id="site-navigation" class="bite-main-navigation">
                 <ul>
                     <li><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="View the main keyword dashboard">Dashboard</a></li>
                     
@@ -67,22 +67,22 @@
                     <?php
                     // Only show 'Manage Sites' link to admins
                     if ( current_user_can( 'manage_options' ) ) {
-                        echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=kts-admin-main' ) ) . '" title="Manage sites, niches, and system settings">Manage Sites (Admin)</a></li>';
+                        echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ) . '" title="Manage sites, niches, and system settings">Manage Sites (Admin)</a></li>';
                     }
                     ?>
                 </ul>
 			</nav>
 
-			<div class="kts-user-info">
-				<span class="kts-server-time">
+			<div class="bite-user-info">
+				<span class="bite-server-time">
                     <?php
                     // Show the server time in the new format
                     echo 'Server Time: ' . esc_html( date( 'd-m-Y H:i:s' ) ) . ' (UTC)';
                     ?>
                 </span>
-				<a class="kts-logout-link" href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>">Log Out</a>
+				<a class="bite-logout-link" href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>">Log Out</a>
 			</div>
 		</div>
 	</header>
 
-	<div id="content" class="kts-site-content">
+	<div id="content" class="bite-site-content">

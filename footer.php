@@ -7,8 +7,8 @@
  * @package BITE-theme
  */
 ?>
-	</div><footer id="colophon" class="kts-site-footer">
-		<div class="kts-footer-inner">
+	</div><footer id="colophon" class="bite-site-footer">
+		<div class="bite-footer-inner">
 			<p>&copy; <?php echo esc_html( date( 'Y' ) ); ?> <?php bloginfo( 'name' ); ?></p>
 		</div>
 	</footer>
