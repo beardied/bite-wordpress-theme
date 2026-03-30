@@ -156,25 +156,20 @@ add_action( 'admin_enqueue_scripts', 'bite_enqueue_scripts' ); // Back-end
  * 7. Add Customizer support for Logo.
  */
 function bite_customize_register( $wp_customize ) {
-    // Logo Section
-    $wp_customize->add_section( 'bite_theme_options', array(
-        'title'    => __( 'BITE Theme Options', 'bite-theme' ),
-        'priority' => 30,
-    ) );
-
-    // Logo Setting
+    // Logo Setting - Adds to Site Identity section
     $wp_customize->add_setting( 'bite_logo', array(
         'default'           => '',
         'sanitize_callback' => 'esc_url_raw',
         'transport'         => 'refresh',
     ) );
 
-    // Logo Control
+    // Logo Control - Placed in Site Identity section
     $wp_customize->add_control( new WP_Customize_Image_Control( $wp_customize, 'bite_logo', array(
-        'label'       => __( 'Header Logo', 'bite-theme' ),
-        'description' => __( 'Upload a logo to replace the default BITE Dashboard text. Recommended height: 40-50px. Transparent PNG preferred.', 'bite-theme' ),
-        'section'     => 'bite_theme_options',
+        'label'       => __( 'Header Logo Image', 'bite-theme' ),
+        'description' => __( 'Upload a logo to display next to your site title. Recommended: 65px height, transparent PNG.', 'bite-theme' ),
+        'section'     => 'title_tagline', // Site Identity section
         'settings'    => 'bite_logo',
+        'priority'    => 9, // Just after site icon
     ) ) );
 
     // Show Site Name Setting
@@ -186,10 +181,11 @@ function bite_customize_register( $wp_customize ) {
 
     // Show Site Name Control
     $wp_customize->add_control( 'bite_show_site_name', array(
-        'label'       => __( 'Show Site Name with Logo', 'bite-theme' ),
-        'description' => __( 'If checked, the site name will be displayed next to the logo.', 'bite-theme' ),
-        'section'     => 'bite_theme_options',
+        'label'       => __( 'Show Site Title & Tagline with Logo', 'bite-theme' ),
+        'description' => __( 'If checked, the site title and tagline will be displayed next to the logo.', 'bite-theme' ),
+        'section'     => 'title_tagline', // Site Identity section
         'type'        => 'checkbox',
+        'priority'    => 10,
     ) );
 }
 add_action( 'customize_register', 'bite_customize_register' );

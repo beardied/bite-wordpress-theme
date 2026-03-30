@@ -50,10 +50,13 @@
 					}
 					
 					if ( $show_site_name || empty( $custom_logo ) ) {
-						// Display site name with tagline
+						// Display site name with tagline from WordPress Customizer
 						echo '<div class="bite-branding-text">';
-						echo '<span class="bite-branding-name">B.I.T.E.</span>';
-						echo '<span class="bite-branding-tagline">Bulk Insight Tracking Engine</span>';
+						echo '<span class="bite-branding-name">' . esc_html( get_bloginfo( 'name' ) ) . '</span>';
+						$tagline = get_bloginfo( 'description' );
+						if ( ! empty( $tagline ) ) {
+							echo '<span class="bite-branding-tagline">' . esc_html( $tagline ) . '</span>';
+						}
 						echo '</div>';
 					}
 					?>
