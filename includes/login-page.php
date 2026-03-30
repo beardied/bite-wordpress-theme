@@ -21,7 +21,13 @@ function bite_login_styles() {
     $tagline = get_bloginfo( 'description' );
     
     // Material Icons
-    wp_enqueue_style( 'material-icons', 'https://fonts.googleapis.com/icon?family=Material+Icons', array(), null );
+    // Use self-hosted Material Icons font
+    wp_enqueue_style(
+        'bite-material-icons',
+        get_template_directory_uri() . '/assets/css/fonts.css',
+        array(),
+        filemtime( get_template_directory() . '/assets/css/fonts.css' )
+    );
     
     // Custom inline styles
     $custom_css = '

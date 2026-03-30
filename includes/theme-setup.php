@@ -90,6 +90,14 @@ function bite_enqueue_scripts() {
     // Check if we are on the front-end (our dashboard)
     if ( ! is_admin() ) {
         
+        // Enqueue self-hosted Material Icons font (for better performance & privacy)
+        wp_enqueue_style(
+            'bite-material-icons',
+            get_template_directory_uri() . '/assets/css/fonts.css',
+            array(),
+            filemtime( get_template_directory() . '/assets/css/fonts.css' )
+        );
+
         // Enqueue the main stylesheet with cache busting
         wp_enqueue_style(
             'bite-theme-style',

@@ -11,9 +11,6 @@
 get_header();
 ?>
 
-<!-- Material Icons Font for Feature Icons -->
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
 <main id="main" class="bite-landing-page" role="main">
     
     <!-- Hero Section -->

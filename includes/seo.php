@@ -269,10 +269,13 @@ add_action( 'init', 'bite_clean_wp_head' );
 
 /**
  * Add preconnect hints for faster loading
+ * Note: Material Icons are now self-hosted for better performance
  */
 function bite_preconnect_hints() {
-    echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
-    echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
+    // CDNs we use for scripts/styles
+    echo '<link rel="preconnect" href="https://ajax.googleapis.com">' . "\n";
+    echo '<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>' . "\n";
+    echo '<link rel="preconnect" href="https://cdn.datatables.net" crossorigin>' . "\n";
 }
 add_action( 'wp_head', 'bite_preconnect_hints', 0 );
 

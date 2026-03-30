@@ -41,9 +41,6 @@ if ( empty( $current_slug ) ) {
 $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
 ?>
 
-<!-- Material Icons Font -->
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
 <!-- Floating Toggle Button (visible when sidebar is collapsed) -->
 <button id="bite-sidebar-toggle-float" class="bite-sidebar-toggle-float" aria-label="Open Menu" style="display: none;">
     <span class="material-icons">menu</span>
