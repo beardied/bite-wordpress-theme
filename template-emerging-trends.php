@@ -40,7 +40,11 @@ if ( $selected_site_id > 0 ) {
 
 ?>
 
-<main id="main" class="bite-main-content" role="main">
+<div class="bite-dashboard-wrapper">
+    
+    <?php get_template_part( 'includes/dashboard-sidebar' ); ?>
+
+    <main id="main" class="bite-dashboard-main-content" role="main">
 	<div class="bite-page-header">
 		<h1>Emerging Trends Detector</h1>
 		<p>Find keywords with rapid changes in impressions. This tool compares the first half of your selected date range to the second half.</p>
@@ -148,6 +152,8 @@ if ( $selected_site_id > 0 ) {
 	</div>
 
 </main>
+    
+</div>
 
 <?php
 get_footer();

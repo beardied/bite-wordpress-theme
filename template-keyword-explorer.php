@@ -34,7 +34,11 @@ if ( $selected_niche_id > 0 && ! empty( $seed_keyword ) ) {
 
 ?>
 
-<main id="main" class="bite-main-content" role="main">
+<div class="bite-dashboard-wrapper">
+    
+    <?php get_template_part( 'includes/dashboard-sidebar' ); ?>
+
+    <main id="main" class="bite-dashboard-main-content" role="main">
 	<div class="bite-page-header">
 		<h1>Keyword Explorer</h1>
 		<p>Enter a "seed" keyword to find all related long-tail variations and their stats across an entire niche.</p>
@@ -136,6 +140,8 @@ if ( $selected_niche_id > 0 && ! empty( $seed_keyword ) ) {
 	</div>
 
 </main>
+    
+</div>
 
 <?php
 get_footer();

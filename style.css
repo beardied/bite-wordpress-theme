@@ -72,6 +72,12 @@ main.bite-main-content {
     box-sizing: border-box;
 }
 
+/* When inside dashboard wrapper, remove max-width and margin */
+.bite-dashboard-wrapper main.bite-main-content {
+    max-width: none;
+    margin: 0;
+}
+
 .bite-page-header {
     width: 100%;
     max-width: 1600px;
@@ -762,9 +768,9 @@ th span[title] {
     flex-direction: column;
     position: fixed;
     left: 0;
-    top: 80px; /* Below header */
+    top: 0; /* Full height from top */
     bottom: 0;
-    z-index: 100;
+    z-index: 2000; /* Above header (1000) */
     transition: transform 0.3s ease;
     box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
 }
@@ -955,10 +961,23 @@ th span[title] {
     margin-left: 280px; /* Width of sidebar */
     padding: 30px;
     transition: margin-left 0.3s ease;
+    min-height: calc(100vh - 85px); /* Full height minus header */
+    box-sizing: border-box;
 }
 
-.bite-sidebar.collapsed + .bite-dashboard-main-content {
+.bite-sidebar.collapsed ~ .bite-dashboard-main-content {
     margin-left: 0;
+}
+
+/* When sidebar is present, adjust main content */
+.bite-dashboard-wrapper .bite-dashboard-main-content {
+    background: var(--background-color);
+}
+
+/* Adjust existing page elements when inside dashboard wrapper */
+.bite-dashboard-wrapper .bite-page-header,
+.bite-dashboard-wrapper .bite-filter-bar {
+    max-width: none;
 }
 
 /* Sidebar Toggle Button (Floating when collapsed) */
@@ -966,7 +985,7 @@ th span[title] {
     position: fixed;
     left: 20px;
     top: 100px;
-    z-index: 99;
+    z-index: 1999; /* Just below sidebar */
     background: var(--primary-color);
     color: var(--light-text-color);
     border: none;

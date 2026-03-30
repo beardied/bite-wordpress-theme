@@ -32,7 +32,11 @@ if ( $selected_site_id > 0 ) {
 
 ?>
 
-<main id="main" class="bite-main-content" role="main">
+<div class="bite-dashboard-wrapper">
+    
+    <?php get_template_part( 'includes/dashboard-sidebar' ); ?>
+
+    <main id="main" class="bite-dashboard-main-content" role="main">
 	<div class="bite-page-header">
 		<h1>Anonymized Clicks (%)</h1>
 		<p>This chart shows the percentage of your total clicks that came from "Anonymized" (hidden) queries each day.</p>
@@ -116,6 +120,8 @@ if ( $ctr_report_data ) {
     echo '</script>';
 }
 ?>
+
+</div>
 
 <?php
 get_footer();

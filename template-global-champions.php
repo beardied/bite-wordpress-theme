@@ -33,7 +33,11 @@ if ( $selected_niche_id > 0 ) {
 
 ?>
 
-<main id="main" class="bite-main-content" role="main">
+<div class="bite-dashboard-wrapper">
+    
+    <?php get_template_part( 'includes/dashboard-sidebar' ); ?>
+
+    <main id="main" class="bite-dashboard-main-content" role="main">
 	<div class="bite-page-header">
 		<h1>Global Keyword Champions</h1>
 		<p>Find the top performing keywords across all sites in a single niche.</p>
@@ -138,6 +142,8 @@ if ( $selected_niche_id > 0 ) {
 	</div>
 
 </main>
+    
+</div>
 
 <?php
 get_footer();
