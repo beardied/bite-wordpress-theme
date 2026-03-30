@@ -34,3 +34,9 @@ require_once BITE_THEME_DIR . '/includes/reporting.php';
 
 // 7. User Access Control (Client isolation)
 require_once BITE_THEME_DIR . '/includes/user-access.php';
+
+// 8. Custom Login Page Styling
+require_once BITE_THEME_DIR . '/includes/login-page.php';
+
+// 9. Disable Comments System
+require_once BITE_THEME_DIR . '/includes/disable-comments.php';
