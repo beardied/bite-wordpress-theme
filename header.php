@@ -62,40 +62,16 @@
 			</div>
 
 			<?php if ( is_user_logged_in() ) : ?>
-			<!-- Navigation -->
+			<!-- Navigation - Custom WordPress Menu -->
 			<nav id="site-navigation" class="bite-main-navigation">
-                <ul>
-                    <li><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="View the main keyword dashboard">Dashboard</a></li>
-                    
-                    <?php
-                    $nav_pages = array(
-                        'Opportunity Finder' => 'Find keywords that one site ranks for, but another site is missing',
-                        'Global Champions'   => 'Find the top performing keywords across all sites in a single niche',
-                        'Emerging Trends'    => 'Find keywords with rapid changes in impressions or clicks',
-                        'Keyword Explorer'   => 'Explore all keyword variations in your database',
-                        'CTR Efficiency'     => 'Compare the CTR of Discoverable vs. Anonymized keywords'
-                    );
-
-                    foreach ( $nav_pages as $page_title => $tooltip ) {
-                        $page = get_posts( array(
-                            'post_type'   => 'page',
-                            'title'       => $page_title,
-                            'post_status' => 'publish',
-                            'numberposts' => 1,
-                        ) );
-                        if ( ! empty( $page ) ) {
-                            echo '<li><a href="' . esc_url( get_permalink( $page[0]->ID ) ) . '" title="' . esc_attr( $tooltip ) . '">' . esc_html( $page_title ) . '</a></li>';
-                        }
-                    }
-                    ?>
-                    
-                    <?php
-                    // Only show 'Manage Sites' link to admins
-                    if ( current_user_can( 'manage_options' ) ) {
-                        echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ) . '" title="Manage sites, niches, and system settings">Manage</a></li>';
-                    }
-                    ?>
-                </ul>
+                <?php
+                wp_nav_menu( array(
+                    'theme_location' => 'header-menu',
+                    'container'      => false,
+                    'fallback_cb'    => false,
+                    'items_wrap'     => '<ul>%3$s</ul>',
+                ) );
+                ?>
 			</nav>
 
 			<!-- User Info Section -->

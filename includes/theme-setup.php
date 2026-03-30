@@ -210,10 +210,11 @@ function bite_customize_register( $wp_customize ) {
 add_action( 'customize_register', 'bite_customize_register' );
 
 /**
- * 8. Register Footer Navigation Menus.
+ * 8. Register Navigation Menus.
  */
 function bite_register_menus() {
     register_nav_menus( array(
+        'header-menu'  => __( 'Header Menu', 'bite-theme' ),
         'footer-left'  => __( 'Footer Left Menu', 'bite-theme' ),
         'footer-right' => __( 'Footer Right Menu', 'bite-theme' ),
     ) );

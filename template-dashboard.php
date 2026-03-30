@@ -25,10 +25,10 @@ $is_admin        = current_user_can( 'manage_options' );
 // Get site details
 $user_sites = array();
 if ( ! empty( $user_site_ids ) ) {
-    $sites_table = $wpdb->prefix . 'bite_sites';
+    $sites_table  = $wpdb->prefix . 'bite_sites';
     $niches_table = $wpdb->prefix . 'bite_niches';
     $placeholders = implode( ', ', array_fill( 0, count( $user_site_ids ), '%d' ) );
-    $user_sites = $wpdb->get_results( $wpdb->prepare(
+    $user_sites   = $wpdb->get_results( $wpdb->prepare(
         "SELECT s.site_id, s.name, s.domain, s.gsc_property, s.created_at, n.niche_name 
          FROM $sites_table s 
          LEFT JOIN $niches_table n ON s.niche_id = n.niche_id 
@@ -89,273 +89,265 @@ if ( $quick_stats['total_impressions'] > 0 ) {
     $quick_stats['calculated_ctr'] = 0;
 }
 
-// Get available tools/pages
-$tools = array(
-    'opportunity-finder' => array(
-        'title'       => 'Opportunity Finder',
-        'description' => 'Find keywords that one site ranks for, but another is missing.',
-        'icon'          => 'search',
-        'color'         => 'blue',
+// Dashboard tools menu
+$dashboard_tools = array(
+    array(
+        'slug'  => 'dashboard',
+        'title' => 'Dashboard',
+        'icon'  => 'dashboard',
     ),
-    'global-champions'   => array(
-        'title'       => 'Global Champions',
-        'description' => 'Discover top-performing keywords across all sites in a niche.',
-        'icon'          => 'trophy',
-        'color'         => 'gold',
+    array(
+        'slug'  => 'opportunity-finder',
+        'title' => 'Opportunity Finder',
+        'icon'  => 'search',
     ),
-    'emerging-trends'    => array(
-        'title'       => 'Emerging Trends',
-        'description' => 'Identify keywords with rapid changes in impressions or clicks.',
-        'icon'          => 'trending_up',
-        'color'         => 'green',
+    array(
+        'slug'  => 'global-champions',
+        'title' => 'Global Champions',
+        'icon'  => 'emoji_events',
     ),
-    'keyword-explorer'   => array(
-        'title'       => 'Keyword Explorer',
-        'description' => 'Explore all keyword variations in your database.',
-        'icon'          => 'explore',
-        'color'         => 'purple',
+    array(
+        'slug'  => 'emerging-trends',
+        'title' => 'Emerging Trends',
+        'icon'  => 'trending_up',
     ),
-    'ctr-efficiency'     => array(
-        'title'       => 'CTR Efficiency',
-        'description' => 'Compare CTR of discoverable vs anonymized keywords.',
-        'icon'          => 'speed',
-        'color'         => 'orange',
+    array(
+        'slug'  => 'keyword-explorer',
+        'title' => 'Keyword Explorer',
+        'icon'  => 'travel_explore',
+    ),
+    array(
+        'slug'  => 'ctr-efficiency',
+        'title' => 'CTR Efficiency',
+        'icon'  => 'speed',
     ),
 );
 
-// Get page permalinks
-foreach ( $tools as $slug => &$tool ) {
-    $page = get_page_by_path( $slug );
-    if ( $page ) {
-        $tool['url'] = get_permalink( $page->ID );
-    } else {
-        $tool['url'] = home_url( '/' );
-    }
+// Get current page slug for active state
+$current_slug = 'dashboard';
+if ( is_page() ) {
+    $current_slug = get_post_field( 'post_name', get_post() );
 }
 
 ?>
 
-<main id="main" class="bite-dashboard-page" role="main">
+<!-- Material Icons Font -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<!-- Floating Toggle Button (visible when sidebar is collapsed) -->
+<button id="bite-sidebar-toggle-float" class="bite-sidebar-toggle-float" aria-label="Open Menu" style="display: none;">
+    <span class="material-icons">menu</span>
+</button>
+
+<div class="bite-dashboard-wrapper">
     
-    <!-- Welcome Section -->
-    <section class="bite-dashboard-welcome">
-        <div class="bite-welcome-content">
-            <h1 class="bite-welcome-title">
-                Welcome back, <?php echo esc_html( $current_user->display_name ); ?>!
-            </h1>
-            <p class="bite-welcome-subtitle">
-                Here's your BITE dashboard overview. You have access to 
-                <strong><?php echo count( $user_sites ); ?> site<?php echo count( $user_sites ) !== 1 ? 's' : ''; ?></strong>
-                <?php if ( ! empty( $user_niches ) ) : ?>
-                    across <strong><?php echo count( $user_niches ); ?> niche<?php echo count( $user_niches ) !== 1 ? 's' : ''; ?></strong>
-                <?php endif; ?>.
-            </p>
+    <!-- Slide-out Sidebar -->
+    <aside id="bite-sidebar" class="bite-sidebar">
+        <div class="bite-sidebar-header">
+            <button id="bite-sidebar-toggle" class="bite-sidebar-toggle" aria-label="Toggle Menu">
+                <span class="bite-toggle-icon">☰</span>
+            </button>
+            <span class="bite-sidebar-title">Menu</span>
         </div>
-        <div class="bite-welcome-actions">
-            <a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="bite-button bite-button-secondary">
-                <span class="bite-icon">📊</span> Classic Dashboard
-            </a>
-            <?php if ( $is_admin ) : ?>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ); ?>" class="bite-button">
-                    <span class="bite-icon">⚙️</span> Manage Sites
-                </a>
-            <?php endif; ?>
-        </div>
-    </section>
-
-    <!-- Quick Stats Cards -->
-    <section class="bite-dashboard-stats">
-        <div class="bite-stats-grid">
-            <div class="bite-stat-card bite-stat-clicks">
-                <div class="bite-stat-icon">👆</div>
-                <div class="bite-stat-content">
-                    <span class="bite-stat-value"><?php echo esc_html( number_format( $quick_stats['total_clicks'] ) ); ?></span>
-                    <span class="bite-stat-label">Total Clicks (30 days)</span>
-                </div>
-            </div>
-            
-            <div class="bite-stat-card bite-stat-impressions">
-                <div class="bite-stat-icon">👁️</div>
-                <div class="bite-stat-content">
-                    <span class="bite-stat-value"><?php echo esc_html( number_format( $quick_stats['total_impressions'] ) ); ?></span>
-                    <span class="bite-stat-label">Total Impressions (30 days)</span>
-                </div>
-            </div>
-            
-            <div class="bite-stat-card bite-stat-ctr">
-                <div class="bite-stat-icon">📈</div>
-                <div class="bite-stat-content">
-                    <span class="bite-stat-value"><?php echo esc_html( number_format( $quick_stats['calculated_ctr'], 2 ) ); ?>%</span>
-                    <span class="bite-stat-label">Average CTR</span>
-                </div>
-            </div>
-            
-            <div class="bite-stat-card bite-stat-position">
-                <div class="bite-stat-icon">🎯</div>
-                <div class="bite-stat-content">
-                    <span class="bite-stat-value"><?php echo esc_html( number_format( $quick_stats['avg_position'], 1 ) ); ?></span>
-                    <span class="bite-stat-label">Avg Position</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <div class="bite-dashboard-grid">
         
-        <!-- Left Column: Sites & Tools -->
-        <div class="bite-dashboard-main">
-            
-            <!-- Sites Section -->
-            <section class="bite-dashboard-section bite-sites-section">
-                <div class="bite-section-header">
-                    <h2>Your Sites</h2>
-                    <span class="bite-badge"><?php echo count( $user_sites ); ?> total</span>
-                </div>
-                
-                <?php if ( ! empty( $user_sites ) ) : ?>
-                    <div class="bite-sites-list">
-                        <?php foreach ( array_slice( $user_sites, 0, 6 ) as $site ) : ?>
-                            <div class="bite-site-card">
-                                <div class="bite-site-header">
-                                    <h3 class="bite-site-name"><?php echo esc_html( $site->name ); ?></h3>
-                                    <?php if ( ! empty( $site->niche_name ) ) : ?>
-                                        <span class="bite-site-niche"><?php echo esc_html( $site->niche_name ); ?></span>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="bite-site-meta">
-                                    <span class="bite-site-domain"><?php echo esc_html( $site->domain ); ?></span>
-                                </div>
-                                <div class="bite-site-actions">
-                                    <a href="<?php echo esc_url( home_url( '/?site_id=' . $site->site_id ) ); ?>" class="bite-site-link">
-                                        View Data →
-                                    </a>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                    
-                    <?php if ( count( $user_sites ) > 6 ) : ?>
-                        <div class="bite-sites-more">
-                            <p>And <?php echo count( $user_sites ) - 6; ?> more site<?php echo ( count( $user_sites ) - 6 ) !== 1 ? 's' : ''; ?>...</p>
-                            <a href="#" class="bite-link" onclick="jQuery('.bite-sites-list').css('max-height', 'none'); jQuery(this).parent().hide(); return false;">Show All</a>
-                        </div>
-                    <?php endif; ?>
-                <?php else : ?>
-                    <div class="bite-empty-state">
-                        <p>No sites assigned to your account yet.</p>
-                        <?php if ( $is_admin ) : ?>
-                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ); ?>" class="bite-button">Add Sites</a>
-                        <?php else : ?>
-                            <p>Contact your administrator for access.</p>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
-            </section>
-
-            <!-- Tools Section -->
-            <section class="bite-dashboard-section bite-tools-section">
-                <div class="bite-section-header">
-                    <h2>Analysis Tools</h2>
-                </div>
-                
-                <div class="bite-tools-grid">
-                    <?php foreach ( $tools as $slug => $tool ) : ?>
-                        <a href="<?php echo esc_url( $tool['url'] ); ?>" class="bite-tool-card bite-tool-<?php echo esc_attr( $tool['color'] ); ?>">
-                            <div class="bite-tool-icon"><?php echo esc_html( $tool['icon'] ); ?></div>
-                            <div class="bite-tool-content">
-                                <h3><?php echo esc_html( $tool['title'] ); ?></h3>
-                                <p><?php echo esc_html( $tool['description'] ); ?></p>
-                            </div>
+        <nav class="bite-sidebar-nav">
+            <ul class="bite-sidebar-menu">
+                <?php foreach ( $dashboard_tools as $tool ) : 
+                    $tool_url = ( $tool['slug'] === 'dashboard' ) 
+                        ? get_permalink() 
+                        : get_permalink( get_page_by_path( $tool['slug'] ) );
+                    $is_active = ( $current_slug === $tool['slug'] ) ? 'active' : '';
+                ?>
+                    <li class="bite-menu-item <?php echo esc_attr( $is_active ); ?>">
+                        <a href="<?php echo esc_url( $tool_url ); ?>">
+                            <span class="bite-menu-icon material-icons"><?php echo esc_html( $tool['icon'] ); ?></span>
+                            <span class="bite-menu-text"><?php echo esc_html( $tool['title'] ); ?></span>
                         </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            
+            <?php if ( $is_admin ) : ?>
+                <div class="bite-sidebar-divider"></div>
+                <ul class="bite-sidebar-menu">
+                    <li class="bite-menu-item">
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ); ?>">
+                            <span class="bite-menu-icon material-icons">settings</span>
+                            <span class="bite-menu-text">Manage System</span>
+                        </a>
+                    </li>
+                </ul>
+            <?php endif; ?>
+        </nav>
+        
+        <div class="bite-sidebar-footer">
+            <!-- Account Section -->
+            <div class="bite-sidebar-account">
+                <div class="bite-account-header">
+                    <span class="bite-account-avatar"><?php echo esc_html( strtoupper( substr( $current_user->display_name, 0, 1 ) ) ); ?></span>
+                    <div class="bite-account-details">
+                        <span class="bite-account-name"><?php echo esc_html( $current_user->display_name ); ?></span>
+                        <span class="bite-account-role"><?php echo $is_admin ? 'Administrator' : 'Client'; ?></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Help Section -->
+            <div class="bite-sidebar-help">
+                <a href="https://orangewidow.com/contact" target="_blank" class="bite-help-link">
+                    <span class="bite-menu-icon material-icons">help_outline</span>
+                    <span class="bite-menu-text">Need Help?</span>
+                </a>
+            </div>
+            
+            <!-- Logout -->
+            <a href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>" class="bite-sidebar-logout">
+                <span class="bite-menu-icon material-icons">logout</span>
+                <span class="bite-menu-text">Log Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main" class="bite-dashboard-main-content" role="main">
+        
+        <!-- Welcome Section -->
+        <section class="bite-dashboard-welcome">
+            <div class="bite-welcome-content">
+                <h1 class="bite-welcome-title">
+                    Welcome back, <?php echo esc_html( $current_user->display_name ); ?>!
+                </h1>
+                <p class="bite-welcome-subtitle">
+                    You have access to 
+                    <strong><?php echo count( $user_sites ); ?> site<?php echo count( $user_sites ) !== 1 ? 's' : ''; ?></strong>
+                    <?php if ( ! empty( $user_niches ) ) : ?>
+                        across <strong><?php echo count( $user_niches ); ?> niche<?php echo count( $user_niches ) !== 1 ? 's' : ''; ?></strong>
+                    <?php endif; ?>.
+                </p>
+            </div>
+        </section>
+
+        <!-- Quick Stats Cards -->
+        <section class="bite-dashboard-stats">
+            <div class="bite-stats-grid">
+                <div class="bite-stat-card bite-stat-clicks">
+                    <div class="bite-stat-icon">👆</div>
+                    <div class="bite-stat-content">
+                        <span class="bite-stat-value"><?php echo esc_html( number_format( $quick_stats['total_clicks'] ) ); ?></span>
+                        <span class="bite-stat-label">Total Clicks (30 days)</span>
+                    </div>
+                </div>
+                
+                <div class="bite-stat-card bite-stat-impressions">
+                    <div class="bite-stat-icon">👁️</div>
+                    <div class="bite-stat-content">
+                        <span class="bite-stat-value"><?php echo esc_html( number_format( $quick_stats['total_impressions'] ) ); ?></span>
+                        <span class="bite-stat-label">Total Impressions (30 days)</span>
+                    </div>
+                </div>
+                
+                <div class="bite-stat-card bite-stat-ctr">
+                    <div class="bite-stat-icon">📈</div>
+                    <div class="bite-stat-content">
+                        <span class="bite-stat-value"><?php echo esc_html( number_format( $quick_stats['calculated_ctr'], 2 ) ); ?>%</span>
+                        <span class="bite-stat-label">Average CTR</span>
+                    </div>
+                </div>
+                
+                <div class="bite-stat-card bite-stat-position">
+                    <div class="bite-stat-icon">🎯</div>
+                    <div class="bite-stat-content">
+                        <span class="bite-stat-value"><?php echo esc_html( number_format( $quick_stats['avg_position'], 1 ) ); ?></span>
+                        <span class="bite-stat-label">Avg Position</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sites Section -->
+        <section class="bite-dashboard-section bite-sites-section">
+            <div class="bite-section-header">
+                <h2>Your Sites</h2>
+                <span class="bite-badge"><?php echo count( $user_sites ); ?> total</span>
+            </div>
+            
+            <?php if ( ! empty( $user_sites ) ) : ?>
+                <div class="bite-sites-list">
+                    <?php foreach ( $user_sites as $site ) : ?>
+                        <div class="bite-site-card">
+                            <div class="bite-site-header">
+                                <h3 class="bite-site-name"><?php echo esc_html( $site->name ); ?></h3>
+                                <?php if ( ! empty( $site->niche_name ) ) : ?>
+                                    <span class="bite-site-niche"><?php echo esc_html( $site->niche_name ); ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="bite-site-meta">
+                                <span class="bite-site-domain"><?php echo esc_html( $site->domain ); ?></span>
+                            </div>
+                            <div class="bite-site-actions">
+                                <a href="<?php echo esc_url( home_url( '/?site_id=' . $site->site_id ) ); ?>" class="bite-site-link">
+                                    View Data →
+                                </a>
+                            </div>
+                        </div>
                     <?php endforeach; ?>
                 </div>
-            </section>
-            
-        </div>
-
-        <!-- Right Column: Sidebar -->
-        <aside class="bite-dashboard-sidebar">
-            
-            <!-- Niches Widget -->
-            <?php if ( ! empty( $user_niches ) ) : ?>
-                <div class="bite-widget bite-niches-widget">
-                    <h3>Your Niches</h3>
-                    <ul class="bite-niches-list">
-                        <?php foreach ( $user_niches as $niche ) : ?>
-                            <li>
-                                <span class="bite-niche-dot"></span>
-                                <?php echo esc_html( $niche ); ?>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
+            <?php else : ?>
+                <div class="bite-empty-state">
+                    <p>No sites assigned to your account yet.</p>
+                    <?php if ( $is_admin ) : ?>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ); ?>" class="bite-button">Add Sites</a>
+                    <?php else : ?>
+                        <p>Contact your administrator for access.</p>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
+        </section>
 
-            <!-- Quick Actions Widget -->
-            <div class="bite-widget bite-actions-widget">
-                <h3>Quick Actions</h3>
-                <ul class="bite-actions-list">
-                    <li>
-                        <a href="<?php echo esc_url( home_url( '/' ) ); ?>">
-                            <span class="bite-action-icon">📊</span>
-                            View Full Dashboard
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<?php echo esc_url( home_url( '/opportunity-finder/' ) ); ?>">
-                            <span class="bite-action-icon">🔍</span>
-                            Find Opportunities
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<?php echo esc_url( home_url( '/emerging-trends/' ) ); ?>">
-                            <span class="bite-action-icon">📈</span>
-                            Check Trends
-                        </a>
-                    </li>
-                    <?php if ( $is_admin ) : ?>
-                        <li>
-                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ); ?>">
-                                <span class="bite-action-icon">⚙️</span>
-                                Manage System
-                            </a>
-                        </li>
-                    <?php endif; ?>
-                </ul>
-            </div>
+    </main>
+    
+</div>
 
-            <!-- Account Info Widget -->
-            <div class="bite-widget bite-account-widget">
-                <h3>Account</h3>
-                <div class="bite-account-info">
-                    <div class="bite-account-row">
-                        <span class="bite-account-label">Logged in as:</span>
-                        <span class="bite-account-value"><?php echo esc_html( $current_user->display_name ); ?></span>
-                    </div>
-                    <div class="bite-account-row">
-                        <span class="bite-account-label">Role:</span>
-                        <span class="bite-account-value"><?php echo $is_admin ? 'Administrator' : 'Client'; ?></span>
-                    </div>
-                    <div class="bite-account-row">
-                        <span class="bite-account-label">Access to:</span>
-                        <span class="bite-account-value"><?php echo count( $user_sites ); ?> site<?php echo count( $user_sites ) !== 1 ? 's' : ''; ?></span>
-                    </div>
-                </div>
-                <a href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>" class="bite-button bite-button-small bite-button-outline">Log Out</a>
-            </div>
+<script>
+(function() {
+    const sidebar = document.getElementById('bite-sidebar');
+    const toggleBtn = document.getElementById('bite-sidebar-toggle');
+    const floatToggleBtn = document.getElementById('bite-sidebar-toggle-float');
+    
+    // Check for saved state
+    const sidebarCollapsed = localStorage.getItem('bite-sidebar-collapsed');
+    if (sidebarCollapsed === 'true') {
+        sidebar.classList.add('collapsed');
+        floatToggleBtn.style.display = 'flex';
+    }
+    
+    // Toggle function
+    function toggleSidebar() {
+        const isCollapsed = sidebar.classList.toggle('collapsed');
+        floatToggleBtn.style.display = isCollapsed ? 'flex' : 'none';
+        localStorage.setItem('bite-sidebar-collapsed', isCollapsed);
+    }
+    
+    // Event listeners
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleSidebar);
+    }
+    
+    if (floatToggleBtn) {
+        floatToggleBtn.addEventListener('click', toggleSidebar);
+    }
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth <= 768) {
+            if (!sidebar.contains(e.target) && !floatToggleBtn.contains(e.target)) {
+                if (!sidebar.classList.contains('collapsed')) {
+                    toggleSidebar();
+                }
+            }
+        }
+    });
+})();
+</script>
 
-            <!-- Help Widget -->
-            <div class="bite-widget bite-help-widget">
-                <h3>Need Help?</h3>
-                <p>Contact OrangeWidow support for assistance with your BITE dashboard.</p>
-                <a href="https://orangewidow.com/contact" target="_blank" class="bite-button bite-button-small">Contact Support</a>
-            </div>
-            
-        </aside>
-        
-    </div>
-
-</main>
-
-<?php
-get_footer();
+<?php get_footer(); ?>

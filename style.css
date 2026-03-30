@@ -744,14 +744,247 @@ th span[title] {
 
 
 /* ==========================================================================
-   DASHBOARD TEMPLATE STYLES
+   DASHBOARD TEMPLATE STYLES (with Slide-out Sidebar)
    ========================================================================== */
 
-/* Dashboard Page Container */
-.bite-dashboard-page {
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 30px 24px;
+/* Dashboard Wrapper */
+.bite-dashboard-wrapper {
+    display: flex;
+    min-height: calc(100vh - 80px); /* Account for header */
+}
+
+/* --- Slide-out Sidebar --- */
+.bite-sidebar {
+    width: 280px;
+    background: var(--primary-color);
+    color: var(--light-text-color);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    top: 80px; /* Below header */
+    bottom: 0;
+    z-index: 100;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.bite-sidebar.collapsed {
+    transform: translateX(-100%);
+}
+
+.bite-sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bite-sidebar-toggle {
+    background: transparent;
+    border: none;
+    color: var(--light-text-color);
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.bite-sidebar-toggle:hover {
+    color: var(--accent-color);
+}
+
+.bite-sidebar-title {
+    font-weight: 600;
+    font-size: 1.1em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Sidebar Navigation */
+.bite-sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px 0;
+}
+
+.bite-sidebar-menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.bite-menu-item {
+    margin: 2px 0;
+}
+
+.bite-menu-item a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.bite-menu-item a:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--light-text-color);
+}
+
+.bite-menu-item.active a {
+    background: rgba(232, 93, 4, 0.2);
+    color: var(--accent-color);
+    border-left-color: var(--accent-color);
+}
+
+.bite-menu-icon {
+    font-size: 1.3em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+}
+
+.bite-menu-text {
+    font-size: 0.95em;
+    font-weight: 500;
+}
+
+.bite-sidebar-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 15px 20px;
+}
+
+/* Sidebar Footer */
+.bite-sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Account Section in Sidebar */
+.bite-sidebar-account {
+    margin-bottom: 15px;
+}
+
+.bite-account-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bite-account-avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--secondary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1em;
+    color: var(--light-text-color);
+}
+
+.bite-account-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.bite-account-name {
+    font-weight: 600;
+    font-size: 0.95em;
+}
+
+.bite-account-role {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Help Link in Sidebar */
+.bite-sidebar-help {
+    margin-bottom: 10px;
+}
+
+.bite-help-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.9em;
+    transition: color 0.2s ease;
+}
+
+.bite-help-link:hover {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+/* Logout in Sidebar */
+.bite-sidebar-logout {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.9em;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 10px;
+    transition: color 0.2s ease;
+}
+
+.bite-sidebar-logout:hover {
+    color: #ff6b6b;
+    text-decoration: none;
+}
+
+/* --- Main Content Area --- */
+.bite-dashboard-main-content {
+    flex: 1;
+    margin-left: 280px; /* Width of sidebar */
+    padding: 30px;
+    transition: margin-left 0.3s ease;
+}
+
+.bite-sidebar.collapsed + .bite-dashboard-main-content {
+    margin-left: 0;
+}
+
+/* Sidebar Toggle Button (Floating when collapsed) */
+.bite-sidebar-toggle-float {
+    position: fixed;
+    left: 20px;
+    top: 100px;
+    z-index: 99;
+    background: var(--primary-color);
+    color: var(--light-text-color);
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3em;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.bite-sidebar-toggle-float:hover {
+    background: var(--secondary-color);
+    transform: scale(1.05);
 }
 
 /* --- Welcome Section --- */
@@ -760,10 +993,6 @@ th span[title] {
     border-radius: var(--radius-lg);
     padding: 40px;
     margin-bottom: 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 30px;
     box-shadow: var(--shadow-lg);
 }
 
@@ -862,24 +1091,7 @@ th span[title] {
     margin-top: 4px;
 }
 
-/* --- Dashboard Grid Layout --- */
-.bite-dashboard-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 30px;
-}
-
-.bite-dashboard-main {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-}
-
-.bite-dashboard-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
+/* No more dashboard grid - now full width with slide-out sidebar */
 
 /* --- Dashboard Sections --- */
 .bite-dashboard-section {
@@ -983,201 +1195,11 @@ th span[title] {
     color: var(--accent-color);
 }
 
-.bite-sites-more {
-    text-align: center;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border-light);
-}
-
-.bite-sites-more p {
-    margin: 0 0 8px 0;
-    color: var(--text-muted);
-}
-
-.bite-link {
-    color: var(--secondary-color);
-    font-weight: 600;
-}
-
-/* --- Tools Grid --- */
-.bite-tools-grid {
+/* --- Sites List ---
+.bite-sites-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-}
-
-.bite-tool-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 20px;
-    background: var(--background-color);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.bite-tool-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    text-decoration: none;
-}
-
-.bite-tool-icon {
-    font-size: 1.8em;
-    flex-shrink: 0;
-}
-
-.bite-tool-content h3 {
-    font-size: 1em;
-    font-weight: 600;
-    color: var(--primary-color);
-    margin: 0 0 4px 0;
-}
-
-.bite-tool-content p {
-    font-size: 0.85em;
-    color: var(--text-muted);
-    margin: 0;
-    line-height: 1.4;
-}
-
-/* Tool color accents */
-.bite-tool-blue:hover { border-color: #3498db; }
-.bite-tool-gold:hover { border-color: #f1c40f; }
-.bite-tool-green:hover { border-color: #27ae60; }
-.bite-tool-purple:hover { border-color: #9b59b6; }
-.bite-tool-orange:hover { border-color: var(--secondary-color); }
-
-/* --- Sidebar Widgets --- */
-.bite-widget {
-    background: var(--card-bg);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    padding: 20px;
-    box-shadow: var(--shadow-sm);
-}
-
-.bite-widget h3 {
-    font-size: 1.1em;
-    font-weight: 600;
-    color: var(--primary-color);
-    margin: 0 0 16px 0;
-    padding-bottom: 12px;
-    border-bottom: 2px solid var(--border-light);
-}
-
-/* Niches Widget */
-.bite-niches-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.bite-niches-list li {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border-light);
-}
-
-.bite-niches-list li:last-child {
-    border-bottom: none;
-}
-
-.bite-niche-dot {
-    width: 10px;
-    height: 10px;
-    background: var(--secondary-color);
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-/* Actions Widget */
-.bite-actions-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.bite-actions-list li {
-    border-bottom: 1px solid var(--border-light);
-}
-
-.bite-actions-list li:last-child {
-    border-bottom: none;
-}
-
-.bite-actions-list a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 0;
-    color: var(--text-color);
-    text-decoration: none;
-    transition: color 0.2s ease;
-}
-
-.bite-actions-list a:hover {
-    color: var(--secondary-color);
-    text-decoration: none;
-}
-
-.bite-action-icon {
-    font-size: 1.3em;
-}
-
-/* Account Widget */
-.bite-account-info {
-    margin-bottom: 16px;
-}
-
-.bite-account-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border-light);
-}
-
-.bite-account-row:last-child {
-    border-bottom: none;
-}
-
-.bite-account-label {
-    color: var(--text-muted);
-    font-size: 0.9em;
-}
-
-.bite-account-value {
-    font-weight: 600;
-    color: var(--primary-color);
-}
-
-.bite-button-small {
-    padding: 8px 16px;
-    font-size: 0.9em;
-}
-
-.bite-button-outline {
-    background: transparent;
-    border: 2px solid var(--border-color);
-    color: var(--text-color);
-}
-
-.bite-button-outline:hover {
-    background: var(--border-color);
-    color: var(--text-color);
-}
-
-/* Help Widget */
-.bite-help-widget p {
-    color: var(--text-muted);
-    font-size: 0.95em;
-    margin: 0 0 16px 0;
-    line-height: 1.5;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
 }
 
 /* Empty State */
@@ -1193,13 +1215,8 @@ th span[title] {
 
 /* --- Responsive Dashboard --- */
 @media screen and (max-width: 1200px) {
-    .bite-dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .bite-dashboard-sidebar {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    .bite-dashboard-main-content {
+        padding: 20px;
     }
 }
 
@@ -1220,8 +1237,19 @@ th span[title] {
 }
 
 @media screen and (max-width: 768px) {
-    .bite-dashboard-page {
-        padding: 20px 15px;
+    .bite-sidebar {
+        width: 260px;
+        top: auto;
+    }
+    
+    .bite-dashboard-main-content {
+        margin-left: 0;
+        padding: 15px;
+        padding-top: 70px; /* Space for toggle button */
+    }
+    
+    .bite-sidebar:not(.collapsed) + .bite-dashboard-main-content {
+        margin-left: 260px;
     }
     
     .bite-dashboard-welcome {
@@ -1241,10 +1269,6 @@ th span[title] {
     }
     
     .bite-tools-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .bite-dashboard-sidebar {
         grid-template-columns: 1fr;
     }
 }
