@@ -824,6 +824,16 @@ th span[title] {
     padding: 0;
 }
 
+/* WordPress Menu in Sidebar */
+.bite-sidebar-wp-menu {
+    margin: 0;
+    padding: 0;
+}
+
+.bite-sidebar-wp-menu .bite-menu-item {
+    margin: 2px 0;
+}
+
 .bite-menu-item {
     margin: 2px 0;
 }

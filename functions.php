@@ -14,6 +14,9 @@ define( 'BITE_THEME_DIR', get_template_directory() );
 // 1. Core theme setup (roles, redirects, script enqueuing)
 require_once BITE_THEME_DIR . '/includes/theme-setup.php';
 
+// 1.5 Sidebar Menu Walker (Custom walker for Material Icons support)
+require_once BITE_THEME_DIR . '/includes/class-sidebar-menu-walker.php';
+
 // 2. Database setup (tables, activation hook)
 require_once BITE_THEME_DIR . '/includes/database-setup.php';
 

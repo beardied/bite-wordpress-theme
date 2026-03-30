@@ -3,6 +3,8 @@
  * Dashboard Sidebar Include
  *
  * Reusable slide-out sidebar for all dashboard/tool pages.
+ * The tools menu (Dashboard through CTR Efficiency) is configurable via WordPress.
+ * Admin link, Account, Help, and Logout are hardcoded below.
  *
  * @package BITE-theme
  */
@@ -19,41 +21,7 @@ if ( ! is_user_logged_in() ) {
 $current_user    = wp_get_current_user();
 $is_admin        = current_user_can( 'manage_options' );
 
-// Dashboard tools menu
-$dashboard_tools = array(
-    array(
-        'slug'  => 'dashboard',
-        'title' => 'Dashboard',
-        'icon'  => 'dashboard',
-    ),
-    array(
-        'slug'  => 'opportunity-finder',
-        'title' => 'Opportunity Finder',
-        'icon'  => 'search',
-    ),
-    array(
-        'slug'  => 'global-champions',
-        'title' => 'Global Champions',
-        'icon'  => 'emoji_events',
-    ),
-    array(
-        'slug'  => 'emerging-trends',
-        'title' => 'Emerging Trends',
-        'icon'  => 'trending_up',
-    ),
-    array(
-        'slug'  => 'keyword-explorer',
-        'title' => 'Keyword Explorer',
-        'icon'  => 'travel_explore',
-    ),
-    array(
-        'slug'  => 'ctr-efficiency',
-        'title' => 'CTR Efficiency',
-        'icon'  => 'speed',
-    ),
-);
-
-// Get current page slug for active state
+// Get current page slug for active state highlighting
 $current_slug = '';
 if ( is_page() ) {
     $current_slug = get_post_field( 'post_name', get_post() );
@@ -68,6 +36,9 @@ if ( empty( $current_slug ) ) {
         $current_slug = $template_name;
     }
 }
+
+// Check if a sidebar menu is configured
+$has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
 ?>
 
 <!-- Material Icons Font -->
@@ -88,30 +59,79 @@ if ( empty( $current_slug ) ) {
     </div>
     
     <nav class="bite-sidebar-nav">
-        <ul class="bite-sidebar-menu">
-            <?php foreach ( $dashboard_tools as $tool ) : 
-                // Get URL for the tool
-                if ( $tool['slug'] === 'dashboard' ) {
-                    $dashboard_page = get_page_by_path( 'dashboard' );
-                    $tool_url = $dashboard_page ? get_permalink( $dashboard_page->ID ) : home_url( '/' );
-                } else {
-                    $page = get_page_by_path( $tool['slug'] );
-                    $tool_url = $page ? get_permalink( $page->ID ) : home_url( '/' );
-                }
-                $is_active = ( $current_slug === $tool['slug'] ) ? 'active' : '';
+        <?php if ( $has_sidebar_menu ) : ?>
+            <!-- Configurable WordPress Menu -->
+            <?php
+            wp_nav_menu( array(
+                'theme_location'  => 'sidebar-menu',
+                'container'       => false,
+                'menu_class'      => 'bite-sidebar-menu bite-sidebar-wp-menu',
+                'fallback_cb'     => false,
+                'items_wrap'      => '<ul class="%2$s">%3$s</ul>',
+                'walker'          => new BITE_Sidebar_Menu_Walker(),
+            ) );
             ?>
-                <li class="bite-menu-item <?php echo esc_attr( $is_active ); ?>">
-                    <a href="<?php echo esc_url( $tool_url ); ?>">
-                        <span class="bite-menu-icon material-icons"><?php echo esc_html( $tool['icon'] ); ?></span>
-                        <span class="bite-menu-text"><?php echo esc_html( $tool['title'] ); ?></span>
-                    </a>
-                </li>
-            <?php endforeach; ?>
-        </ul>
+        <?php else : ?>
+            <!-- Fallback: Default hardcoded menu -->
+            <?php
+            $dashboard_tools = array(
+                array(
+                    'slug'  => 'dashboard',
+                    'title' => 'Dashboard',
+                    'icon'  => 'dashboard',
+                ),
+                array(
+                    'slug'  => 'opportunity-finder',
+                    'title' => 'Opportunity Finder',
+                    'icon'  => 'search',
+                ),
+                array(
+                    'slug'  => 'global-champions',
+                    'title' => 'Global Champions',
+                    'icon'  => 'emoji_events',
+                ),
+                array(
+                    'slug'  => 'emerging-trends',
+                    'title' => 'Emerging Trends',
+                    'icon'  => 'trending_up',
+                ),
+                array(
+                    'slug'  => 'keyword-explorer',
+                    'title' => 'Keyword Explorer',
+                    'icon'  => 'travel_explore',
+                ),
+                array(
+                    'slug'  => 'ctr-efficiency',
+                    'title' => 'CTR Efficiency',
+                    'icon'  => 'speed',
+                ),
+            );
+            ?>
+            <ul class="bite-sidebar-menu">
+                <?php foreach ( $dashboard_tools as $tool ) : 
+                    // Get URL for the tool
+                    if ( $tool['slug'] === 'dashboard' ) {
+                        $dashboard_page = get_page_by_path( 'dashboard' );
+                        $tool_url = $dashboard_page ? get_permalink( $dashboard_page->ID ) : home_url( '/' );
+                    } else {
+                        $page = get_page_by_path( $tool['slug'] );
+                        $tool_url = $page ? get_permalink( $page->ID ) : home_url( '/' );
+                    }
+                    $is_active = ( $current_slug === $tool['slug'] ) ? 'active' : '';
+                ?>
+                    <li class="bite-menu-item <?php echo esc_attr( $is_active ); ?>">
+                        <a href="<?php echo esc_url( $tool_url ); ?>">
+                            <span class="bite-menu-icon material-icons"><?php echo esc_html( $tool['icon'] ); ?></span>
+                            <span class="bite-menu-text"><?php echo esc_html( $tool['title'] ); ?></span>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
         
         <?php if ( $is_admin ) : ?>
             <div class="bite-sidebar-divider"></div>
-            <ul class="bite-sidebar-menu">
+            <ul class="bite-sidebar-menu bite-sidebar-hardcoded">
                 <li class="bite-menu-item">
                     <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ); ?>">
                         <span class="bite-menu-icon material-icons">settings</span>
