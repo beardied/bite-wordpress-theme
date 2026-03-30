@@ -119,12 +119,15 @@ h1, h2, h3, h4, h5, h6 {
     width: 100%;
     background: linear-gradient(135deg, var(--primary-color) 0%, #16213E 100%);
     color: var(--light-text-color);
-    padding: 12px 24px;
+    padding: 8px 24px;
     box-sizing: border-box;
     box-shadow: var(--shadow-md);
     position: sticky;
     top: 0;
     z-index: 1000;
+    min-height: 85px;
+    display: flex;
+    align-items: center;
 }
 
 .bite-header-inner {
@@ -141,34 +144,59 @@ h1, h2, h3, h4, h5, h6 {
 .bite-logo a {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     text-decoration: none;
     color: var(--light-text-color);
+    height: 100%;
 }
 
 /* Custom Logo Image */
 .bite-custom-logo {
-    max-height: 45px;
+    max-height: 65px;
     width: auto;
     display: block;
+    flex-shrink: 0;
 }
 
 /* Fallback Logo Icon (when no custom logo) */
 .bite-logo-icon {
     display: inline-block;
-    width: 40px;
-    height: 40px;
+    width: 65px;
+    height: 65px;
     background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
     border-radius: var(--radius-sm);
     flex-shrink: 0;
 }
 
-/* Site Name Text */
-.bite-site-name {
-    font-size: 1.5em;
-    font-weight: 700;
-    color: var(--light-text-color);
-    white-space: nowrap;
+/* Branding Text Container */
+.bite-branding-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.2;
+    gap: 2px;
+}
+
+/* B.I.T.E. Main Name */
+.bite-branding-name {
+    font-size: 2em;
+    font-weight: 800;
+    color: #e55f22;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+/* Tagline - Bulk Insight Tracking Engine */
+.bite-branding-tagline {
+    font-size: 0.85em;
+    font-weight: 500;
+    color: #ffffff;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.95;
+    line-height: 1.2;
+    margin-top: 2px;
 }
 
 /* --- Main Navigation --- */
@@ -192,9 +220,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .bite-main-navigation a {
     color: var(--light-text-color);
-    font-size: 0.95em;
+    font-size: 0.92em;
     font-weight: 500;
-    padding: 8px 12px;
+    padding: 6px 10px;
     border-radius: var(--radius-sm);
     text-decoration: none;
     transition: all 0.2s ease;
@@ -611,6 +639,7 @@ th span[title] {
 @media screen and (max-width: 768px) {
     .bite-site-header {
         padding: 10px 15px;
+        min-height: auto;
     }
     
     .bite-header-inner {
@@ -625,11 +654,15 @@ th span[title] {
     }
     
     .bite-custom-logo {
-        max-height: 35px;
+        max-height: 45px;
     }
     
-    .bite-site-name {
-        font-size: 1.2em;
+    .bite-branding-name {
+        font-size: 1.6em;
+    }
+    
+    .bite-branding-tagline {
+        font-size: 0.75em;
     }
     
     .bite-main-navigation ul {

@@ -31,7 +31,7 @@
 	<?php wp_head(); ?>
 </head>
 
-<body <?php body_class(); ?>">
+<body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
 
 <div id="page" class="bite-site-wrapper">
@@ -47,13 +47,14 @@
 					if ( ! empty( $custom_logo ) ) {
 						// Display custom logo
 						echo '<img src="' . esc_url( $custom_logo ) . '" alt="' . esc_attr( get_bloginfo( 'name' ) ) . '" class="bite-custom-logo">';
-						if ( $show_site_name ) {
-							echo '<span class="bite-site-name">' . esc_html( get_bloginfo( 'name' ) ) . '</span>';
-						}
-					} else {
-						// Fallback: Display default branding
-						echo '<span class="bite-logo-icon"></span>';
-						echo '<span class="bite-site-name">BITE Dashboard</span>';
+					}
+					
+					if ( $show_site_name || empty( $custom_logo ) ) {
+						// Display site name with tagline
+						echo '<div class="bite-branding-text">';
+						echo '<span class="bite-branding-name">B.I.T.E.</span>';
+						echo '<span class="bite-branding-tagline">Bulk Insight Tracking Engine</span>';
+						echo '</div>';
 					}
 					?>
 				</a>
