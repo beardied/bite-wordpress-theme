@@ -131,52 +131,75 @@ h1, h2, h3, h4, h5, h6 {
     width: 100%;
     max-width: 1600px;
     margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    gap: 20px;
+    gap: 30px;
 }
 
+/* Logo Styles */
 .bite-logo a {
-    font-size: 1.6em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--light-text-color);
+}
+
+/* Custom Logo Image */
+.bite-custom-logo {
+    max-height: 45px;
+    width: auto;
+    display: block;
+}
+
+/* Fallback Logo Icon (when no custom logo) */
+.bite-logo-icon {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
+
+/* Site Name Text */
+.bite-site-name {
+    font-size: 1.5em;
     font-weight: 700;
     color: var(--light-text-color);
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.bite-logo a::before {
-    content: '';
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    background: var(--secondary-color);
-    border-radius: var(--radius-sm);
-    /* Simple B icon shape using gradient */
-    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
+    white-space: nowrap;
 }
 
 /* --- Main Navigation --- */
+.bite-main-navigation {
+    justify-self: center;
+}
+
 .bite-main-navigation ul {
     margin: 0;
     padding: 0;
     list-style: none;
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
 }
 
 .bite-main-navigation li {
-    margin: 0 10px;
+    margin: 0;
 }
 
 .bite-main-navigation a {
     color: var(--light-text-color);
-    font-size: 1.1em;
-    padding: 10px;
-    border-radius: 4px;
+    font-size: 0.95em;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
     text-decoration: none;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: block;
 }
 
 .bite-main-navigation a:hover {
@@ -193,27 +216,41 @@ h1, h2, h3, h4, h5, h6 {
 /* --- User Info --- */
 .bite-user-info {
     display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    min-width: 140px;
+}
+
+.bite-user-info-top {
+    display: flex;
     align-items: center;
-    color: rgba(255, 255, 255, 0.8);
-    gap: 16px;
+}
+
+.bite-user-info-bottom {
+    display: flex;
+    align-items: center;
 }
 
 .bite-server-time {
-    font-size: 0.85em;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.6);
     font-weight: 500;
+    font-family: 'SF Mono', Monaco, monospace;
+    letter-spacing: 0.5px;
 }
 
 .bite-logout-link {
     background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
     color: var(--light-text-color);
-    padding: 8px 16px;
+    padding: 8px 18px;
     border-radius: var(--radius-sm);
     font-weight: 600;
     font-size: 0.9em;
     text-decoration: none;
     transition: all 0.2s ease;
     box-shadow: var(--shadow-sm);
+    white-space: nowrap;
 }
 
 .bite-logout-link:hover {
@@ -517,4 +554,103 @@ th span[title] {
 }
 .bite-insight-box p strong {
     color: var(--accent-dark);
+}/* --- Help Tooltips in Tables --- */
+th span[title] {
+    text-decoration: underline dotted;
+    cursor: help;
+}
+
+/* --- Insight Box --- */
+.bite-insight-box {
+    background: linear-gradient(135deg, #FFF8E7 0%, #FFF3D6 100%);
+    border: 1px solid #FFD699;
+    border-left-width: 4px;
+    border-left-color: var(--secondary-color);
+    padding: 20px 24px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+.bite-insight-box h2 {
+    margin-top: 0;
+    color: var(--accent-dark);
+    font-size: 1.2em;
+}
+.bite-insight-box p {
+    font-size: 1.05em;
+    margin-bottom: 0;
+    line-height: 1.7;
+}
+.bite-insight-box p strong {
+    color: var(--accent-dark);
+}
+
+/* --- Responsive Header --- */
+@media screen and (max-width: 1200px) {
+    .bite-header-inner {
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto;
+        gap: 15px;
+    }
+    
+    .bite-main-navigation {
+        grid-column: 1 / -1;
+        justify-self: stretch;
+        order: 3;
+    }
+    
+    .bite-main-navigation ul {
+        justify-content: flex-start;
+    }
+    
+    .bite-user-info {
+        grid-column: 2;
+        grid-row: 1;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .bite-site-header {
+        padding: 10px 15px;
+    }
+    
+    .bite-header-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    .bite-logo a {
+        justify-content: center;
+    }
+    
+    .bite-custom-logo {
+        max-height: 35px;
+    }
+    
+    .bite-site-name {
+        font-size: 1.2em;
+    }
+    
+    .bite-main-navigation ul {
+        justify-content: center;
+        gap: 2px;
+    }
+    
+    .bite-main-navigation a {
+        font-size: 0.85em;
+        padding: 6px 10px;
+    }
+    
+    .bite-user-info {
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        min-width: auto;
+    }
+    
+    .bite-user-info-bottom {
+        order: -1;
+    }
 }

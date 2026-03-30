@@ -31,16 +31,35 @@
 	<?php wp_head(); ?>
 </head>
 
-<body <?php body_class(); ?>>
+<body <?php body_class(); ?>">
 <?php wp_body_open(); ?>
 
 <div id="page" class="bite-site-wrapper">
 	<header id="masthead" class="bite-site-header">
 		<div class="bite-header-inner">
+			<!-- Logo Section -->
 			<div class="bite-logo">
-				<a href="<?php echo esc_url( home_url( '/' ) ); ?>">BITE Dashboard</a>
+				<a href="<?php echo esc_url( home_url( '/' ) ); ?>">
+					<?php
+					$custom_logo = get_theme_mod( 'bite_logo' );
+					$show_site_name = get_theme_mod( 'bite_show_site_name', true );
+					
+					if ( ! empty( $custom_logo ) ) :
+						// Display custom logo
+						echo '<img src="' . esc_url( $custom_logo ) . '" alt="' . esc_attr( get_bloginfo( 'name' ) ) . '" class="bite-custom-logo">';
+						if ( $show_site_name ) {
+							echo '<span class="bite-site-name">' . esc_html( get_bloginfo( 'name' ) ) . '</span>';
+						}
+					else :
+						// Fallback: Display default branding
+						echo '<span class="bite-logo-icon"></span>';
+						echo '<span class="bite-site-name">BITE Dashboard</span>';
+					endif;
+					?>
+				</a>
 			</div>
 
+			<!-- Navigation -->
 			<nav id="site-navigation" class="bite-main-navigation">
                 <ul>
                     <li><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="View the main keyword dashboard">Dashboard</a></li>
@@ -51,7 +70,7 @@
                         'Global Champions'   => 'Find the top performing keywords across all sites in a single niche',
                         'Emerging Trends'    => 'Find keywords with rapid changes in impressions or clicks',
                         'Keyword Explorer'   => 'Explore all keyword variations in your database',
-                        'CTR Efficiency Report' => 'Compare the CTR of Discoverable vs. Anonymized keywords'
+                        'CTR Efficiency'     => 'Compare the CTR of Discoverable vs. Anonymized keywords'
                     );
 
                     foreach ( $nav_pages as $page_title => $tooltip ) {
@@ -70,20 +89,25 @@
                     <?php
                     // Only show 'Manage Sites' link to admins
                     if ( current_user_can( 'manage_options' ) ) {
-                        echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ) . '" title="Manage sites, niches, and system settings">Manage Sites (Admin)</a></li>';
+                        echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ) . '" title="Manage sites, niches, and system settings">Manage</a></li>';
                     }
                     ?>
                 </ul>
 			</nav>
 
+			<!-- User Info Section -->
 			<div class="bite-user-info">
-				<span class="bite-server-time">
-                    <?php
-                    // Show the server time in the new format
-                    echo 'Server Time: ' . esc_html( date( 'd-m-Y H:i:s' ) ) . ' (UTC)';
-                    ?>
-                </span>
-				<a class="bite-logout-link" href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>">Log Out</a>
+				<div class="bite-user-info-top">
+					<a class="bite-logout-link" href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>">Log Out</a>
+				</div>
+				<div class="bite-user-info-bottom">
+					<span class="bite-server-time">
+                        <?php
+                        // Show the server time in the new format
+                        echo esc_html( date( 'd-m-Y H:i:s' ) ) . ' UTC';
+                        ?>
+                    </span>
+				</div>
 			</div>
 		</div>
 	</header>

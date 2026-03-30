@@ -151,3 +151,45 @@ function bite_enqueue_scripts() {
 }
 add_action( 'wp_enqueue_scripts', 'bite_enqueue_scripts' ); // Front-end
 add_action( 'admin_enqueue_scripts', 'bite_enqueue_scripts' ); // Back-end
+
+/**
+ * 7. Add Customizer support for Logo.
+ */
+function bite_customize_register( $wp_customize ) {
+    // Logo Section
+    $wp_customize->add_section( 'bite_theme_options', array(
+        'title'    => __( 'BITE Theme Options', 'bite-theme' ),
+        'priority' => 30,
+    ) );
+
+    // Logo Setting
+    $wp_customize->add_setting( 'bite_logo', array(
+        'default'           => '',
+        'sanitize_callback' => 'esc_url_raw',
+        'transport'         => 'refresh',
+    ) );
+
+    // Logo Control
+    $wp_customize->add_control( new WP_Customize_Image_Control( $wp_customize, 'bite_logo', array(
+        'label'       => __( 'Header Logo', 'bite-theme' ),
+        'description' => __( 'Upload a logo to replace the default BITE Dashboard text. Recommended height: 40-50px. Transparent PNG preferred.', 'bite-theme' ),
+        'section'     => 'bite_theme_options',
+        'settings'    => 'bite_logo',
+    ) ) );
+
+    // Show Site Name Setting
+    $wp_customize->add_setting( 'bite_show_site_name', array(
+        'default'           => true,
+        'sanitize_callback' => 'wp_validate_boolean',
+        'transport'         => 'refresh',
+    ) );
+
+    // Show Site Name Control
+    $wp_customize->add_control( 'bite_show_site_name', array(
+        'label'       => __( 'Show Site Name with Logo', 'bite-theme' ),
+        'description' => __( 'If checked, the site name will be displayed next to the logo.', 'bite-theme' ),
+        'section'     => 'bite_theme_options',
+        'type'        => 'checkbox',
+    ) );
+}
+add_action( 'customize_register', 'bite_customize_register' );
