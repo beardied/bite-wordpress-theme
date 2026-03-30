@@ -166,14 +166,6 @@ get_header();
         </div>
     </section>
 
-    <!-- Footer Info -->
-    <section class="bite-landing-footer">
-        <div class="bite-landing-footer-content">
-            <p>&copy; <?php echo esc_html( date( 'Y' ) ); ?> OrangeWidow. All rights reserved.</p>
-            <p>B.I.T.E. - Bulk Insight Tracking Engine</p>
-        </div>
-    </section>
-
 </main>
 
 <?php

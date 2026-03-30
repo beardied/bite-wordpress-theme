@@ -7,9 +7,27 @@
 .bite-landing-page {
     width: 100%;
     background: var(--background-color);
+    margin: 0;
+    padding: 0;
 }
 
-/* Hero Section */
+/* Remove default margins on landing page */
+body.page-template-template-sales-landing {
+    margin: 0;
+    padding: 0;
+}
+
+body.page-template-template-sales-landing #page {
+    margin: 0;
+    padding: 0;
+}
+
+body.page-template-template-sales-landing #content {
+    margin: 0;
+    padding: 0;
+}
+
+/* Hero Section - Full Width */
 .bite-hero {
     background: linear-gradient(135deg, var(--primary-color) 0%, #16213E 100%);
     color: var(--light-text-color);
@@ -18,9 +36,11 @@
     grid-template-columns: 1fr 1fr;
     gap: 60px;
     align-items: center;
-    max-width: 1600px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
     min-height: 600px;
+    box-sizing: border-box;
 }
 
 .bite-hero-content {
