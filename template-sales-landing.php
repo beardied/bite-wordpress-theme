@@ -15,39 +15,41 @@ get_header();
     
     <!-- Hero Section -->
     <section class="bite-hero">
-        <div class="bite-hero-content">
-            <div class="bite-hero-badge">Exclusive to OrangeWidow</div>
-            <h1 class="bite-hero-title">
-                <span class="bite-hero-title-main">B.I.T.E.</span>
-                <span class="bite-hero-title-sub">Bulk Insight Tracking Engine</span>
-            </h1>
-            <p class="bite-hero-description">
-                Unlock the power of your Google Search Console data. Track, analyze, and optimize 
-                your websites' performance across multiple properties with enterprise-grade analytics.
-            </p>
-            <div class="bite-hero-cta">
-                <a href="https://orangewidow.com/contact" class="bite-button bite-button-large" target="_blank">
-                    Get Access Through OrangeWidow
-                </a>
-                <p class="bite-hero-note">Existing client? <a href="<?php echo esc_url( wp_login_url() ); ?>">Log in here</a></p>
-            </div>
-        </div>
-        <div class="bite-hero-visual">
-            <div class="bite-dashboard-preview">
-                <div class="bite-preview-header">
-                    <span class="bite-preview-dot"></span>
-                    <span class="bite-preview-dot"></span>
-                    <span class="bite-preview-dot"></span>
-                    <span class="bite-preview-title">BITE Dashboard</span>
+        <div class="bite-hero-container">
+            <div class="bite-hero-content">
+                <div class="bite-hero-badge">Exclusive to OrangeWidow</div>
+                <h1 class="bite-hero-title">
+                    <span class="bite-hero-title-main">B.I.T.E.</span>
+                    <span class="bite-hero-title-sub">Bulk Insight Tracking Engine</span>
+                </h1>
+                <p class="bite-hero-description">
+                    Unlock the power of your Google Search Console data. Track, analyze, and optimize 
+                    your websites' performance across multiple properties with enterprise-grade analytics.
+                </p>
+                <div class="bite-hero-cta">
+                    <a href="https://orangewidow.com/contact" class="bite-button bite-button-large" target="_blank">
+                        Get Access Through OrangeWidow
+                    </a>
+                    <p class="bite-hero-note">Existing client? <a href="<?php echo esc_url( wp_login_url() ); ?>">Log in here</a></p>
                 </div>
-                <div class="bite-preview-chart">
-                    <div class="bite-preview-bar" style="height: 40%"></div>
-                    <div class="bite-preview-bar" style="height: 65%"></div>
-                    <div class="bite-preview-bar" style="height: 50%"></div>
-                    <div class="bite-preview-bar" style="height: 80%"></div>
-                    <div class="bite-preview-bar" style="height: 70%"></div>
-                    <div class="bite-preview-bar bite-preview-bar-highlight" style="height: 95%"></div>
-                    <div class="bite-preview-bar" style="height: 60%"></div>
+            </div>
+            <div class="bite-hero-visual">
+                <div class="bite-dashboard-preview">
+                    <div class="bite-preview-header">
+                        <span class="bite-preview-dot"></span>
+                        <span class="bite-preview-dot"></span>
+                        <span class="bite-preview-dot"></span>
+                        <span class="bite-preview-title">BITE Dashboard</span>
+                    </div>
+                    <div class="bite-preview-chart">
+                        <div class="bite-preview-bar" style="height: 40%"></div>
+                        <div class="bite-preview-bar" style="height: 65%"></div>
+                        <div class="bite-preview-bar" style="height: 50%"></div>
+                        <div class="bite-preview-bar" style="height: 80%"></div>
+                        <div class="bite-preview-bar" style="height: 70%"></div>
+                        <div class="bite-preview-bar bite-preview-bar-highlight" style="height: 95%"></div>
+                        <div class="bite-preview-bar" style="height: 60%"></div>
+                    </div>
                 </div>
             </div>
         </div>

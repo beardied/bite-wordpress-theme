@@ -16,15 +16,13 @@
 	<meta http-equiv="Pragma" content="no-cache">
 	<meta http-equiv="Expires" content="0">
 	<link rel="profile" href="https://gmpg.org/xfn/11">
-    <?php // Do not output the admin bar for BITE Viewers, but do for Admins ?>
-    <?php if ( ! current_user_can( 'bite_viewer' ) ) : ?>
+    <?php // Only add admin bar margin for admins ?>
+    <?php if ( current_user_can( 'manage_options' ) ) : ?>
         <style type="text/css">
-            /* Simple fix to prevent content jumping when admin bar is present */
+            /* Fix for WordPress admin bar spacing - only for admins */
             html { margin-top: 32px !important; }
-            * html body { margin-top: 32px !important; }
             @media screen and (max-width: 782px) {
                 html { margin-top: 46px !important; }
-                * html body { margin-top: 46px !important; }
             }
         </style>
     <?php endif; ?>

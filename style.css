@@ -296,15 +296,54 @@ h1, h2, h3, h4, h5, h6 {
     background-color: var(--primary-color);
     border-top: 3px solid var(--secondary-color);
     box-sizing: border-box;
-    text-align: center;
     font-size: 0.9em;
     color: rgba(255, 255, 255, 0.8);
     margin-top: auto;
 }
 
-.bite-site-footer p {
+.bite-footer-inner {
+    max-width: 1600px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 30px;
+}
+
+.bite-footer-copyright {
     margin: 0;
     font-weight: 500;
+    text-align: center;
+}
+
+/* Footer Menus */
+.bite-footer-menu ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    gap: 20px;
+}
+
+.bite-footer-menu-left ul {
+    justify-content: flex-start;
+}
+
+.bite-footer-menu-right ul {
+    justify-content: flex-end;
+}
+
+.bite-footer-menu a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.bite-footer-menu a:hover {
+    color: var(--accent-color);
+    text-decoration: none;
 }
 
 /* --- Filter Bar --- */
@@ -685,5 +724,527 @@ th span[title] {
     
     .bite-user-info-bottom {
         order: -1;
+    }
+    
+    /* Footer responsive */
+    .bite-footer-inner {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .bite-footer-copyright {
+        order: -1;
+    }
+    
+    .bite-footer-menu ul {
+        justify-content: center !important;
+    }
+}
+
+
+/* ==========================================================================
+   DASHBOARD TEMPLATE STYLES
+   ========================================================================== */
+
+/* Dashboard Page Container */
+.bite-dashboard-page {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 30px 24px;
+}
+
+/* --- Welcome Section --- */
+.bite-dashboard-welcome {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #16213E 100%);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 30px;
+    box-shadow: var(--shadow-lg);
+}
+
+.bite-welcome-title {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: var(--light-text-color);
+    margin: 0 0 10px 0;
+}
+
+.bite-welcome-subtitle {
+    font-size: 1.1em;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+}
+
+.bite-welcome-subtitle strong {
+    color: var(--accent-color);
+}
+
+.bite-welcome-actions {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.bite-button-secondary {
+    background: transparent;
+    border: 2px solid var(--secondary-color);
+    color: var(--light-text-color);
+}
+
+.bite-button-secondary:hover {
+    background: var(--secondary-color);
+    color: var(--light-text-color);
+}
+
+.bite-icon {
+    margin-right: 6px;
+}
+
+/* --- Stats Section --- */
+.bite-dashboard-stats {
+    margin-bottom: 30px;
+}
+
+.bite-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.bite-stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bite-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.bite-stat-icon {
+    font-size: 2em;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(232, 93, 4, 0.1);
+    border-radius: var(--radius-md);
+}
+
+.bite-stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.bite-stat-value {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1.2;
+}
+
+.bite-stat-label {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* --- Dashboard Grid Layout --- */
+.bite-dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+}
+
+.bite-dashboard-main {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.bite-dashboard-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* --- Dashboard Sections --- */
+.bite-dashboard-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+}
+
+.bite-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border-light);
+}
+
+.bite-section-header h2 {
+    margin: 0;
+    font-size: 1.4em;
+    color: var(--primary-color);
+}
+
+.bite-badge {
+    background: var(--secondary-color);
+    color: var(--light-text-color);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+/* --- Sites List --- */
+.bite-sites-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.bite-site-card {
+    background: var(--background-color);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bite-site-card:hover {
+    border-color: var(--secondary-color);
+    box-shadow: var(--shadow-md);
+}
+
+.bite-site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.bite-site-name {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 0;
+}
+
+.bite-site-niche {
+    font-size: 0.75em;
+    background: var(--secondary-color);
+    color: var(--light-text-color);
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.bite-site-meta {
+    margin-bottom: 12px;
+}
+
+.bite-site-domain {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    word-break: break-all;
+}
+
+.bite-site-actions {
+    margin-top: auto;
+}
+
+.bite-site-link {
+    color: var(--secondary-color);
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.95em;
+}
+
+.bite-site-link:hover {
+    color: var(--accent-color);
+}
+
+.bite-sites-more {
+    text-align: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+}
+
+.bite-sites-more p {
+    margin: 0 0 8px 0;
+    color: var(--text-muted);
+}
+
+.bite-link {
+    color: var(--secondary-color);
+    font-weight: 600;
+}
+
+/* --- Tools Grid --- */
+.bite-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.bite-tool-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 20px;
+    background: var(--background-color);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.bite-tool-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    text-decoration: none;
+}
+
+.bite-tool-icon {
+    font-size: 1.8em;
+    flex-shrink: 0;
+}
+
+.bite-tool-content h3 {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 0 0 4px 0;
+}
+
+.bite-tool-content p {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Tool color accents */
+.bite-tool-blue:hover { border-color: #3498db; }
+.bite-tool-gold:hover { border-color: #f1c40f; }
+.bite-tool-green:hover { border-color: #27ae60; }
+.bite-tool-purple:hover { border-color: #9b59b6; }
+.bite-tool-orange:hover { border-color: var(--secondary-color); }
+
+/* --- Sidebar Widgets --- */
+.bite-widget {
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.bite-widget h3 {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 0 0 16px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border-light);
+}
+
+/* Niches Widget */
+.bite-niches-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.bite-niches-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.bite-niches-list li:last-child {
+    border-bottom: none;
+}
+
+.bite-niche-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--secondary-color);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Actions Widget */
+.bite-actions-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.bite-actions-list li {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.bite-actions-list li:last-child {
+    border-bottom: none;
+}
+
+.bite-actions-list a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.bite-actions-list a:hover {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+.bite-action-icon {
+    font-size: 1.3em;
+}
+
+/* Account Widget */
+.bite-account-info {
+    margin-bottom: 16px;
+}
+
+.bite-account-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.bite-account-row:last-child {
+    border-bottom: none;
+}
+
+.bite-account-label {
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+.bite-account-value {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.bite-button-small {
+    padding: 8px 16px;
+    font-size: 0.9em;
+}
+
+.bite-button-outline {
+    background: transparent;
+    border: 2px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.bite-button-outline:hover {
+    background: var(--border-color);
+    color: var(--text-color);
+}
+
+/* Help Widget */
+.bite-help-widget p {
+    color: var(--text-muted);
+    font-size: 0.95em;
+    margin: 0 0 16px 0;
+    line-height: 1.5;
+}
+
+/* Empty State */
+.bite-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+
+.bite-empty-state p {
+    margin: 0 0 16px 0;
+}
+
+/* --- Responsive Dashboard --- */
+@media screen and (max-width: 1200px) {
+    .bite-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .bite-dashboard-sidebar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+
+@media screen and (max-width: 992px) {
+    .bite-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .bite-dashboard-welcome {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .bite-welcome-actions {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .bite-dashboard-page {
+        padding: 20px 15px;
+    }
+    
+    .bite-dashboard-welcome {
+        padding: 24px;
+    }
+    
+    .bite-welcome-title {
+        font-size: 1.6em;
+    }
+    
+    .bite-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .bite-sites-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .bite-tools-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .bite-dashboard-sidebar {
+        grid-template-columns: 1fr;
     }
 }

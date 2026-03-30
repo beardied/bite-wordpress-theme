@@ -208,3 +208,59 @@ function bite_customize_register( $wp_customize ) {
     ) );
 }
 add_action( 'customize_register', 'bite_customize_register' );
+
+/**
+ * 8. Register Footer Navigation Menus.
+ */
+function bite_register_menus() {
+    register_nav_menus( array(
+        'footer-left'  => __( 'Footer Left Menu', 'bite-theme' ),
+        'footer-right' => __( 'Footer Right Menu', 'bite-theme' ),
+    ) );
+}
+add_action( 'after_setup_theme', 'bite_register_menus' );
+
+
+/**
+ * 9. Redirect users to Dashboard after login.
+ */
+function bite_login_redirect( $redirect_to, $request, $user ) {
+    // If user is logged in and not admin
+    if ( isset( $user->ID ) && ! is_wp_error( $user ) ) {
+        // Get the dashboard page
+        $dashboard_page = get_page_by_path( 'dashboard' );
+        
+        if ( $dashboard_page ) {
+            return get_permalink( $dashboard_page->ID );
+        }
+        
+        // Fallback to home if dashboard page doesn't exist
+        return home_url( '/' );
+    }
+    
+    return $redirect_to;
+}
+add_filter( 'login_redirect', 'bite_login_redirect', 10, 3 );
+
+/**
+ * 10. Also redirect on wp_login action (backup method).
+ */
+function bite_after_login_redirect( $user_login, $user ) {
+    // Don't redirect if doing ajax or admin
+    if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+        return;
+    }
+    
+    if ( is_admin() ) {
+        return;
+    }
+    
+    // Get the dashboard page
+    $dashboard_page = get_page_by_path( 'dashboard' );
+    
+    if ( $dashboard_page ) {
+        wp_redirect( get_permalink( $dashboard_page->ID ) );
+        exit;
+    }
+}
+add_action( 'wp_login', 'bite_after_login_redirect', 10, 2 );

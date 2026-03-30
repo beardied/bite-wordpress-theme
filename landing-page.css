@@ -27,24 +27,24 @@ body.page-template-template-sales-landing #content {
     padding: 0;
 }
 
-/* Hero Section - Full Width */
+/* Hero Section - Full Width Background with Constrained Content */
 .bite-hero {
     background: linear-gradient(135deg, var(--primary-color) 0%, #16213E 100%);
     color: var(--light-text-color);
-    padding: 80px 24px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 60px;
-    align-items: center;
     width: 100%;
-    max-width: 100%;
     margin: 0;
     min-height: 600px;
     box-sizing: border-box;
 }
 
-.bite-hero-content {
-    max-width: 600px;
+.bite-hero-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 80px 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
 }
 
 .bite-hero-badge {
@@ -390,7 +390,7 @@ body.page-template-template-sales-landing #content {
 
 /* Responsive */
 @media screen and (max-width: 1024px) {
-    .bite-hero {
+    .bite-hero-container {
         grid-template-columns: 1fr;
         text-align: center;
         gap: 40px;
@@ -418,7 +418,7 @@ body.page-template-template-sales-landing #content {
 }
 
 @media screen and (max-width: 768px) {
-    .bite-hero {
+    .bite-hero-container {
         padding: 60px 20px;
         min-height: auto;
     }
