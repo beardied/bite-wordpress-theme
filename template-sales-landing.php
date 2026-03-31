@@ -151,7 +151,8 @@ get_header();
             <p>Choose the plan that fits your needs. All plans include full access to B.I.T.E. features.</p>
         </div>
         
-        <div class="bite-pricing-grid">
+        <!-- First Row: 3 Cards -->
+        <div class="bite-pricing-row bite-pricing-row-3">
             <!-- Free for Hosting Customers -->
             <div class="bite-pricing-card bite-pricing-featured">
                 <div class="bite-pricing-badge">Best Value</div>
@@ -218,7 +219,10 @@ get_header();
                     <a href="<?php echo esc_url( home_url( '/contact/' ) ); ?>" class="bite-button">Request Access</a>
                 </div>
             </div>
-            
+        </div>
+        
+        <!-- Second Row: 2 Cards (Centered) -->
+        <div class="bite-pricing-row bite-pricing-row-2">
             <!-- Agency -->
             <div class="bite-pricing-card">
                 <div class="bite-pricing-header">

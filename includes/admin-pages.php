@@ -12,6 +12,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Check if required database tables exist and show admin notice if not.
+ */
+function bite_check_database_tables() {
+    global $wpdb;
+    
+    $required_tables = array(
+        $wpdb->prefix . 'bite_niches',
+        $wpdb->prefix . 'bite_sites',
+        $wpdb->prefix . 'bite_keywords',
+        $wpdb->prefix . 'bite_daily_summary',
+        $wpdb->prefix . 'bite_user_sites',
+        $wpdb->prefix . 'bite_reviews',
+    );
+    
+    $missing_tables = array();
+    foreach ( $required_tables as $table ) {
+        $exists = $wpdb->get_var( "SHOW TABLES LIKE '$table'" );
+        if ( ! $exists ) {
+            $missing_tables[] = $table;
+        }
+    }
+    
+    if ( ! empty( $missing_tables ) ) {
+        echo '<div class="notice notice-error"><p><strong>BITE Database Error:</strong> The following required tables are missing: <code>' . implode( '</code>, <code>', $missing_tables ) . '</code>. Please deactivate and reactivate the theme to create them.</p></div>';
+    }
+}
+add_action( 'admin_notices', 'bite_check_database_tables' );
+
+/**
  * Register the admin menu pages.
  */
 function bite_register_admin_menu() {
@@ -226,6 +255,20 @@ function bite_admin_page_sites() {
     <div class="wrap bite-admin-wrap">
         <h1><?php esc_html_e( 'Manage Sites', 'bite-theme' ); ?></h1>
         
+        <?php
+        // Check if Google API credentials exist
+        $credentials_file = get_template_directory() . '/google-api-credentials.json';
+        if ( ! file_exists( $credentials_file ) ) :
+        ?>
+        <div class="notice notice-warning">
+            <p>
+                <strong>Google API Credentials Required</strong> - 
+                To fetch data from Google Search Console, you need to upload a Service Account JSON key file.
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-settings' ) ); ?>">View Setup Instructions</a>
+            </p>
+        </div>
+        <?php endif; ?>
+        
         <h2><?php esc_html_e( 'Add New Site', 'bite-theme' ); ?></h2>
         <form method="post" action="" class="bite-admin-form">
             <input type="hidden" name="bite_action" value="add_site">
@@ -385,6 +428,8 @@ add_action( 'admin_menu', 'bite_register_user_access_menu', 20 );
  * Handle user access form submissions.
  */
 function bite_handle_user_access_actions() {
+    global $wpdb;
+    
     if ( ! isset( $_POST['bite_user_action'] ) || ! current_user_can( 'manage_options' ) ) {
         return;
     }
@@ -396,11 +441,32 @@ function bite_handle_user_access_actions() {
         $user_id = absint( $_POST['user_id'] );
         $site_id = absint( $_POST['site_id'] );
         
+        // Check if user_sites table exists first
+        $user_sites_table = $wpdb->prefix . 'bite_user_sites';
+        $table_exists = $wpdb->get_var( "SHOW TABLES LIKE '$user_sites_table'" );
+        
+        if ( ! $table_exists ) {
+            add_action( 'admin_notices', function() {
+                echo '<div class="notice notice-error"><p><strong>Database Error:</strong> The user access table does not exist. Please deactivate and reactivate the BITE theme to create the required database tables.</p></div>';
+            } );
+            return;
+        }
+        
         $result = bite_grant_user_site_access( $user_id, $site_id, get_current_user_id() );
         
         if ( is_wp_error( $result ) ) {
             add_action( 'admin_notices', function() use ( $result ) {
-                echo '<div class="notice notice-error"><p>' . esc_html( $result->get_error_message() ) . '</p></div>';
+                $error_message = $result->get_error_message();
+                // Add debugging info for database errors
+                if ( $result->get_error_code() === 'db_error' || $result->get_error_code() === 'insert_failed' ) {
+                    global $wpdb;
+                    $error_message .= ' <br><small>Debug: ' . esc_html( $wpdb->last_error ) . '</small>';
+                }
+                echo '<div class="notice notice-error"><p>' . wp_kses_post( $error_message ) . '</p></div>';
+            } );
+        } else {
+            add_action( 'admin_notices', function() {
+                echo '<div class="notice notice-success"><p>Access granted successfully!</p></div>';
             } );
         }
     }
@@ -417,6 +483,10 @@ function bite_handle_user_access_actions() {
         if ( is_wp_error( $result ) ) {
             add_action( 'admin_notices', function() use ( $result ) {
                 echo '<div class="notice notice-error"><p>' . esc_html( $result->get_error_message() ) . '</p></div>';
+            } );
+        } else {
+            add_action( 'admin_notices', function() {
+                echo '<div class="notice notice-success"><p>Access revoked successfully!</p></div>';
             } );
         }
     }
@@ -641,6 +711,87 @@ function bite_admin_page_settings() {
             <li>Select the "BITE Contact Page" template</li>
             <li>Publish the page</li>
         </ol>
+        
+        <hr>
+        
+        <h2>Google Search Console API Setup</h2>
+        <p>BITE fetches data from Google Search Console using the Google Search Console API. This requires proper authentication setup.</p>
+        
+        <h3>How Data Collection Works</h3>
+        <ol>
+            <li><strong>GSC Property:</strong> Each site needs a GSC Property URL (e.g., <code>sc-domain:example.com</code> or <code>https://www.example.com/</code>)</li>
+            <li><strong>Google API Credentials:</strong> You need a Google Service Account JSON key file with access to the Search Console API</li>
+            <li><strong>Data Fetching:</strong> Two automated cron jobs fetch data:
+                <ul style="margin-top: 10px;">
+                    <li><strong>Backfill Queue:</strong> Runs every 2.5 minutes to fetch historical data for new sites</li>
+                    <li><strong>Daily Update:</strong> Runs at 6 AM UTC to fetch yesterday's data for all sites</li>
+                </ul>
+            </li>
+        </ol>
+        
+        <h3>Required Setup Steps</h3>
+        <ol>
+            <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+            <li>Create a new project or select an existing one</li>
+            <li>Enable the <strong>Google Search Console API</strong></li>
+            <li>Create a <strong>Service Account</strong> (IAM & Admin > Service Accounts)</li>
+            <li>Generate a JSON key for the service account</li>
+            <li>Upload the JSON key file to your theme directory as <code>google-api-credentials.json</code></li>
+            <li>In Google Search Console, add the service account email as a <strong>Restricted Property User</strong> for each property you want to access</li>
+        </ol>
+        
+        <h3>GSC Property URL Format</h3>
+        <p>The GSC Property must match exactly what's in Google Search Console:</p>
+        <ul>
+            <li><strong>Domain property:</strong> <code>sc-domain:example.com</code> (recommended - covers all subdomains)</li>
+            <li><strong>URL prefix:</strong> <code>https://www.example.com/</code> (must include trailing slash and exact protocol)</li>
+        </ul>
+        
+        <h3>Status Check</h3>
+        <?php
+        $credentials_file = get_template_directory() . '/google-api-credentials.json';
+        if ( file_exists( $credentials_file ) ) :
+            $key_data = json_decode( file_get_contents( $credentials_file ), true );
+            if ( $key_data && isset( $key_data['client_email'] ) ) :
+        ?>
+            <div class="notice notice-success inline" style="margin: 15px 0;">
+                <p>
+                    <strong>✓ API Credentials File Found</strong><br>
+                    Service Account: <code><?php echo esc_html( $key_data['client_email'] ); ?></code><br>
+                    <em>Remember to add this service account to your GSC properties!</em>
+                </p>
+            </div>
+        <?php else : ?>
+            <div class="notice notice-error inline" style="margin: 15px 0;">
+                <p><strong>✗ API Credentials File Corrupt</strong> - The JSON file exists but could not be parsed.</p>
+            </div>
+        <?php endif; else : ?>
+            <div class="notice notice-warning inline" style="margin: 15px 0;">
+                <p>
+                    <strong>✗ API Credentials File Missing</strong><br>
+                    Please upload your Google Service Account JSON key to:<br>
+                    <code><?php echo esc_html( $credentials_file ); ?></code>
+                </p>
+            </div>
+        <?php endif; ?>
+        
+        <h3>Adding Sites</h3>
+        <p>To add a new site for tracking:</p>
+        <ol>
+            <li>Go to <strong>BITE Admin > Manage Sites</strong></li>
+            <li>Click "Add New Site"</li>
+            <li>Enter the site name and domain</li>
+            <li>Enter the exact GSC Property URL</li>
+            <li>Save the site - data fetching will begin automatically</li>
+        </ol>
+        
+        <h3>Troubleshooting</h3>
+        <ul>
+            <li><strong>"Failed to fetch GSC data"</strong> - Check that the service account email has been added to the GSC property</li>
+            <li><strong>"Invalid property"</strong> - Verify the GSC Property URL matches exactly (including trailing slashes)</li>
+            <li><strong>No data appearing</strong> - Check that the site actually has data in GSC and that the cron jobs are running</li>
+            <li><strong>Cron not running</strong> - Ensure WordPress cron is enabled or set up a server cron job to trigger wp-cron.php</li>
+        </ul>
     </div>
     <?php
 }

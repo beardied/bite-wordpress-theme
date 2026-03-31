@@ -110,3 +110,49 @@ function bite_create_database_tables() {
     dbDelta( $sql_reviews );
 }
 add_action( 'after_switch_theme', 'bite_create_database_tables' );
+
+/**
+ * Create missing tables on theme version update (for existing installations)
+ */
+function bite_create_missing_tables() {
+    global $wpdb;
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $charset_collate = $wpdb->get_charset_collate();
+    
+    // Check if user_sites table exists
+    $user_sites_table = $wpdb->prefix . 'bite_user_sites';
+    $table_exists = $wpdb->get_var( "SHOW TABLES LIKE '$user_sites_table'" );
+    
+    if ( ! $table_exists ) {
+        $sql_user_sites = "CREATE TABLE $user_sites_table (
+            user_site_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT UNSIGNED NOT NULL,
+            site_id INT UNSIGNED NOT NULL,
+            assigned_by BIGINT UNSIGNED NOT NULL,
+            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_site_id),
+            UNIQUE KEY uq_user_site (user_id, site_id),
+            KEY idx_user_id (user_id),
+            KEY idx_site_id (site_id)
+        ) $charset_collate;";
+        dbDelta( $sql_user_sites );
+    }
+    
+    // Check if reviews table exists
+    $reviews_table = $wpdb->prefix . 'bite_reviews';
+    $table_exists = $wpdb->get_var( "SHOW TABLES LIKE '$reviews_table'" );
+    
+    if ( ! $table_exists ) {
+        $sql_reviews = "CREATE TABLE $reviews_table (
+            review_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT UNSIGNED NOT NULL,
+            user_name VARCHAR(100) NOT NULL,
+            rating TINYINT UNSIGNED NOT NULL,
+            review_text TEXT,
+            is_approved TINYINT(1) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (review_id),
+            KEY idx_user_id (user_id),
+            KEY idx_rating (rating),
+            KEY idx_approved (is_approved)

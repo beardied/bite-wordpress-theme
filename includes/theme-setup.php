@@ -141,6 +141,16 @@ function bite_enqueue_scripts() {
             );
         }
 
+        // Enqueue default page CSS for standard pages
+        if ( is_page_template( 'template-default.php' ) ) {
+            wp_enqueue_style(
+                'bite-default-style',
+                get_template_directory_uri() . '/assets/css/default-page.css',
+                array(),
+                filemtime( get_template_directory() . '/assets/css/default-page.css' )
+            );
+        }
+
         // --- jQuery & Datepicker ---
         wp_enqueue_script( 'jquery' );
         wp_enqueue_script( 'jquery-ui-datepicker' );

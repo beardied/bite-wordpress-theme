@@ -1,0 +1,117 @@
+/*
+ * BITE Default Page Template Styles
+ * For standard pages like Privacy Policy, Terms, etc.
+ */
+
+.bite-default-page {
+    padding: 80px 24px;
+    background: var(--background-color);
+    min-height: calc(100vh - 85px);
+}
+
+.bite-default-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.bite-default-article {
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 60px;
+    box-shadow: var(--shadow-sm);
+}
+
+.bite-default-header {
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 2px solid var(--border-light);
+}
+
+.bite-default-title {
+    font-size: 2.5em;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bite-default-content {
+    font-size: 1.05em;
+    line-height: 1.8;
+    color: var(--text-color);
+}
+
+.bite-default-content h2 {
+    font-size: 1.6em;
+    color: var(--primary-color);
+    margin: 40px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.bite-default-content h3 {
+    font-size: 1.3em;
+    color: var(--primary-color);
+    margin: 30px 0 15px;
+}
+
+.bite-default-content p {
+    margin-bottom: 20px;
+}
+
+.bite-default-content ul,
+.bite-default-content ol {
+    margin-bottom: 20px;
+    padding-left: 30px;
+}
+
+.bite-default-content li {
+    margin-bottom: 10px;
+}
+
+.bite-default-content a {
+    color: var(--secondary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.bite-default-content a:hover {
+    text-decoration: underline;
+}
+
+.bite-default-content strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.bite-default-content .wp-block-separator {
+    margin: 40px 0;
+    border-color: var(--border-light);
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .bite-default-page {
+        padding: 40px 20px;
+    }
+    
+    .bite-default-article {
+        padding: 30px;
+    }
+    
+    .bite-default-title {
+        font-size: 1.8em;
+    }
+    
+    .bite-default-content h2 {
+        font-size: 1.4em;
+    }
+    
+    .bite-default-content h3 {
+        font-size: 1.2em;
+    }
+}

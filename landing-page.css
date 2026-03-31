@@ -656,23 +656,31 @@ body.page-template-template-sales-landing #content {
     margin: 0 auto 60px;
 }
 
-.bite-pricing-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+/* Pricing Rows */
+.bite-pricing-row {
+    display: flex;
+    justify-content: center;
     gap: 30px;
     max-width: 1200px;
-    margin: 0 auto;
+    margin: 0 auto 30px;
 }
 
-/* Last two cards - center them */
-.bite-pricing-grid > *:nth-child(4) {
-    grid-column: 1 / 2;
-    justify-self: end;
+.bite-pricing-row:last-child {
+    margin-bottom: 0;
 }
 
-.bite-pricing-grid > *:nth-child(5) {
-    grid-column: 2 / 3;
-    justify-self: start;
+.bite-pricing-row-3 .bite-pricing-card {
+    width: calc(33.333% - 20px);
+    max-width: 380px;
+}
+
+.bite-pricing-row-2 {
+    max-width: 800px; /* Narrower container for 2 cards */
+}
+
+.bite-pricing-row-2 .bite-pricing-card {
+    width: calc(50% - 15px);
+    max-width: 380px;
 }
 
 .bite-pricing-card {
@@ -791,14 +799,16 @@ body.page-template-template-sales-landing #content {
 
 /* Responsive for new sections */
 @media screen and (max-width: 1200px) {
-    .bite-pricing-grid {
-        grid-template-columns: repeat(2, 1fr);
+    .bite-pricing-row {
+        flex-wrap: wrap;
     }
     
-    .bite-pricing-grid > *:nth-child(4),
-    .bite-pricing-grid > *:nth-child(5) {
-        grid-column: auto;
-        justify-self: auto;
+    .bite-pricing-row-3 .bite-pricing-card {
+        width: calc(50% - 15px);
+    }
+    
+    .bite-pricing-row-2 .bite-pricing-card {
+        width: calc(50% - 15px);
     }
 }
 
@@ -847,14 +857,14 @@ body.page-template-template-sales-landing #content {
         padding: 60px 20px;
     }
     
-    .bite-pricing-grid {
-        grid-template-columns: 1fr;
-        max-width: 400px;
+    .bite-pricing-row {
+        flex-direction: column;
+        align-items: center;
     }
     
-    .bite-pricing-grid > *:nth-child(4),
-    .bite-pricing-grid > *:nth-child(5) {
-        grid-column: auto;
-        justify-self: auto;
+    .bite-pricing-row-3 .bite-pricing-card,
+    .bite-pricing-row-2 .bite-pricing-card {
+        width: 100%;
+        max-width: 400px;
     }
 }
