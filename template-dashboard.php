@@ -111,8 +111,9 @@ $is_admin        = current_user_can( 'manage_options' );
 // Get user plan info
 $user_plan = bite_get_user_plan( $current_user_id );
 $site_limit = bite_get_user_site_limit( $current_user_id );
-$remaining_sites = bite_get_user_remaining_sites( $current_user_id );
-$can_add_more = bite_user_can_add_site( $current_user_id );
+$current_site_count = count( $user_site_ids );
+$remaining_sites = ( $site_limit === 0 ) ? -1 : max( 0, $site_limit - $current_site_count );
+$can_add_more = ( $site_limit === 0 ) || ( $current_site_count < $site_limit );
 
 // Get site details
 $user_sites = array();
@@ -145,7 +146,7 @@ $quick_stats = array(
     'total_impressions' => 0,
     'avg_ctr'           => 0,
     'avg_position'      => 0,
-    'site_count'        => count( $user_sites ),
+    'site_count'        => $current_site_count,
 );
 
 if ( ! empty( $user_site_ids ) ) {
@@ -207,12 +208,12 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                     Welcome back, <?php echo esc_html( $current_user->display_name ); ?>!
                 </h1>
                 <p class="bite-welcome-subtitle">
-                    You have access to 
-                    <strong><?php echo count( $user_sites ); ?> site<?php echo count( $user_sites ) !== 1 ? 's' : ''; ?></strong>
-                    <?php if ( ! empty( $user_niches ) ) : ?>
-                        across <strong><?php echo count( $user_niches ); ?> niche<?php echo count( $user_niches ) !== 1 ? 's' : ''; ?></strong>
-                    <?php endif; ?>.
-                    <span class="bite-plan-badge">Plan: <?php echo esc_html( $plan_display ); ?></span>
+                    <span class="bite-plan-badge"><?php echo esc_html( $plan_display ); ?> Plan</span>
+                    <?php if ( $site_limit > 0 ) : ?>
+                        <span class="bite-sites-count"><?php echo $current_site_count; ?> of <?php echo $site_limit; ?> sites used</span>
+                    <?php else : ?>
+                        <span class="bite-sites-count"><?php echo $current_site_count; ?> sites</span>
+                    <?php endif; ?>
                 </p>
             </div>
         </section>
@@ -260,15 +261,6 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
         <section class="bite-dashboard-section bite-sites-section">
             <div class="bite-section-header">
                 <h2>Your Sites</h2>
-                <div class="bite-section-meta">
-                    <span class="bite-badge"><?php echo count( $user_sites ); ?> 
-                        <?php echo count( $user_sites ) === 1 ? 'site' : 'sites'; ?></span>
-                    <?php if ( $site_limit > 0 ) : ?>
-                        <span class="bite-limit-badge"><?php echo $remaining_sites; ?> remaining</span>
-                    <?php elseif ( $site_limit === 0 ) : ?>
-                        <span class="bite-limit-badge unlimited">Unlimited</span>
-                    <?php endif; ?>
-                </div>
             </div>
             
             <?php if ( ! empty( $user_sites ) ) : ?>
@@ -294,9 +286,9 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                 </div>
             <?php endif; ?>
             
-            <!-- Add Site Form / CTA -->
+            <!-- Add Site Wizard -->
             <?php if ( $can_add_more ) : ?>
-                <div class="bite-add-site-section" id="add-site">
+                <div class="bite-wizard-container" id="add-site">
                     <?php if ( ! empty( $form_message ) ) : ?>
                         <div class="bite-notice success">
                             <span class="material-icons">check_circle</span>
@@ -311,94 +303,222 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                         </div>
                     <?php endif; ?>
                     
-                    <div class="bite-add-site-header">
-                        <h3><?php echo empty( $user_sites ) ? 'Get Started: Add Your First Site' : 'Add Another Site'; ?></h3>
-                        <p>Follow the steps below to connect your website's Google Search Console data.</p>
+                    <div class="bite-wizard-header">
+                        <h3><?php echo empty( $user_sites ) ? '🚀 Add Your First Site' : '➕ Add Another Site'; ?></h3>
+                        <p>Complete the setup to connect your Google Search Console data.</p>
+                        <?php if ( $site_limit > 0 ) : ?>
+                            <span class="bite-wizard-remaining"><?php echo $remaining_sites; ?> of <?php echo $site_limit; ?> sites remaining</span>
+                        <?php endif; ?>
                     </div>
                     
-                    <div class="bite-setup-steps">
-                        <div class="bite-step">
-                            <div class="bite-step-number">1</div>
-                            <div class="bite-step-content">
-                                <h4>Create Google Cloud Project</h4>
-                                <p>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> and create a new project.</p>
+                    <!-- Step-by-Step Wizard -->
+                    <div class="bite-wizard" id="site-wizard">
+                        <!-- Progress Bar -->
+                        <div class="bite-wizard-progress">
+                            <div class="bite-wizard-progress-bar" id="wizard-progress"></div>
+                            <div class="bite-wizard-steps-indicator">
+                                <span class="step-dot active" data-step="1"></span>
+                                <span class="step-dot" data-step="2"></span>
+                                <span class="step-dot" data-step="3"></span>
+                                <span class="step-dot" data-step="4"></span>
+                                <span class="step-dot" data-step="5"></span>
                             </div>
                         </div>
-                        <div class="bite-step">
-                            <div class="bite-step-number">2</div>
+                        
+                        <!-- Step 1: Google Cloud Project -->
+                        <div class="bite-wizard-step active" data-step="1">
                             <div class="bite-step-content">
-                                <h4>Enable Search Console API</h4>
-                                <p>In your project, go to "APIs & Services" and enable the "Google Search Console API".</p>
+                                <div class="bite-step-icon">🔧</div>
+                                <h4>Step 1: Create Google Cloud Project</h4>
+                                <p>You'll need a Google Cloud project to access the Search Console API.</p>
+                                <ol class="bite-step-instructions">
+                                    <li>Go to <a href="https://console.cloud.google.com/" target="_blank" class="bite-external-link">Google Cloud Console</a></li>
+                                    <li>Click "Select a project" → "New Project"</li>
+                                    <li>Give it a name (e.g., "My Website BITE")</li>
+                                    <li>Click "Create"</li>
+                                </ol>
+                                <div class="bite-step-actions">
+                                    <button type="button" class="bite-button bite-button-primary" onclick="wizardNext()">I've Created the Project →</button>
+                                </div>
                             </div>
                         </div>
-                        <div class="bite-step">
-                            <div class="bite-step-number">3</div>
+                        
+                        <!-- Step 2: Enable API -->
+                        <div class="bite-wizard-step" data-step="2">
                             <div class="bite-step-content">
-                                <h4>Create Service Account</h4>
-                                <p>Go to "IAM & Admin > Service Accounts", create a new service account with "Viewer" role.</p>
+                                <div class="bite-step-icon">🚀</div>
+                                <h4>Step 2: Enable Search Console API</h4>
+                                <p>Enable the API so BITE can read your search data.</p>
+                                <ol class="bite-step-instructions">
+                                    <li>In your project, go to "APIs & Services" → "Library"</li>
+                                    <li>Search for "Google Search Console API"</li>
+                                    <li>Click on it and hit "Enable"</li>
+                                </ol>
+                                <div class="bite-step-actions">
+                                    <button type="button" class="bite-button bite-button-secondary" onclick="wizardPrev()">← Back</button>
+                                    <button type="button" class="bite-button bite-button-primary" onclick="wizardNext()">I've Enabled the API →</button>
+                                </div>
                             </div>
                         </div>
-                        <div class="bite-step">
-                            <div class="bite-step-number">4</div>
+                        
+                        <!-- Step 3: Create Service Account -->
+                        <div class="bite-wizard-step" data-step="3">
                             <div class="bite-step-content">
-                                <h4>Download JSON Key</h4>
-                                <p>Create a JSON key for your service account and download it.</p>
+                                <div class="bite-step-icon">👤</div>
+                                <h4>Step 3: Create Service Account</h4>
+                                <p>Create a service account that BITE will use to access your data.</p>
+                                <ol class="bite-step-instructions">
+                                    <li>Go to "IAM & Admin" → "Service Accounts"</li>
+                                    <li>Click "Create Service Account"</li>
+                                    <li>Name: <code>bite-access</code></li>
+                                    <li>Grant role: "Viewer" (Search Console)</li>
+                                    <li>Click "Done"</li>
+                                </ol>
+                                <div class="bite-step-actions">
+                                    <button type="button" class="bite-button bite-button-secondary" onclick="wizardPrev()">← Back</button>
+                                    <button type="button" class="bite-button bite-button-primary" onclick="wizardNext()">I've Created the Account →</button>
+                                </div>
                             </div>
                         </div>
-                        <div class="bite-step">
-                            <div class="bite-step-number">5</div>
+                        
+                        <!-- Step 4: Download JSON Key -->
+                        <div class="bite-wizard-step" data-step="4">
                             <div class="bite-step-content">
-                                <h4>Add to Search Console</h4>
-                                <p>In <a href="https://search.google.com/search-console" target="_blank">GSC</a>, add your service account email as a "Restricted Property User".</p>
+                                <div class="bite-step-icon">🔑</div>
+                                <h4>Step 4: Download JSON Key</h4>
+                                <p>Download the key file that you'll upload here.</p>
+                                <ol class="bite-step-instructions">
+                                    <li>Click on your new service account</li>
+                                    <li>Go to "Keys" tab → "Add Key" → "Create New Key"</li>
+                                    <li>Select "JSON" and click "Create"</li>
+                                    <li>Save the downloaded file - you'll need it in the next step</li>
+                                </ol>
+                                <div class="bite-step-actions">
+                                    <button type="button" class="bite-button bite-button-secondary" onclick="wizardPrev()">← Back</button>
+                                    <button type="button" class="bite-button bite-button-primary" onclick="wizardNext()">I've Downloaded the Key →</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 5: Add to Search Console & Form -->
+                        <div class="bite-wizard-step" data-step="5">
+                            <div class="bite-step-content">
+                                <div class="bite-step-icon">🔗</div>
+                                <h4>Step 5: Add to Search Console & Submit</h4>
+                                <p>Give the service account access to your property, then complete the form below.</p>
+                                <ol class="bite-step-instructions">
+                                    <li>Go to <a href="https://search.google.com/search-console" target="_blank" class="bite-external-link">Google Search Console</a></li>
+                                    <li>Select your property</li>
+                                    <li>Settings → Users and Permissions → Add User</li>
+                                    <li>Enter the service account email (from your JSON file)</li>
+                                    <li>Set permission to "Restricted Property User"</li>
+                                </ol>
+                                
+                                <form method="POST" action="#add-site" class="bite-wizard-form" enctype="multipart/form-data" id="site-form">
+                                    <?php wp_nonce_field( 'bite_add_site', 'bite_add_site_nonce' ); ?>
+                                    
+                                    <div class="bite-form-group">
+                                        <label for="bite_site_name">Site Name <span class="required">*</span></label>
+                                        <input type="text" id="bite_site_name" name="bite_site_name" required 
+                                               placeholder="My Website">
+                                    </div>
+                                    
+                                    <div class="bite-form-row">
+                                        <div class="bite-form-group">
+                                            <label for="bite_domain">Domain <span class="required">*</span></label>
+                                            <input type="text" id="bite_domain" name="bite_domain" required 
+                                                   placeholder="example.com">
+                                        </div>
+                                        
+                                        <div class="bite-form-group">
+                                            <label for="bite_gsc_property">GSC Property <span class="required">*</span></label>
+                                            <input type="text" id="bite_gsc_property" name="bite_gsc_property" required 
+                                                   placeholder="sc-domain:example.com">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bite-form-group">
+                                        <label for="bite_gsc_credentials">Upload JSON Key File <span class="required">*</span></label>
+                                        <div class="bite-file-upload">
+                                            <input type="file" id="bite_gsc_credentials" name="bite_gsc_credentials" 
+                                                   accept=".json" required onchange="updateFileName(this)">
+                                            <label for="bite_gsc_credentials" class="bite-file-label">
+                                                <span class="material-icons">upload_file</span>
+                                                <span class="bite-file-text">Choose JSON file...</span>
+                                            </label>
+                                            <span class="bite-file-name" id="file-name"></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bite-step-actions">
+                                        <button type="button" class="bite-button bite-button-secondary" onclick="wizardPrev()">← Back</button>
+                                        <button type="submit" name="bite_add_site_submit" class="bite-button bite-button-primary bite-button-large">
+                                            <span class="material-icons">add</span>
+                                            Add Site
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
-                    
-                    <form method="POST" action="#add-site" class="bite-add-site-form" enctype="multipart/form-data">
-                        <?php wp_nonce_field( 'bite_add_site', 'bite_add_site_nonce' ); ?>
-                        
-                        <div class="bite-form-row">
-                            <div class="bite-form-group">
-                                <label for="bite_site_name">Site Name <span class="required">*</span></label>
-                                <input type="text" id="bite_site_name" name="bite_site_name" required 
-                                       placeholder="My Website">
-                            </div>
-                            
-                            <div class="bite-form-group">
-                                <label for="bite_domain">Domain <span class="required">*</span></label>
-                                <input type="text" id="bite_domain" name="bite_domain" required 
-                                       placeholder="example.com">
-                            </div>
-                        </div>
-                        
-                        <div class="bite-form-group">
-                            <label for="bite_gsc_property">Google Search Console Property <span class="required">*</span></label>
-                            <input type="text" id="bite_gsc_property" name="bite_gsc_property" required 
-                                   placeholder="sc-domain:example.com OR https://www.example.com/">
-                            <p class="bite-field-help">Must match exactly what's in your GSC account. Use <code>sc-domain:</code> prefix for domain properties.</p>
-                        </div>
-                        
-                        <div class="bite-form-group">
-                            <label for="bite_gsc_credentials">Service Account JSON Key <span class="required">*</span></label>
-                            <input type="file" id="bite_gsc_credentials" name="bite_gsc_credentials" 
-                                   accept=".json" required>
-                            <p class="bite-field-help">Upload the JSON file you downloaded from Google Cloud Console.</p>
-                        </div>
-                        
-                        <button type="submit" name="bite_add_site_submit" class="bite-button bite-button-primary">
-                            <span class="material-icons">add</span>
-                            Add Site
-                        </button>
-                    </form>
                 </div>
+                
+                <script>
+                let currentStep = 1;
+                const totalSteps = 5;
+                
+                function updateProgress() {
+                    const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+                    document.getElementById('wizard-progress').style.width = progress + '%';
+                    
+                    document.querySelectorAll('.step-dot').forEach((dot, index) => {
+                        dot.classList.remove('active', 'completed');
+                        if (index + 1 < currentStep) {
+                            dot.classList.add('completed');
+                        } else if (index + 1 === currentStep) {
+                            dot.classList.add('active');
+                        }
+                    });
+                }
+                
+                function wizardNext() {
+                    if (currentStep < totalSteps) {
+                        document.querySelector('.bite-wizard-step.active').classList.remove('active');
+                        currentStep++;
+                        document.querySelector('.bite-wizard-step[data-step="' + currentStep + '"]').classList.add('active');
+                        updateProgress();
+                    }
+                }
+                
+                function wizardPrev() {
+                    if (currentStep > 1) {
+                        document.querySelector('.bite-wizard-step.active').classList.remove('active');
+                        currentStep--;
+                        document.querySelector('.bite-wizard-step[data-step="' + currentStep + '"]').classList.add('active');
+                        updateProgress();
+                    }
+                }
+                
+                function updateFileName(input) {
+                    const fileName = input.files[0] ? input.files[0].name : '';
+                    document.getElementById('file-name').textContent = fileName;
+                }
+                
+                // Initialize progress
+                updateProgress();
+                </script>
+                
             <?php else : ?>
                 <div class="bite-limit-reached">
                     <div class="bite-notice warning">
                         <span class="material-icons">info</span>
-                        <p>You've reached the maximum number of sites for your <strong><?php echo esc_html( $plan_display ); ?></strong> plan.</p>
-                        <a href="<?php echo esc_url( home_url( '/contact/?plan=upgrade' ) ); ?>" class="bite-button bite-button-small">
-                            Upgrade Plan
-                        </a>
+                        <div>
+                            <p><strong>Site Limit Reached</strong></p>
+                            <p>You've reached the maximum of <strong><?php echo $site_limit; ?></strong> sites for your <?php echo esc_html( $plan_display ); ?> plan.</p>
+                            <a href="<?php echo esc_url( home_url( '/contact/?plan=upgrade' ) ); ?>" class="bite-button bite-button-primary">
+                                Upgrade Plan
+                            </a>
+                        </div>
                     </div>
                 </div>
             <?php endif; ?>
