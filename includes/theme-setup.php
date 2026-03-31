@@ -40,27 +40,37 @@ add_action( 'switch_theme', 'bite_deactivate_theme' );
  * ensuring the BITE system is private. Public access allowed to landing page.
  */
 function bite_force_login() {
-    // Allow access to login/register pages, landing page, and contact page
-    if ( ! is_user_logged_in() ) {
-        $allowed_pages = array( 'wp-login.php', 'wp-register.php' );
-        
-        // Check if current page is using the landing page template
-        if ( is_page_template( 'template-sales-landing.php' ) ) {
-            return; // Allow access to landing page
-        }
-        
-        // Check if current page is the contact page
-        if ( is_page_template( 'template-contact.php' ) ) {
-            return; // Allow access to contact page for requests
-        }
-        
-        if ( ! in_array( $GLOBALS['pagenow'], $allowed_pages ) ) {
-            wp_redirect( wp_login_url() );
-            exit;
-        }
+    // Don't run if user is logged in
+    if ( is_user_logged_in() ) {
+        return;
     }
+    
+    // Always allow access to login/register pages
+    $allowed_pages = array( 'wp-login.php', 'wp-register.php' );
+    if ( in_array( $GLOBALS['pagenow'], $allowed_pages ) ) {
+        return;
+    }
+    
+    // Check if current page is using the landing page template
+    if ( is_page_template( 'template-sales-landing.php' ) ) {
+        return; // Allow access to landing page
+    }
+    
+    // Check if current page is the contact page
+    if ( is_page_template( 'template-contact.php' ) ) {
+        return; // Allow access to contact page for requests
+    }
+    
+    // Check if it's a public page (like homepage if set to landing)
+    if ( is_front_page() && is_page_template( 'template-sales-landing.php' ) ) {
+        return;
+    }
+    
+    // Redirect to login
+    wp_redirect( wp_login_url() );
+    exit;
 }
-add_action( 'init', 'bite_force_login' );
+add_action( 'template_redirect', 'bite_force_login' );
 
 
 /**
