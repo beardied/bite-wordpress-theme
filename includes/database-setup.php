@@ -38,6 +38,7 @@ function bite_create_database_tables() {
         name VARCHAR(255) NOT NULL,
         domain VARCHAR(255) NOT NULL,
         gsc_property VARCHAR(255) NOT NULL,
+        gsc_credentials TEXT NULL,
         matomo_site_id INT UNSIGNED NULL,
         backfill_status ENUM('pending', 'in_progress', 'complete') NOT NULL DEFAULT 'pending',
         backfill_next_date DATE NULL,

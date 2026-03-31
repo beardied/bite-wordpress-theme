@@ -129,23 +129,60 @@ function bite_handle_admin_form_actions() {
     if ( $_POST['bite_action'] === 'add_site' ) {
         check_admin_referer( 'bite_add_site_nonce' );
 
+        // Process uploaded JSON file
+        $gsc_credentials = '';
+        if ( isset( $_FILES['bite_gsc_credentials'] ) && ! empty( $_FILES['bite_gsc_credentials']['tmp_name'] ) ) {
+            $uploaded_file = $_FILES['bite_gsc_credentials'];
+            
+            // Verify it's a JSON file
+            if ( $uploaded_file['type'] === 'application/json' || pathinfo( $uploaded_file['name'], PATHINFO_EXTENSION ) === 'json' ) {
+                $json_content = file_get_contents( $uploaded_file['tmp_name'] );
+                $credentials_data = json_decode( $json_content, true );
+                
+                // Validate JSON structure
+                if ( $credentials_data && isset( $credentials_data['client_email'] ) && isset( $credentials_data['private_key'] ) ) {
+                    $gsc_credentials = $json_content;
+                } else {
+                    add_action( 'admin_notices', function() {
+                        echo '<div class="notice notice-error"><p>Invalid JSON file. Please upload a valid Google Service Account key file.</p></div>';
+                    } );
+                    return;
+                }
+            } else {
+                add_action( 'admin_notices', function() {
+                    echo '<div class="notice notice-error"><p>Please upload a valid JSON file.</p></div>';
+                } );
+                return;
+            }
+        }
+
         $site_data = array(
-            'niche_id'       => absint( $_POST['bite_niche_id'] ),
-            'name'           => sanitize_text_field( $_POST['bite_site_name'] ),
-            'domain'         => sanitize_text_field( $_POST['bite_domain'] ),
-            'gsc_property'   => sanitize_text_field( $_POST['bite_gsc_property'] ),
-            'matomo_site_id' => absint( $_POST['bite_matomo_id'] ),
-            'backfill_status' => 'pending', // Always set to pending on creation
+            'niche_id'        => absint( $_POST['bite_niche_id'] ),
+            'name'            => sanitize_text_field( $_POST['bite_site_name'] ),
+            'domain'          => sanitize_text_field( $_POST['bite_domain'] ),
+            'gsc_property'    => sanitize_text_field( $_POST['bite_gsc_property'] ),
+            'gsc_credentials' => $gsc_credentials,
+            'matomo_site_id'  => absint( $_POST['bite_matomo_id'] ) ?: null,
+            'backfill_status' => 'pending',
         );
 
         // Insert into the main sites table
         $table_name = $wpdb->prefix . 'bite_sites';
-        $wpdb->insert( $table_name, $site_data );
+        $result = $wpdb->insert( $table_name, $site_data );
         
-        // Get the new ID and create the metrics table
-        $new_site_id = $wpdb->insert_id;
-        if ( $new_site_id > 0 ) {
-            bite_create_metrics_table_for_site( $new_site_id );
+        if ( $result === false ) {
+            add_action( 'admin_notices', function() {
+                echo '<div class="notice notice-error"><p>Failed to add site. Database error: ' . esc_html( $GLOBALS['wpdb']->last_error ) . '</p></div>';
+            } );
+        } else {
+            // Get the new ID and create the metrics table
+            $new_site_id = $wpdb->insert_id;
+            if ( $new_site_id > 0 ) {
+                bite_create_metrics_table_for_site( $new_site_id );
+                add_action( 'admin_notices', function() {
+                    echo '<div class="notice notice-success"><p>Site added successfully! Data fetching will begin automatically.</p></div>';
+                } );
+            }
         }
     }
     
@@ -255,22 +292,43 @@ function bite_admin_page_sites() {
     <div class="wrap bite-admin-wrap">
         <h1><?php esc_html_e( 'Manage Sites', 'bite-theme' ); ?></h1>
         
-        <?php
-        // Check if Google API credentials exist
-        $credentials_file = get_template_directory() . '/google-api-credentials.json';
-        if ( ! file_exists( $credentials_file ) ) :
-        ?>
-        <div class="notice notice-warning">
-            <p>
-                <strong>Google API Credentials Required</strong> - 
-                To fetch data from Google Search Console, you need to upload a Service Account JSON key file.
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-settings' ) ); ?>">View Setup Instructions</a>
-            </p>
-        </div>
-        <?php endif; ?>
-        
         <h2><?php esc_html_e( 'Add New Site', 'bite-theme' ); ?></h2>
-        <form method="post" action="" class="bite-admin-form">
+        
+        <!-- Google API Setup Instructions -->
+        <div class="bite-api-instructions" style="background: #f0f6fc; border: 1px solid #c5d9ed; padding: 20px; margin-bottom: 20px; border-radius: 4px;">
+            <h3 style="margin-top: 0;">📘 Google Search Console API Setup Required</h3>
+            <p>Before adding a site, you need to set up Google Search Console API access. Each site requires its own Service Account credentials.</p>
+            
+            <details>
+                <summary style="cursor: pointer; font-weight: 600; color: #2271b1;">Click to view setup instructions</summary>
+                <div style="margin-top: 15px; padding: 15px; background: #fff; border-radius: 4px;">
+                    <h4>Step-by-Step Setup:</h4>
+                    <ol>
+                        <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+                        <li>Create a new project (or use existing)</li>
+                        <li>Enable the <strong>Google Search Console API</strong></li>
+                        <li>Go to <strong>IAM & Admin > Service Accounts</strong></li>
+                        <li>Create a Service Account:
+                            <ul>
+                                <li>Name: bite-[domain-name]</li>
+                                <li>Grant "Viewer" role for Search Console</li>
+                            </ul>
+                        </li>
+                        <li>Create a JSON key for the service account (Keys > Add Key > Create New Key)</li>
+                        <li>In Google Search Console, add the service account email as a <strong>Restricted Property User</strong></li>
+                        <li>Upload the JSON file below when adding the site</li>
+                    </ol>
+                    
+                    <h4>GSC Property Format:</h4>
+                    <ul>
+                        <li><strong>Domain property:</strong> <code>sc-domain:example.com</code> (recommended)</li>
+                        <li><strong>URL prefix:</strong> <code>https://www.example.com/</code> (must match exactly)</li>
+                    </ul>
+                </div>
+            </details>
+        </div>
+        
+        <form method="post" action="" class="bite-admin-form" enctype="multipart/form-data">
             <input type="hidden" name="bite_action" value="add_site">
             <?php wp_nonce_field( 'bite_add_site_nonce' ); ?>
             
@@ -285,8 +343,9 @@ function bite_admin_page_sites() {
                         <input type="text" id="bite_domain" name="bite_domain" required>
                     </p>
                     <p>
-                        <label for="bite_gsc_property"><?php esc_html_e( 'GSC Property (e.g., sc-domain:domain.com OR https://domain.com/):', 'bite-theme' ); ?></label>
-                        <input type="text" id="bite_gsc_property" name="bite_gsc_property" required>
+                        <label for="bite_gsc_property"><?php esc_html_e( 'GSC Property:', 'bite-theme' ); ?></label>
+                        <input type="text" id="bite_gsc_property" name="bite_gsc_property" required 
+                               placeholder="sc-domain:example.com OR https://www.example.com/">
                     </p>
                 </div>
                 <div class="bite-admin-form-col-1">
@@ -302,7 +361,21 @@ function bite_admin_page_sites() {
                         </select>
                     </p>
                     <p>
-                        <label for="bite_matomo_id"><?php esc_html_e( 'Matomo Site ID (Optional):', 'bite-theme' ); ?></label>
+                        <label for="bite_gsc_credentials">
+                            <?php esc_html_e( 'GSC Service Account JSON:', 'bite-theme' ); ?>
+                            <span class="description" style="display: block; font-weight: normal; color: #666;">
+                                Upload the JSON key file from Google Cloud Console
+                            </span>
+                        </label>
+                        <input type="file" id="bite_gsc_credentials" name="bite_gsc_credentials" accept=".json" required>
+                    </p>
+                    <p>
+                        <label for="bite_matomo_id">
+                            <?php esc_html_e( 'Matomo Site ID (Optional):', 'bite-theme' ); ?>
+                            <span class="description" style="display: block; font-weight: normal; color: #666;">
+                                For Matomo analytics integration
+                            </span>
+                        </label>
                         <input type="number" id="bite_matomo_id" name="bite_matomo_id" min="0" step="1">
                     </p>
                     <p>
@@ -699,99 +772,6 @@ function bite_admin_page_settings() {
             
             <?php submit_button( 'Save Settings', 'primary', 'bite_settings_save' ); ?>
         </form>
-        
-        <hr>
-        
-        <h2>Contact Form Information</h2>
-        <p>The contact form is available at: <code><?php echo esc_url( home_url( '/contact/' ) ); ?></code></p>
-        <p>To use the contact form:</p>
-        <ol>
-            <li>Create a new page in WordPress</li>
-            <li>Set the page slug to <code>contact</code></li>
-            <li>Select the "BITE Contact Page" template</li>
-            <li>Publish the page</li>
-        </ol>
-        
-        <hr>
-        
-        <h2>Google Search Console API Setup</h2>
-        <p>BITE fetches data from Google Search Console using the Google Search Console API. This requires proper authentication setup.</p>
-        
-        <h3>How Data Collection Works</h3>
-        <ol>
-            <li><strong>GSC Property:</strong> Each site needs a GSC Property URL (e.g., <code>sc-domain:example.com</code> or <code>https://www.example.com/</code>)</li>
-            <li><strong>Google API Credentials:</strong> You need a Google Service Account JSON key file with access to the Search Console API</li>
-            <li><strong>Data Fetching:</strong> Two automated cron jobs fetch data:
-                <ul style="margin-top: 10px;">
-                    <li><strong>Backfill Queue:</strong> Runs every 2.5 minutes to fetch historical data for new sites</li>
-                    <li><strong>Daily Update:</strong> Runs at 6 AM UTC to fetch yesterday's data for all sites</li>
-                </ul>
-            </li>
-        </ol>
-        
-        <h3>Required Setup Steps</h3>
-        <ol>
-            <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
-            <li>Create a new project or select an existing one</li>
-            <li>Enable the <strong>Google Search Console API</strong></li>
-            <li>Create a <strong>Service Account</strong> (IAM & Admin > Service Accounts)</li>
-            <li>Generate a JSON key for the service account</li>
-            <li>Upload the JSON key file to your theme directory as <code>google-api-credentials.json</code></li>
-            <li>In Google Search Console, add the service account email as a <strong>Restricted Property User</strong> for each property you want to access</li>
-        </ol>
-        
-        <h3>GSC Property URL Format</h3>
-        <p>The GSC Property must match exactly what's in Google Search Console:</p>
-        <ul>
-            <li><strong>Domain property:</strong> <code>sc-domain:example.com</code> (recommended - covers all subdomains)</li>
-            <li><strong>URL prefix:</strong> <code>https://www.example.com/</code> (must include trailing slash and exact protocol)</li>
-        </ul>
-        
-        <h3>Status Check</h3>
-        <?php
-        $credentials_file = get_template_directory() . '/google-api-credentials.json';
-        if ( file_exists( $credentials_file ) ) :
-            $key_data = json_decode( file_get_contents( $credentials_file ), true );
-            if ( $key_data && isset( $key_data['client_email'] ) ) :
-        ?>
-            <div class="notice notice-success inline" style="margin: 15px 0;">
-                <p>
-                    <strong>✓ API Credentials File Found</strong><br>
-                    Service Account: <code><?php echo esc_html( $key_data['client_email'] ); ?></code><br>
-                    <em>Remember to add this service account to your GSC properties!</em>
-                </p>
-            </div>
-        <?php else : ?>
-            <div class="notice notice-error inline" style="margin: 15px 0;">
-                <p><strong>✗ API Credentials File Corrupt</strong> - The JSON file exists but could not be parsed.</p>
-            </div>
-        <?php endif; else : ?>
-            <div class="notice notice-warning inline" style="margin: 15px 0;">
-                <p>
-                    <strong>✗ API Credentials File Missing</strong><br>
-                    Please upload your Google Service Account JSON key to:<br>
-                    <code><?php echo esc_html( $credentials_file ); ?></code>
-                </p>
-            </div>
-        <?php endif; ?>
-        
-        <h3>Adding Sites</h3>
-        <p>To add a new site for tracking:</p>
-        <ol>
-            <li>Go to <strong>BITE Admin > Manage Sites</strong></li>
-            <li>Click "Add New Site"</li>
-            <li>Enter the site name and domain</li>
-            <li>Enter the exact GSC Property URL</li>
-            <li>Save the site - data fetching will begin automatically</li>
-        </ol>
-        
-        <h3>Troubleshooting</h3>
-        <ul>
-            <li><strong>"Failed to fetch GSC data"</strong> - Check that the service account email has been added to the GSC property</li>
-            <li><strong>"Invalid property"</strong> - Verify the GSC Property URL matches exactly (including trailing slashes)</li>
-            <li><strong>No data appearing</strong> - Check that the site actually has data in GSC and that the cron jobs are running</li>
-            <li><strong>Cron not running</strong> - Ensure WordPress cron is enabled or set up a server cron job to trigger wp-cron.php</li>
-        </ul>
     </div>
     <?php
 }

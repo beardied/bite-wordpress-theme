@@ -89,7 +89,7 @@ function bite_run_backfill_chunk() {
                 } else {
                     // No start date - must be a new site. Run Discovery.
                     error_log( 'BITE Queue: Found new "pending" site ID ' . $site_to_process->site_id . '. Running Discovery call...' );
-                    $first_day = bite_find_first_data_day( $site_to_process->gsc_property );
+                    $first_day = bite_find_first_data_day( $site_to_process->gsc_property, $site_to_process->site_id );
 
                     // Handle Discovery API Error
                     if( is_wp_error($first_day) ) {
@@ -165,7 +165,7 @@ function bite_run_backfill_chunk() {
             $device_lower = strtolower($device);
 
             // 1. Get TOTALS for this device/day
-            $totals_data = bite_fetch_gsc_totals( $gsc_property, $date_to_fetch, $date_to_fetch, $device );
+            $totals_data = bite_fetch_gsc_totals( $gsc_property, $date_to_fetch, $date_to_fetch, $device, $site_id );
             if ( is_wp_error( $totals_data ) ) {
                 $error_message = 'BITE Queue Error: Failed to fetch TOTALS for site ID ' . $site_id . ' (Device: ' . $device . ') on date ' . $date_to_fetch . '. Error: ' . $totals_data->get_error_message();
                 error_log( $error_message );
@@ -191,7 +191,7 @@ function bite_run_backfill_chunk() {
             }
 
             // 2. Get KEYWORDS for this device/day
-            $data = bite_fetch_gsc_data( $gsc_property, $date_to_fetch, $date_to_fetch, $device );
+            $data = bite_fetch_gsc_data( $gsc_property, $date_to_fetch, $date_to_fetch, $device, $site_id );
             if ( is_wp_error( $data ) ) {
                 $error_message = 'BITE Queue Error: Failed to fetch KEYWORDS for site ID ' . $site_id . ' (Device: ' . $device . ') on date ' . $date_to_fetch . '. Error: ' . $data->get_error_message();
                 error_log( $error_message );
@@ -426,13 +426,15 @@ add_action( 'bite_daily_update_hook', 'bite_run_daily_update' );
 
 /**
  * 3. The "Discovery" call. Finds the first day of data.
- * (No changes needed)
+ * 
+ * @param string $gsc_property The GSC property URL
+ * @param int $site_id Optional site ID for site-specific credentials
  */
-function bite_find_first_data_day( $gsc_property ) {
+function bite_find_first_data_day( $gsc_property, $site_id = null ) {
     $start_date = date( 'Y-m-d', strtotime( '-16 months' ) );
     $end_date = date( 'Y-m-d', strtotime( '-2 days' ) );
 
-    $access_token = bite_get_google_access_token();
+    $access_token = bite_get_google_access_token( $site_id );
     if ( is_wp_error( $access_token ) ) return $access_token;
 
     $gsc_api_url = 'https://searchconsole.googleapis.com/webmasters/v3/sites/' . urlencode( $gsc_property ) . '/searchAnalytics/query';
@@ -469,10 +471,15 @@ function bite_find_first_data_day( $gsc_property ) {
 
 /**
  * 4. Fetches TOTALS from GSC API (no 'query' dimension).
- * (No changes needed)
+ * 
+ * @param string $gsc_property The GSC property URL
+ * @param string $start_date Start date (Y-m-d)
+ * @param string $end_date End date (Y-m-d)
+ * @param string|null $device Device filter
+ * @param int $site_id Optional site ID for site-specific credentials
  */
-function bite_fetch_gsc_totals( $gsc_property, $start_date, $end_date, $device = null ) {
-    $access_token = bite_get_google_access_token();
+function bite_fetch_gsc_totals( $gsc_property, $start_date, $end_date, $device = null, $site_id = null ) {
+    $access_token = bite_get_google_access_token( $site_id );
     if ( is_wp_error( $access_token ) ) return $access_token;
 
     $gsc_api_url = 'https://searchconsole.googleapis.com/webmasters/v3/sites/' . urlencode( $gsc_property ) . '/searchAnalytics/query';
@@ -518,10 +525,15 @@ function bite_fetch_gsc_totals( $gsc_property, $start_date, $end_date, $device =
 
 /**
  * 5. Fetches KEYWORD data from GSC API.
- * (No changes needed)
+ * 
+ * @param string $gsc_property The GSC property URL
+ * @param string $start_date Start date (Y-m-d)
+ * @param string $end_date End date (Y-m-d)
+ * @param string|null $device Device filter
+ * @param int $site_id Optional site ID for site-specific credentials
  */
-function bite_fetch_gsc_data( $gsc_property, $start_date, $end_date, $device = null ) {
-    $access_token = bite_get_google_access_token();
+function bite_fetch_gsc_data( $gsc_property, $start_date, $end_date, $device = null, $site_id = null ) {
+    $access_token = bite_get_google_access_token( $site_id );
     if ( is_wp_error( $access_token ) ) return $access_token;
 
     $gsc_api_url = 'https://searchconsole.googleapis.com/webmasters/v3/sites/' . urlencode( $gsc_property ) . '/searchAnalytics/query';
@@ -713,29 +725,55 @@ function bite_insert_daily_summary( $summary_data_rows ) {
 /**
  * 8. Reusable Google Access Token Function
  * (With detailed logging AND caching re-enabled)
+ * 
+ * @param int $site_id Optional site ID to use site-specific credentials
  */
-function bite_get_google_access_token() {
-    static $access_token = null;
-    // *** RE-ENABLE CACHING FOR THIS REQUEST ***
-    if ( $access_token !== null ) {
-         //error_log("BITE Auth: Using cached access token for this request."); // Add log to confirm caching works
-         return $access_token;
+function bite_get_google_access_token( $site_id = null ) {
+    static $access_tokens = array();
+    
+    $cache_key = $site_id ? 'site_' . $site_id : 'global';
+    
+    // Return cached token if available
+    if ( isset( $access_tokens[$cache_key] ) ) {
+        return $access_tokens[$cache_key];
     }
 
-    // TODO: Change to pull from wp_option in Phase 2
-    $json_key_file_name = 'google-api-credentials.json';
-    $key_file_path = get_template_directory() . '/' . $json_key_file_name;
     $scopes = array( 'https://www.googleapis.com/auth/webmasters.readonly' );
     $google_token_url = 'https://oauth2.googleapis.com/token';
 
-    if ( ! file_exists( $key_file_path ) ) {
-        error_log( 'BITE Auth Error: JSON Key file not found at ' . $key_file_path ); // Specific log message
-        return new WP_Error( 'key_file_missing', 'JSON Key file not found.' );
+    // Get credentials - site-specific or global
+    $key_file_data = null;
+    
+    if ( $site_id ) {
+        // Try to get site-specific credentials
+        global $wpdb;
+        $sites_table = $wpdb->prefix . 'bite_sites';
+        $credentials_json = $wpdb->get_var( $wpdb->prepare(
+            "SELECT gsc_credentials FROM $sites_table WHERE site_id = %d",
+            $site_id
+        ) );
+        
+        if ( $credentials_json ) {
+            $key_file_data = json_decode( $credentials_json, true );
+        }
     }
-    $key_file_data = json_decode( file_get_contents( $key_file_path ), true );
+    
+    // Fall back to global credentials if no site-specific credentials found
     if ( ! $key_file_data ) {
-         error_log( 'BITE Auth Error: Could not decode JSON key file.' ); // Specific log message
-         return new WP_Error( 'key_file_corrupt', 'Could not decode JSON key file.' );
+        $json_key_file_name = 'google-api-credentials.json';
+        $key_file_path = get_template_directory() . '/' . $json_key_file_name;
+        
+        if ( ! file_exists( $key_file_path ) ) {
+            error_log( 'BITE Auth Error: JSON Key file not found at ' . $key_file_path );
+            return new WP_Error( 'key_file_missing', 'JSON Key file not found. Please upload credentials in site settings.' );
+        }
+        
+        $key_file_data = json_decode( file_get_contents( $key_file_path ), true );
+    }
+    
+    if ( ! $key_file_data ) {
+        error_log( 'BITE Auth Error: Could not decode JSON credentials.' );
+        return new WP_Error( 'key_file_corrupt', 'Could not decode JSON credentials.' );
     }
 
     // --- JWT Creation ---
@@ -811,8 +849,8 @@ function bite_get_google_access_token() {
 
     // Success path
     error_log("BITE Auth: New access token successfully retrieved (first few chars): " . substr($token_data['access_token'], 0, 10) . "...");
-    $access_token = $token_data['access_token']; // Store statically for reuse in this request
-    return $access_token;
+    $access_tokens[$cache_key] = $token_data['access_token']; // Store in array cache for reuse
+    return $access_tokens[$cache_key];
 }
 
 /**
