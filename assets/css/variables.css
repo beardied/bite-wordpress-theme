@@ -1,0 +1,31 @@
+/*
+ * BITE Theme CSS Variables
+ * Shared across all theme stylesheets
+ */
+
+:root {
+    /* OrangeWidow Brand Colors */
+    --primary-color: #1A1A2E;           /* Deep navy/charcoal - headers */
+    --secondary-color: #E85D04;         /* Vibrant orange - buttons, links */
+    --accent-color: #F48C06;            /* Lighter orange - hover states */
+    --accent-dark: #DC2F02;             /* Darker orange - emphasis */
+    --background-color: #F8F9FA;        /* Light gray background */
+    --card-bg: #FFFFFF;                 /* White cards/widgets */
+    --text-color: #2D3436;              /* Dark charcoal text */
+    --text-muted: #636E72;              /* Muted gray text */
+    --light-text-color: #ffffff;        /* White text */
+    --border-color: #DFE6E9;            /* Light border gray */
+    --border-light: #F1F2F6;            /* Very light border */
+    --success-color: #00B894;           /* Green for positive */
+    --error-color: #E74C3C;             /* Red for errors */
+    --warning-color: #F39C12;           /* Amber for warnings */
+    --table-header-bg: #1A1A2E;         /* Navy header */
+    --table-row-even-bg: #FFFFFF;       /* White rows */
+    --table-row-odd-bg: #F8F9FA;        /* Light gray rows */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+}

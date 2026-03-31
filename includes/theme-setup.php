@@ -191,7 +191,7 @@ function bite_enqueue_scripts() {
 
     // Admin styles
     if ( is_admin() ) {
-        // CSS Variables for admin
+        // CSS Variables for admin - load on all admin pages
         wp_enqueue_style(
             'bite-theme-style-vars',
             get_template_directory_uri() . '/assets/css/variables.css',
@@ -199,9 +199,22 @@ function bite_enqueue_scripts() {
             filemtime( get_template_directory() . '/assets/css/variables.css' )
         );
         
-        // Only load admin styles on BITE admin pages
+        // Load admin styles on BITE admin pages AND user profile/edit pages (for plan field)
         $screen = get_current_screen();
-        if ( $screen && strpos( $screen->id, 'bite-admin' ) !== false ) {
+        $load_admin_styles = false;
+        
+        if ( $screen ) {
+            // BITE admin pages
+            if ( strpos( $screen->id, 'bite-admin' ) !== false ) {
+                $load_admin_styles = true;
+            }
+            // User profile pages (for plan dropdown)
+            if ( in_array( $screen->id, array( 'profile', 'user-edit' ) ) ) {
+                $load_admin_styles = true;
+            }
+        }
+        
+        if ( $load_admin_styles ) {
             wp_enqueue_style(
                 'bite-admin-style',
                 get_template_directory_uri() . '/admin-style.css',
