@@ -29,59 +29,53 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_add_site_submi
                 $form_error = 'Please enter a domain.';
             } elseif ( empty( $_POST['bite_gsc_property'] ) ) {
                 $form_error = 'Please enter your Google Search Console property.';
-            } elseif ( ! isset( $_FILES['bite_gsc_credentials'] ) || empty( $_FILES['bite_gsc_credentials']['tmp_name'] ) ) {
-                $form_error = 'Please upload your JSON key file.';
+            } elseif ( empty( $_POST['bite_gsc_credentials'] ) ) {
+                $form_error = 'JSON credentials not found. Please go back to Step 5 and upload your JSON file.';
             } else {
-                $uploaded_file = $_FILES['bite_gsc_credentials'];
+                $json_content = sanitize_textarea_field( $_POST['bite_gsc_credentials'] );
+                $credentials_data = json_decode( $json_content, true );
                 
-                if ( $uploaded_file['type'] === 'application/json' || pathinfo( $uploaded_file['name'], PATHINFO_EXTENSION ) === 'json' ) {
-                    $json_content = file_get_contents( $uploaded_file['tmp_name'] );
-                    $credentials_data = json_decode( $json_content, true );
+                if ( $credentials_data && isset( $credentials_data['client_email'] ) && isset( $credentials_data['private_key'] ) ) {
+                    $gsc_credentials = $json_content;
                     
-                    if ( $credentials_data && isset( $credentials_data['client_email'] ) && isset( $credentials_data['private_key'] ) ) {
-                        $gsc_credentials = $json_content;
-                        
-                        global $wpdb;
-                        $niches_table = $wpdb->prefix . 'bite_niches';
-                        $user_niche_name = sanitize_text_field( $_POST['bite_site_name'] ) . ' - ' . $current_user_id;
-                        
-                        $existing_niche = $wpdb->get_var( $wpdb->prepare(
-                            "SELECT niche_id FROM $niches_table WHERE niche_name = %s",
-                            $user_niche_name
-                        ) );
-                        
-                        if ( $existing_niche ) {
-                            $niche_id = $existing_niche;
-                        } else {
-                            $wpdb->insert( $niches_table, array( 'niche_name' => $user_niche_name ) );
-                            $niche_id = $wpdb->insert_id;
-                        }
-                        
-                        $sites_table = $wpdb->prefix . 'bite_sites';
-                        $site_data = array(
-                            'niche_id'        => $niche_id,
-                            'name'            => sanitize_text_field( $_POST['bite_site_name'] ),
-                            'domain'          => sanitize_text_field( $_POST['bite_domain'] ),
-                            'gsc_property'    => sanitize_text_field( $_POST['bite_gsc_property'] ),
-                            'gsc_credentials' => $gsc_credentials,
-                            'backfill_status' => 'pending',
-                        );
-                        
-                        $result = $wpdb->insert( $sites_table, $site_data );
-                        
-                        if ( $result ) {
-                            $new_site_id = $wpdb->insert_id;
-                            bite_create_metrics_table_for_site( $new_site_id );
-                            bite_grant_user_site_access( $current_user_id, $new_site_id, $current_user_id );
-                            $form_message = 'Site added successfully! Data will appear shortly.';
-                        } else {
-                            $form_error = 'Database error: ' . $wpdb->last_error;
-                        }
+                    global $wpdb;
+                    $niches_table = $wpdb->prefix . 'bite_niches';
+                    $user_niche_name = sanitize_text_field( $_POST['bite_site_name'] ) . ' - ' . $current_user_id;
+                    
+                    $existing_niche = $wpdb->get_var( $wpdb->prepare(
+                        "SELECT niche_id FROM $niches_table WHERE niche_name = %s",
+                        $user_niche_name
+                    ) );
+                    
+                    if ( $existing_niche ) {
+                        $niche_id = $existing_niche;
                     } else {
-                        $form_error = 'Invalid JSON file. Must contain client_email and private_key.';
+                        $wpdb->insert( $niches_table, array( 'niche_name' => $user_niche_name ) );
+                        $niche_id = $wpdb->insert_id;
+                    }
+                    
+                    $sites_table = $wpdb->prefix . 'bite_sites';
+                    $site_data = array(
+                        'niche_id'        => $niche_id,
+                        'name'            => sanitize_text_field( $_POST['bite_site_name'] ),
+                        'domain'          => sanitize_text_field( $_POST['bite_domain'] ),
+                        'gsc_property'    => sanitize_text_field( $_POST['bite_gsc_property'] ),
+                        'gsc_credentials' => $gsc_credentials,
+                        'backfill_status' => 'pending',
+                    );
+                    
+                    $result = $wpdb->insert( $sites_table, $site_data );
+                    
+                    if ( $result ) {
+                        $new_site_id = $wpdb->insert_id;
+                        bite_create_metrics_table_for_site( $new_site_id );
+                        bite_grant_user_site_access( $current_user_id, $new_site_id, $current_user_id );
+                        $form_message = 'Site added successfully! Data will appear shortly.';
+                    } else {
+                        $form_error = 'Database error: ' . $wpdb->last_error;
                     }
                 } else {
-                    $form_error = 'Please upload a valid JSON file.';
+                    $form_error = 'Invalid JSON credentials. Please go back to Step 5 and re-upload your JSON file.';
                 }
             }
         }
@@ -332,7 +326,7 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                             <div class="bite-step-content">
                                 <div class="bite-step-icon">📂</div>
                                 <h4>Step 5: Upload Your JSON Key</h4>
-                                <p>Upload the file you just downloaded. We'll extract the email for you.</p>
+                                <p>Upload the file you downloaded in Step 4. We'll extract the service account email for Step 6.</p>
                                 
                                 <div class="bite-wizard-form" style="margin-top: 20px;">
                                     <div class="bite-form-group">
@@ -346,13 +340,10 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                                         </div>
                                     </div>
                                     
-                                    <div class="bite-step-email-box" id="email-box" style="display: none; margin-top: 25px;">
-                                        <p class="bite-email-label">✅ Service Account Email Found:</p>
-                                        <div class="bite-email-value" id="extracted-email"></div>
-                                        <button type="button" class="bite-copy-btn" onclick="copyEmail()">
-                                            <span class="material-icons">content_copy</span> Copy Email
-                                        </button>
-                                        <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.9;">You'll need this email for the next step.</p>
+                                    <div class="bite-step-success" id="upload-success" style="display: none; margin-top: 25px; background: rgba(34,197,94,0.1); border: 1px solid #22c55e; padding: 20px; border-radius: 8px; color: #15803d;">
+                                        <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">check_circle</span>
+                                        <strong>JSON file validated successfully!</strong>
+                                        <p style="margin: 10px 0 0 0; font-size: 0.95em;">The service account email will be shown in the next step.</p>
                                     </div>
                                 </div>
                                 
@@ -368,16 +359,26 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                             <div class="bite-step-content">
                                 <div class="bite-step-icon">🔗</div>
                                 <h4>Step 6: Add User to Search Console</h4>
-                                <p>Give BITE permission to read your search data, then complete the form.</p>
+                                <p>Add the service account to your Google Search Console, then complete the form below.</p>
+                                
+                                <div class="bite-step-email-box" id="email-display-box" style="margin-bottom: 25px;">
+                                    <p class="bite-email-label">Copy this email and add it to Search Console:</p>
+                                    <div class="bite-email-value" id="gsc-email-display">Loading...</div>
+                                    <button type="button" class="bite-copy-btn" onclick="copyEmail()">
+                                        <span class="material-icons">content_copy</span> Copy Email
+                                    </button>
+                                </div>
                                 
                                 <div class="bite-step-box">
+                                    <h5>What to do in Google Search Console:</h5>
                                     <ol class="bite-step-instructions">
                                         <li>Go to <a href="https://search.google.com/search-console" target="_blank" class="bite-external-link">Google Search Console →</a></li>
-                                        <li>Select your website</li>
-                                        <li>Click <strong>Settings</strong> (gear icon) → <strong>Users and Permissions</strong></li>
+                                        <li>Select your website property</li>
+                                        <li>Click <strong>Settings</strong> (gear icon) in left sidebar</li>
+                                        <li>Click <strong>Users and Permissions</strong></li>
                                         <li>Click <strong>Add User</strong></li>
-                                        <li>Paste the email: <code id="gsc-email-display">Upload JSON first</code></li>
-                                        <li>Set permission: <strong>Restricted Property User</strong></li>
+                                        <li>Paste the email address shown above</li>
+                                        <li>Set permission to <strong>Restricted Property User</strong></li>
                                         <li>Click <strong>Add</strong></li>
                                     </ol>
                                 </div>
@@ -466,8 +467,8 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                                         jsonContent = e.target.result;
                                         serviceEmail = data.client_email;
                                         
-                                        document.getElementById('extracted-email').textContent = serviceEmail;
-                                        document.getElementById('email-box').style.display = 'block';
+                                        // Show success message in step 5
+                                        document.getElementById('upload-success').style.display = 'block';
                                         document.getElementById('step5-next').disabled = false;
                                         
                                         // Store for form submission
