@@ -44,18 +44,23 @@ function bite_user_has_site_access( $user_id, $site_id ) {
  * @return array Array of site IDs the user can access.
  */
 function bite_get_user_sites( $user_id ) {
+    global $wpdb;
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    
     // Admins get all sites
     if ( user_can( $user_id, 'manage_options' ) ) {
-        global $wpdb;
-        $sites_table = $wpdb->prefix . 'bite_sites';
         return $wpdb->get_col( "SELECT site_id FROM $sites_table ORDER BY name ASC" );
     }
     
-    global $wpdb;
     $user_sites_table = $wpdb->prefix . 'bite_user_sites';
     
+    // Get user's assigned sites that still exist in the sites table
     $site_ids = $wpdb->get_col( $wpdb->prepare(
-        "SELECT site_id FROM $user_sites_table WHERE user_id = %d ORDER BY site_id ASC",
+        "SELECT us.site_id 
+         FROM $user_sites_table us
+         INNER JOIN $sites_table s ON us.site_id = s.site_id
+         WHERE us.user_id = %d 
+         ORDER BY s.name ASC",
         $user_id
     ) );
     
