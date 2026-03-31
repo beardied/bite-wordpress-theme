@@ -49,10 +49,30 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_add_site_submi
                     
                     global $wpdb;
                     $sites_table = $wpdb->prefix . 'bite_sites';
+                    $niches_table = $wpdb->prefix . 'bite_niches';
                     
-                    // Use default niche_id 0 for customer-added sites (no niche assignment)
+                    // Handle niche - find existing or create new
+                    $niche_name = sanitize_text_field( $_POST['bite_niche'] ?? '' );
+                    $niche_id = 0;
+                    
+                    if ( ! empty( $niche_name ) ) {
+                        // Check if niche exists
+                        $existing_niche_id = $wpdb->get_var( $wpdb->prepare(
+                            "SELECT niche_id FROM $niches_table WHERE niche_name = %s",
+                            $niche_name
+                        ) );
+                        
+                        if ( $existing_niche_id ) {
+                            $niche_id = $existing_niche_id;
+                        } else {
+                            // Create new niche
+                            $wpdb->insert( $niches_table, array( 'niche_name' => $niche_name ) );
+                            $niche_id = $wpdb->insert_id;
+                        }
+                    }
+                    
                     $site_data = array(
-                        'niche_id'        => 0,
+                        'niche_id'        => $niche_id,
                         'name'            => sanitize_text_field( $_POST['bite_site_name'] ),
                         'domain'          => sanitize_text_field( $_POST['bite_domain'] ),
                         'gsc_property'    => sanitize_text_field( $_POST['bite_gsc_property'] ),
@@ -111,6 +131,9 @@ foreach ( $user_sites as $site ) {
         $user_niches[] = $site->niche_name;
     }
 }
+
+// Get all existing niches for autocomplete
+$all_niches = $wpdb->get_col( "SELECT niche_name FROM {$wpdb->prefix}bite_niches ORDER BY niche_name ASC" );
 
 $plan_names = array(
     'hosting'    => 'OrangeWidow Hosting',
@@ -397,6 +420,15 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                                         </div>
                                     </div>
                                     
+                                    <div class="bite-form-group">
+                                        <label>Niche (Optional)</label>
+                                        <div class="bite-autocomplete-container">
+                                            <input type="text" id="niche-input" name="bite_niche" placeholder="Start typing to see existing niches or create new..." autocomplete="off">
+                                            <div class="bite-autocomplete-list" id="niche-suggestions"></div>
+                                        </div>
+                                        <p class="bite-field-help">Type to search existing niches, or enter a new one to create it.</p>
+                                    </div>
+                                    
                                     <div class="bite-step-actions">
                                         <button type="button" class="bite-button bite-button-secondary" onclick="wizardPrev()">← Back</button>
                                         <button type="submit" name="bite_add_site_submit" class="bite-button bite-button-primary bite-button-large">
@@ -481,6 +513,50 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                     function copyEmail() {
                         navigator.clipboard.writeText(serviceEmail).then(function() {
                             alert('Email copied! Now paste it in Google Search Console.');
+                        });
+                    }
+                    
+                    // Niche Autocomplete
+                    const existingNiches = <?php echo json_encode( $all_niches ); ?>;
+                    const nicheInput = document.getElementById('niche-input');
+                    const nicheSuggestions = document.getElementById('niche-suggestions');
+                    
+                    if (nicheInput) {
+                        nicheInput.addEventListener('input', function() {
+                            const value = this.value.toLowerCase();
+                            nicheSuggestions.innerHTML = '';
+                            
+                            if (value.length < 1) {
+                                nicheSuggestions.style.display = 'none';
+                                return;
+                            }
+                            
+                            const matches = existingNiches.filter(niche => 
+                                niche.toLowerCase().includes(value)
+                            );
+                            
+                            if (matches.length > 0) {
+                                nicheSuggestions.style.display = 'block';
+                                matches.forEach(niche => {
+                                    const div = document.createElement('div');
+                                    div.className = 'bite-autocomplete-item';
+                                    div.textContent = niche;
+                                    div.onclick = function() {
+                                        nicheInput.value = niche;
+                                        nicheSuggestions.style.display = 'none';
+                                    };
+                                    nicheSuggestions.appendChild(div);
+                                });
+                            } else {
+                                nicheSuggestions.style.display = 'none';
+                            }
+                        });
+                        
+                        // Hide suggestions when clicking outside
+                        document.addEventListener('click', function(e) {
+                            if (!nicheInput.contains(e.target) && !nicheSuggestions.contains(e.target)) {
+                                nicheSuggestions.style.display = 'none';
+                            }
                         });
                     }
                     
