@@ -199,6 +199,46 @@ function bite_handle_admin_form_actions() {
             bite_delete_metrics_table_for_site( $site_id );
         }
     }
+    
+    // --- Edit Site ---
+    if ( isset( $_POST['bite_action'] ) && $_POST['bite_action'] === 'edit_site' ) {
+        check_admin_referer( 'bite_edit_site_nonce' );
+        
+        $site_id = absint( $_POST['bite_site_id'] );
+        if ( $site_id > 0 ) {
+            $site_data = array(
+                'niche_id'     => absint( $_POST['bite_niche_id'] ),
+                'name'         => sanitize_text_field( $_POST['bite_site_name'] ),
+                'domain'       => sanitize_text_field( $_POST['bite_domain'] ),
+                'gsc_property' => sanitize_text_field( $_POST['bite_gsc_property'] ),
+            );
+            
+            // Only update credentials if a new file was uploaded
+            if ( isset( $_FILES['bite_gsc_credentials'] ) && ! empty( $_FILES['bite_gsc_credentials']['tmp_name'] ) ) {
+                $uploaded_file = $_FILES['bite_gsc_credentials'];
+                if ( $uploaded_file['type'] === 'application/json' || pathinfo( $uploaded_file['name'], PATHINFO_EXTENSION ) === 'json' ) {
+                    $json_content = file_get_contents( $uploaded_file['tmp_name'] );
+                    $credentials_data = json_decode( $json_content, true );
+                    if ( $credentials_data && isset( $credentials_data['client_email'] ) && isset( $credentials_data['private_key'] ) ) {
+                        $site_data['gsc_credentials'] = $json_content;
+                    }
+                }
+            }
+            
+            $table_name = $wpdb->prefix . 'bite_sites';
+            $result = $wpdb->update( $table_name, $site_data, array( 'site_id' => $site_id ) );
+            
+            if ( $result !== false ) {
+                add_action( 'admin_notices', function() {
+                    echo '<div class="notice notice-success"><p>Site updated successfully.</p></div>';
+                } );
+            } else {
+                add_action( 'admin_notices', function() {
+                    echo '<div class="notice notice-error"><p>Failed to update site.</p></div>';
+                } );
+            }
+        }
+    }
 }
 add_action( 'admin_init', 'bite_handle_admin_form_actions' );
 
@@ -287,9 +327,79 @@ function bite_admin_page_sites() {
          LEFT JOIN $niche_table n ON s.niche_id = n.niche_id
          ORDER BY s.name ASC"
     );
+    
+    // Check if editing a site
+    $edit_site_id = isset( $_GET['edit_site'] ) ? absint( $_GET['edit_site'] ) : 0;
+    $edit_site = null;
+    if ( $edit_site_id > 0 ) {
+        $edit_site = $wpdb->get_row( $wpdb->prepare(
+            "SELECT * FROM $site_table WHERE site_id = %d",
+            $edit_site_id
+        ) );
+    }
     ?>
     <div class="wrap bite-admin-wrap">
         <h1><?php esc_html_e( 'Manage Sites', 'bite-theme' ); ?></h1>
+        
+        <?php if ( $edit_site ) : ?>
+            <h2><?php esc_html_e( 'Edit Site', 'bite-theme' ); ?></h2>
+            <p><a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ); ?>" class="button">&larr; Back to Sites</a></p>
+            
+            <form method="post" action="" class="bite-admin-form" enctype="multipart/form-data">
+                <input type="hidden" name="bite_action" value="edit_site">
+                <input type="hidden" name="bite_site_id" value="<?php echo esc_attr( $edit_site->site_id ); ?>">
+                <?php wp_nonce_field( 'bite_edit_site_nonce' ); ?>
+                
+                <div class="bite-admin-form-container">
+                    <div class="bite-admin-form-col-1">
+                        <p>
+                            <label for="bite_site_name"><?php esc_html_e( 'Site Name:', 'bite-theme' ); ?></label>
+                            <input type="text" id="bite_site_name" name="bite_site_name" required 
+                                   value="<?php echo esc_attr( $edit_site->name ); ?>">
+                        </p>
+                        <p>
+                            <label for="bite_domain"><?php esc_html_e( 'Domain:', 'bite-theme' ); ?></label>
+                            <input type="text" id="bite_domain" name="bite_domain" required 
+                                   value="<?php echo esc_attr( $edit_site->domain ); ?>">
+                        </p>
+                        <p>
+                            <label for="bite_gsc_property"><?php esc_html_e( 'GSC Property:', 'bite-theme' ); ?></label>
+                            <input type="text" id="bite_gsc_property" name="bite_gsc_property" required 
+                                   value="<?php echo esc_attr( $edit_site->gsc_property ); ?>">
+                        </p>
+                    </div>
+                    <div class="bite-admin-form-col-1">
+                        <p>
+                            <label for="bite_niche_id"><?php esc_html_e( 'Niche:', 'bite-theme' ); ?></label>
+                            <select id="bite_niche_id" name="bite_niche_id">
+                                <option value="0"><?php esc_html_e( 'None', 'bite-theme' ); ?></option>
+                                <?php foreach ( $niches as $niche ) : ?>
+                                    <option value="<?php echo esc_attr( $niche->niche_id ); ?>" 
+                                            <?php selected( $edit_site->niche_id, $niche->niche_id ); ?>>
+                                        <?php echo esc_html( $niche->niche_name ); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </p>
+                        <p>
+                            <label for="bite_gsc_credentials">
+                                <?php esc_html_e( 'GSC Service Account JSON:', 'bite-theme' ); ?>
+                                <span class="description" style="display: block; font-weight: normal; color: #666;">
+                                    Upload new file only if you want to update credentials (optional)
+                                </span>
+                            </label>
+                            <input type="file" id="bite_gsc_credentials" name="bite_gsc_credentials" accept=".json">
+                        </p>
+                        <p>
+                            <?php submit_button( __( 'Update Site', 'bite-theme' ), 'primary', 'submit', false ); ?>
+                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ); ?>" class="button" style="margin-left: 10px;">Cancel</a>
+                        </p>
+                    </div>
+                </div>
+            </form>
+            
+            <hr>
+        <?php endif; ?>
         
         <h2><?php esc_html_e( 'Add New Site', 'bite-theme' ); ?></h2>
         
@@ -397,7 +507,8 @@ function bite_admin_page_sites() {
                             <td><?php echo esc_html( $site->gsc_property ); ?></td>
                             <td><?php echo esc_html( $site->backfill_status ); ?></td>
                             <td>
-                                <form method="post" action="" class="bite-delete-form" onsubmit="return confirm('Are you sure you want to delete this site AND all its tracked keyword data? This cannot be undone.');">
+                                <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main&edit_site=' . $site->site_id ) ); ?>" class="button button-small" style="margin-right: 5px;">Edit</a>
+                                <form method="post" action="" class="bite-delete-form" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this site AND all its tracked keyword data? This cannot be undone.');">
                                     <input type="hidden" name="bite_action" value="delete_site">
                                     <input type="hidden" name="bite_site_id" value="<?php echo esc_attr( $site->site_id ); ?>">
                                     <?php wp_nonce_field( 'bite_delete_site_nonce' ); ?>

@@ -34,7 +34,7 @@ function bite_create_database_tables() {
     $table_name_sites = $wpdb->prefix . 'bite_sites';
     $sql_sites = "CREATE TABLE $table_name_sites (
         site_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-        niche_id INT UNSIGNED NOT NULL,
+        niche_id INT UNSIGNED NOT NULL DEFAULT 0,
         name VARCHAR(255) NOT NULL,
         domain VARCHAR(255) NOT NULL,
         gsc_property VARCHAR(255) NOT NULL,

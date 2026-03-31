@@ -48,24 +48,11 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_add_site_submi
                     $gsc_credentials = $json_content;
                     
                     global $wpdb;
-                    $niches_table = $wpdb->prefix . 'bite_niches';
-                    $user_niche_name = sanitize_text_field( $_POST['bite_site_name'] ) . ' - ' . $current_user_id;
-                    
-                    $existing_niche = $wpdb->get_var( $wpdb->prepare(
-                        "SELECT niche_id FROM $niches_table WHERE niche_name = %s",
-                        $user_niche_name
-                    ) );
-                    
-                    if ( $existing_niche ) {
-                        $niche_id = $existing_niche;
-                    } else {
-                        $wpdb->insert( $niches_table, array( 'niche_name' => $user_niche_name ) );
-                        $niche_id = $wpdb->insert_id;
-                    }
-                    
                     $sites_table = $wpdb->prefix . 'bite_sites';
+                    
+                    // Use default niche_id 0 for customer-added sites (no niche assignment)
                     $site_data = array(
-                        'niche_id'        => $niche_id,
+                        'niche_id'        => 0,
                         'name'            => sanitize_text_field( $_POST['bite_site_name'] ),
                         'domain'          => sanitize_text_field( $_POST['bite_domain'] ),
                         'gsc_property'    => sanitize_text_field( $_POST['bite_gsc_property'] ),
