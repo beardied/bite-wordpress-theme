@@ -32,10 +32,19 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_add_site_submi
             } elseif ( empty( $_POST['bite_gsc_credentials'] ) ) {
                 $form_error = 'JSON credentials not found. Please go back to Step 5 and upload your JSON file.';
             } else {
-                $json_content = sanitize_textarea_field( $_POST['bite_gsc_credentials'] );
+                // Don't sanitize JSON - it corrupts the content
+                $json_content = wp_unslash( $_POST['bite_gsc_credentials'] );
                 $credentials_data = json_decode( $json_content, true );
                 
-                if ( $credentials_data && isset( $credentials_data['client_email'] ) && isset( $credentials_data['private_key'] ) ) {
+                // Debug: check for JSON errors
+                $json_error = json_last_error();
+                if ( $json_error !== JSON_ERROR_NONE ) {
+                    $form_error = 'JSON parse error: ' . json_last_error_msg() . '. Please try uploading the file again.';
+                } elseif ( ! $credentials_data ) {
+                    $form_error = 'Could not parse JSON credentials. The data appears to be empty or corrupted.';
+                } elseif ( ! isset( $credentials_data['client_email'] ) || ! isset( $credentials_data['private_key'] ) ) {
+                    $form_error = 'Invalid JSON structure. Missing client_email or private_key fields.';
+                } else {
                     $gsc_credentials = $json_content;
                     
                     global $wpdb;
@@ -74,8 +83,6 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_add_site_submi
                     } else {
                         $form_error = 'Database error: ' . $wpdb->last_error;
                     }
-                } else {
-                    $form_error = 'Invalid JSON credentials. Please go back to Step 5 and re-upload your JSON file.';
                 }
             }
         }
