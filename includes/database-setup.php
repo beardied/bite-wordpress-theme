@@ -156,3 +156,8 @@ function bite_create_missing_tables() {
             KEY idx_user_id (user_id),
             KEY idx_rating (rating),
             KEY idx_approved (is_approved)
+        ) $charset_collate;";
+        dbDelta( $sql_reviews );
+    }
+}
+add_action( 'admin_init', 'bite_create_missing_tables' );

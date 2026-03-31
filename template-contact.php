@@ -13,6 +13,9 @@ get_header();
 $form_message = '';
 $form_error = '';
 
+// Get plan from URL parameter if set
+$selected_plan = isset( $_GET['plan'] ) ? sanitize_text_field( $_GET['plan'] ) : '';
+
 if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit'] ) ) {
     // Verify nonce
     if ( ! isset( $_POST['bite_contact_nonce'] ) || ! wp_verify_nonce( $_POST['bite_contact_nonce'], 'bite_contact_form' ) ) {
@@ -155,12 +158,12 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
                     <label for="bite_plan">Interested Plan <span class="bite-required">*</span></label>
                     <select id="bite_plan" name="bite_plan" required>
                         <option value="">Select a plan...</option>
-                        <option value="hosting" <?php selected( isset( $bite_plan ) && $bite_plan === 'hosting' ); ?>>OrangeWidow Hosting Customer (Free)</option>
-                        <option value="solo" <?php selected( isset( $bite_plan ) && $bite_plan === 'solo' ); ?>>Solo - £29/month (3 websites)</option>
-                        <option value="pro" <?php selected( isset( $bite_plan ) && $bite_plan === 'pro' ); ?>>Pro - £59/month (10 websites)</option>
-                        <option value="agency" <?php selected( isset( $bite_plan ) && $bite_plan === 'agency' ); ?>>Agency - £119/month (25 websites)</option>
-                        <option value="enterprise" <?php selected( isset( $bite_plan ) && $bite_plan === 'enterprise' ); ?>>Enterprise - £199/month (Unlimited)</option>
-                        <option value="custom" <?php selected( isset( $bite_plan ) && $bite_plan === 'custom' ); ?>>Custom Requirements</option>
+                        <option value="hosting" <?php selected( ( isset( $bite_plan ) && $bite_plan === 'hosting' ) || ( ! isset( $bite_plan ) && $selected_plan === 'hosting' ) ); ?>>OrangeWidow Hosting Customer (Free)</option>
+                        <option value="solo" <?php selected( ( isset( $bite_plan ) && $bite_plan === 'solo' ) || ( ! isset( $bite_plan ) && $selected_plan === 'solo' ) ); ?>>Solo - £29/month (3 websites)</option>
+                        <option value="pro" <?php selected( ( isset( $bite_plan ) && $bite_plan === 'pro' ) || ( ! isset( $bite_plan ) && $selected_plan === 'pro' ) ); ?>>Pro - £59/month (10 websites)</option>
+                        <option value="agency" <?php selected( ( isset( $bite_plan ) && $bite_plan === 'agency' ) || ( ! isset( $bite_plan ) && $selected_plan === 'agency' ) ); ?>>Agency - £119/month (25 websites)</option>
+                        <option value="enterprise" <?php selected( ( isset( $bite_plan ) && $bite_plan === 'enterprise' ) || ( ! isset( $bite_plan ) && $selected_plan === 'enterprise' ) ); ?>>Enterprise - £199/month (Unlimited)</option>
+                        <option value="custom" <?php selected( ( isset( $bite_plan ) && $bite_plan === 'custom' ) || ( ! isset( $bite_plan ) && $selected_plan === 'custom' ) ); ?>>Custom Requirements</option>
                     </select>
                 </div>
                 

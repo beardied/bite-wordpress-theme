@@ -64,16 +64,22 @@ function bite_generate_sitemap() {
     ) );
     
     foreach ( $public_pages as $page ) {
-        // Skip if page requires login (check for custom meta or specific templates)
+        // Skip if already added (contact page or homepage)
         if ( $page->ID === $contact_page->ID ) {
-            continue; // Already added above
+            continue;
+        }
+        
+        // Skip homepage/front page (already added manually above)
+        if ( $page->ID == get_option( 'page_on_front' ) || trailingslashit( get_permalink( $page->ID ) ) === trailingslashit( home_url( '/' ) ) ) {
+            continue;
         }
         
         $priority = '0.6';
         $changefreq = 'weekly';
         
         // Higher priority for landing page
-        if ( is_page_template( 'template-sales-landing.php' ) ) {
+        $page_template = get_page_template_slug( $page->ID );
+        if ( $page_template === 'template-sales-landing.php' ) {
             $priority = '0.9';
             $changefreq = 'daily';
         }
