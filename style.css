@@ -1432,3 +1432,40 @@ th span[title] {
     color: #4ade80;
     font-weight: 500;
 }
+
+.bite-review-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--secondary-color);
+    font-size: 0.9em;
+    font-weight: 500;
+    text-decoration: none;
+    margin-top: 10px;
+}
+
+.bite-review-link:hover {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+.bite-review-form input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--light-text-color);
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.bite-review-form input[type="text"]::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.bite-review-form input[type="text"]:focus {
+    border-color: var(--secondary-color);
+    outline: none;
+}

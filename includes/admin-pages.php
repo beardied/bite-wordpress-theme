@@ -579,7 +579,6 @@ function bite_admin_page_user_access() {
  */
 function bite_register_settings() {
     register_setting( 'bite_settings', 'bite_contact_email' );
-    register_setting( 'bite_settings', 'bite_google_review_url' );
 }
 add_action( 'admin_init', 'bite_register_settings' );
 
@@ -595,15 +594,12 @@ function bite_admin_page_settings() {
     // Save settings
     if ( isset( $_POST['bite_settings_save'] ) && isset( $_POST['bite_settings_nonce'] ) && wp_verify_nonce( $_POST['bite_settings_nonce'], 'bite_save_settings' ) ) {
         $contact_email = sanitize_email( $_POST['bite_contact_email'] );
-        $google_review_url = esc_url_raw( $_POST['bite_google_review_url'] );
         update_option( 'bite_contact_email', $contact_email );
-        update_option( 'bite_google_review_url', $google_review_url );
         echo '<div class="notice notice-success"><p>Settings saved successfully.</p></div>';
     }
 
     // Get current settings
     $contact_email = get_option( 'bite_contact_email', get_option( 'admin_email' ) );
-    $google_review_url = get_option( 'bite_google_review_url', '' );
     ?>
     <div class="wrap">
         <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
@@ -626,23 +622,6 @@ function bite_admin_page_settings() {
                         <p class="description">
                             The email address where contact form submissions will be sent. 
                             If not set, the WordPress admin email will be used.
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label for="bite_google_review_url">Google Review URL</label>
-                    </th>
-                    <td>
-                        <input type="url" 
-                               id="bite_google_review_url" 
-                               name="bite_google_review_url" 
-                               value="<?php echo esc_attr( $google_review_url ); ?>" 
-                               class="regular-text"
-                               placeholder="https://g.page/.../review">
-                        <p class="description">
-                            The direct link to your Google Business review page. 
-                            Users who rate B.I.T.E. 4-5 stars will be invited to leave a Google review.
                         </p>
                     </td>
                 </tr>

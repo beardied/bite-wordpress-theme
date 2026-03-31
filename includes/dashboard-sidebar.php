@@ -163,34 +163,27 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
                 </div>
             </div>
             
-            <!-- Positive Review (4-5 stars) -->
-            <div class="bite-review-positive" id="bite-review-positive" style="display: none;">
-                <p class="bite-review-message">We're so glad you're enjoying it! Would you mind sharing that on Google to help others find us?</p>
-                <?php if ( $google_review_url ) : ?>
-                    <a href="<?php echo esc_url( $google_review_url ); ?>" target="_blank" class="bite-review-button" id="bite-google-review-btn">
-                        <span class="material-icons">star</span>
-                        Leave a Google Review
-                    </a>
-                <?php endif; ?>
-                <button class="bite-review-skip" id="bite-skip-positive">Maybe later</button>
-            </div>
-            
-            <!-- Negative Review (1-3 stars) -->
-            <div class="bite-review-negative" id="bite-review-negative" style="display: none;">
-                <p class="bite-review-message">We're sorry to hear that. How can we make the tool better for you?</p>
-                <form id="bite-feedback-form" class="bite-feedback-form">
-                    <textarea id="bite-feedback-text" placeholder="Tell us what we can improve..." rows="3"></textarea>
+            <!-- Review Form (all ratings) -->
+            <div class="bite-review-form-container" id="bite-review-form-container" style="display: none;">
+                <p class="bite-review-message" id="bite-review-message">Tell us about your experience</p>
+                <form id="bite-review-form" class="bite-review-form">
+                    <input type="text" id="bite-reviewer-name" placeholder="Your name" value="<?php echo esc_attr( $current_user->display_name ); ?>">
+                    <textarea id="bite-review-text" placeholder="Share your thoughts about B.I.T.E. (optional)" rows="3"></textarea>
                     <button type="submit" class="bite-review-button">
                         <span class="material-icons">send</span>
-                        Send Feedback
+                        Submit Review
                     </button>
                 </form>
-                <button class="bite-review-skip" id="bite-skip-negative">Skip</button>
+                <button class="bite-review-skip" id="bite-skip-review">Skip</button>
             </div>
             
             <!-- Thank You Message -->
             <div class="bite-review-thanks" id="bite-review-thanks" style="display: none;">
-                <p class="bite-review-message">Thank you for your feedback!</p>
+                <p class="bite-review-message">Thank you for your review!</p>
+                <a href="<?php echo esc_url( home_url( '/reviews/' ) ); ?>" class="bite-review-link">
+                    <span class="material-icons">reviews</span>
+                    View All Reviews
+                </a>
             </div>
         </div>
         <?php endif; ?>
@@ -266,13 +259,12 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
     const reviewSection = document.getElementById('bite-review-section');
     if (reviewSection) {
         const stars = reviewSection.querySelectorAll('.bite-star');
-        const positiveSection = document.getElementById('bite-review-positive');
-        const negativeSection = document.getElementById('bite-review-negative');
+        const questionSection = reviewSection.querySelector('.bite-review-question');
+        const formContainer = document.getElementById('bite-review-form-container');
         const thanksSection = document.getElementById('bite-review-thanks');
-        const skipPositive = document.getElementById('bite-skip-positive');
-        const skipNegative = document.getElementById('bite-skip-negative');
-        const feedbackForm = document.getElementById('bite-feedback-form');
-        const googleReviewBtn = document.getElementById('bite-google-review-btn');
+        const reviewForm = document.getElementById('bite-review-form');
+        const skipReview = document.getElementById('bite-skip-review');
+        const reviewMessage = document.getElementById('bite-review-message');
         
         let selectedRating = 0;
         
@@ -290,7 +282,7 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
             star.addEventListener('click', function() {
                 selectedRating = parseInt(this.dataset.rating);
                 highlightStars(selectedRating);
-                submitReview(selectedRating);
+                showReviewForm(selectedRating);
             });
         });
         
@@ -304,66 +296,48 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
             });
         }
         
-        function submitReview(rating) {
-            // Hide question, show appropriate section
-            reviewSection.querySelector('.bite-review-question').style.display = 'none';
+        function showReviewForm(rating) {
+            // Hide question, show form
+            questionSection.style.display = 'none';
+            formContainer.style.display = 'block';
             
+            // Update message based on rating
             if (rating >= 4) {
-                positiveSection.style.display = 'block';
+                reviewMessage.textContent = "We're so glad you're enjoying it! Would you like to share more?";
+            } else if (rating >= 3) {
+                reviewMessage.textContent = "Thank you for your feedback. How can we improve?";
             } else {
-                negativeSection.style.display = 'block';
+                reviewMessage.textContent = "We're sorry to hear that. Please let us know how we can improve.";
             }
-            
-            // Save rating via AJAX
-            const formData = new FormData();
-            formData.append('action', 'bite_submit_review');
-            formData.append('rating', rating);
-            formData.append('nonce', '<?php echo wp_create_nonce( 'bite_review_nonce' ); ?>');
-            
-            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
-                method: 'POST',
-                body: formData
-            });
         }
         
-        // Skip buttons
-        if (skipPositive) {
-            skipPositive.addEventListener('click', function() {
+        // Skip button
+        if (skipReview) {
+            skipReview.addEventListener('click', function() {
                 hideReviewSection();
             });
         }
         
-        if (skipNegative) {
-            skipNegative.addEventListener('click', function() {
-                hideReviewSection();
-            });
-        }
-        
-        // Google review button
-        if (googleReviewBtn) {
-            googleReviewBtn.addEventListener('click', function() {
-                hideReviewSection();
-            });
-        }
-        
-        // Feedback form
-        if (feedbackForm) {
-            feedbackForm.addEventListener('submit', function(e) {
+        // Review form submission
+        if (reviewForm) {
+            reviewForm.addEventListener('submit', function(e) {
                 e.preventDefault();
-                const feedback = document.getElementById('bite-feedback-text').value;
+                const name = document.getElementById('bite-reviewer-name').value;
+                const reviewText = document.getElementById('bite-review-text').value;
                 
                 const formData = new FormData();
-                formData.append('action', 'bite_submit_feedback');
-                formData.append('feedback', feedback);
+                formData.append('action', 'bite_submit_internal_review');
+                formData.append('rating', selectedRating);
+                formData.append('name', name);
+                formData.append('review_text', reviewText);
                 formData.append('nonce', '<?php echo wp_create_nonce( 'bite_review_nonce' ); ?>');
                 
                 fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
                     method: 'POST',
                     body: formData
                 }).then(function() {
-                    negativeSection.style.display = 'none';
+                    formContainer.style.display = 'none';
                     thanksSection.style.display = 'block';
-                    setTimeout(hideReviewSection, 3000);
                 });
             });
         }

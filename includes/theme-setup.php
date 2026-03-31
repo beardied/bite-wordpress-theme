@@ -131,6 +131,16 @@ function bite_enqueue_scripts() {
             );
         }
 
+        // Enqueue reviews page CSS if on reviews page
+        if ( is_page_template( 'template-reviews.php' ) ) {
+            wp_enqueue_style(
+                'bite-reviews-style',
+                get_template_directory_uri() . '/assets/css/reviews-page.css',
+                array(),
+                filemtime( get_template_directory() . '/assets/css/reviews-page.css' )
+            );
+        }
+
         // --- jQuery & Datepicker ---
         wp_enqueue_script( 'jquery' );
         wp_enqueue_script( 'jquery-ui-datepicker' );

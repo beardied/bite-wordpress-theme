@@ -1,0 +1,208 @@
+/*
+ * BITE Reviews Page Styles
+ */
+
+/* Reviews Header */
+.bite-reviews-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #16213E 100%);
+    color: var(--light-text-color);
+    padding: 80px 24px 60px;
+    text-align: center;
+}
+
+.bite-reviews-header-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.bite-reviews-title {
+    font-size: 2.8em;
+    font-weight: 700;
+    margin: 0 0 30px 0;
+    color: var(--light-text-color);
+}
+
+.bite-reviews-summary {
+    display: flex;
+    justify-content: center;
+}
+
+.bite-average-rating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.bite-rating-number {
+    font-size: 4em;
+    font-weight: 700;
+    color: var(--secondary-color);
+    line-height: 1;
+}
+
+.bite-rating-stars {
+    display: flex;
+    gap: 4px;
+}
+
+.bite-rating-stars .bite-star {
+    font-size: 28px;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.bite-rating-stars .bite-star.filled {
+    color: #ffc107;
+}
+
+.bite-total-reviews {
+    font-size: 1em;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Reviews Section */
+.bite-reviews-section {
+    padding: 80px 24px;
+    background: var(--background-color);
+}
+
+.bite-reviews-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.bite-reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 30px;
+}
+
+.bite-review-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 30px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease;
+}
+
+.bite-review-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.bite-review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.bite-review-stars {
+    display: flex;
+    gap: 2px;
+}
+
+.bite-review-stars .bite-star {
+    font-size: 20px;
+    color: #ddd;
+}
+
+.bite-review-stars .bite-star.filled {
+    color: #ffc107;
+}
+
+.bite-review-date {
+    font-size: 0.85em;
+    color: var(--text-muted);
+}
+
+.bite-review-text {
+    margin-bottom: 20px;
+}
+
+.bite-review-text p {
+    font-size: 1em;
+    line-height: 1.7;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.bite-review-author {
+    padding-top: 15px;
+    border-top: 1px solid var(--border-light);
+}
+
+.bite-author-name {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.95em;
+}
+
+/* Empty State */
+.bite-reviews-empty {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.bite-reviews-empty .material-icons {
+    font-size: 64px;
+    color: var(--border-color);
+    margin-bottom: 20px;
+}
+
+.bite-reviews-empty p {
+    font-size: 1.2em;
+    color: var(--text-muted);
+}
+
+/* CTA Section */
+.bite-reviews-cta {
+    padding: 80px 24px;
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-dark) 100%);
+    text-align: center;
+}
+
+.bite-reviews-cta-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.bite-reviews-cta h2 {
+    font-size: 2.2em;
+    color: var(--light-text-color);
+    margin-bottom: 15px;
+}
+
+.bite-reviews-cta p {
+    font-size: 1.1em;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 30px;
+}
+
+.bite-reviews-cta .bite-button {
+    padding: 16px 40px;
+    font-size: 1.1em;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .bite-reviews-header {
+        padding: 60px 20px 40px;
+    }
+    
+    .bite-reviews-title {
+        font-size: 2em;
+    }
+    
+    .bite-rating-number {
+        font-size: 3em;
+    }
+    
+    .bite-reviews-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .bite-reviews-cta h2 {
+        font-size: 1.8em;
+    }
+}

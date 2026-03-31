@@ -664,18 +664,15 @@ body.page-template-template-sales-landing #content {
     margin: 0 auto;
 }
 
-.bite-pricing-grid > *:nth-child(4),
-.bite-pricing-grid > *:nth-child(5) {
-    grid-column: span 1;
-}
-
-/* Center the last two cards */
+/* Last two cards - center them */
 .bite-pricing-grid > *:nth-child(4) {
-    grid-column-start: 1;
+    grid-column: 1 / 2;
+    justify-self: end;
 }
 
 .bite-pricing-grid > *:nth-child(5) {
-    grid-column-start: 2;
+    grid-column: 2 / 3;
+    justify-self: start;
 }
 
 .bite-pricing-card {
@@ -800,7 +797,8 @@ body.page-template-template-sales-landing #content {
     
     .bite-pricing-grid > *:nth-child(4),
     .bite-pricing-grid > *:nth-child(5) {
-        grid-column-start: auto;
+        grid-column: auto;
+        justify-self: auto;
     }
 }
 
@@ -856,6 +854,7 @@ body.page-template-template-sales-landing #content {
     
     .bite-pricing-grid > *:nth-child(4),
     .bite-pricing-grid > *:nth-child(5) {
-        grid-column-start: auto;
+        grid-column: auto;
+        justify-self: auto;
     }
 }

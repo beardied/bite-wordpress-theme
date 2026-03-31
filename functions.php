@@ -51,13 +51,15 @@ require_once BITE_THEME_DIR . '/includes/seo.php';
 require_once BITE_THEME_DIR . '/includes/sitemap.php';
 
 // ============================================
-// REVIEW SYSTEM AJAX HANDLERS
+// INTERNAL REVIEW SYSTEM AJAX HANDLERS
 // ============================================
 
 /**
- * Handle review submission
+ * Handle internal review submission
  */
-function bite_ajax_submit_review() {
+function bite_ajax_submit_internal_review() {
+    global $wpdb;
+    
     // Check nonce
     if ( ! wp_verify_nonce( $_POST['nonce'], 'bite_review_nonce' ) ) {
         wp_send_json_error( 'Security check failed' );
@@ -70,64 +72,49 @@ function bite_ajax_submit_review() {
     
     $user_id = get_current_user_id();
     $rating = intval( $_POST['rating'] );
+    $name = sanitize_text_field( $_POST['name'] ?? '' );
+    $review_text = sanitize_textarea_field( $_POST['review_text'] ?? '' );
     
     // Validate rating
     if ( $rating < 1 || $rating > 5 ) {
         wp_send_json_error( 'Invalid rating' );
     }
     
-    // Save rating to user meta
-    update_user_meta( $user_id, 'bite_review_rating', $rating );
-    update_user_meta( $user_id, 'bite_review_date', current_time( 'mysql' ) );
-    
-    // If rating is 4-5, mark as reviewed but don't hide yet (they might click Google link)
-    // If rating is 1-3, don't mark as reviewed yet (they might submit feedback)
-    if ( $rating <= 3 ) {
-        update_user_meta( $user_id, 'bite_review_submitted', 'feedback_pending' );
+    // Use display name if no name provided
+    if ( empty( $name ) ) {
+        $user = get_userdata( $user_id );
+        $name = $user->display_name;
     }
     
-    wp_send_json_success( 'Review saved' );
-}
-add_action( 'wp_ajax_bite_submit_review', 'bite_ajax_submit_review' );
-
-/**
- * Handle feedback submission
- */
-function bite_ajax_submit_feedback() {
-    // Check nonce
-    if ( ! wp_verify_nonce( $_POST['nonce'], 'bite_review_nonce' ) ) {
-        wp_send_json_error( 'Security check failed' );
-    }
-    
-    // Check user is logged in
-    if ( ! is_user_logged_in() ) {
-        wp_send_json_error( 'Not logged in' );
-    }
-    
-    $user_id = get_current_user_id();
-    $feedback = sanitize_textarea_field( $_POST['feedback'] ?? '' );
-    $rating = get_user_meta( $user_id, 'bite_review_rating', true );
-    
-    // Get user info
-    $user = get_userdata( $user_id );
-    $user_email = $user->user_email;
-    $user_name = $user->display_name;
-    
-    // Send feedback email to admin
-    $to = get_option( 'bite_contact_email', get_option( 'admin_email' ) );
-    $subject = 'BITE Feedback from ' . $user_name;
-    
-    $message = "Negative Feedback Received\n\n";
-    $message .= "User: " . $user_name . " (" . $user_email . ")\n";
-    $message .= "Rating: " . $rating . " stars\n\n";
-    $message .= "Feedback:\n" . $feedback . "\n\n";
-    $message .= "Date: " . current_time( 'mysql' ) . "\n";
-    
-    wp_mail( $to, $subject, $message );
+    // Save review to database
+    $reviews_table = $wpdb->prefix . 'bite_reviews';
+    $wpdb->insert(
+        $reviews_table,
+        array(
+            'user_id' => $user_id,
+            'user_name' => $name,
+            'rating' => $rating,
+            'review_text' => $review_text,
+            'is_approved' => 1, // Auto-approve for now
+        ),
+        array( '%d', '%s', '%d', '%s', '%d' )
+    );
     
     // Mark as reviewed
     update_user_meta( $user_id, 'bite_review_submitted', true );
     
-    wp_send_json_success( 'Feedback submitted' );
+    // Send notification to admin
+    $to = get_option( 'bite_contact_email', get_option( 'admin_email' ) );
+    $subject = 'New BITE Review from ' . $name;
+    
+    $message = "A new review has been submitted for B.I.T.E.\n\n";
+    $message .= "User: " . $name . "\n";
+    $message .= "Rating: " . $rating . " stars\n";
+    $message .= "Review:\n" . $review_text . "\n\n";
+    $message .= "Date: " . current_time( 'mysql' ) . "\n";
+    
+    wp_mail( $to, $subject, $message );
+    
+    wp_send_json_success( 'Review submitted' );
 }
-add_action( 'wp_ajax_bite_submit_feedback', 'bite_ajax_submit_feedback' );
+add_action( 'wp_ajax_bite_submit_internal_review', 'bite_ajax_submit_internal_review' );

@@ -90,6 +90,21 @@ add_action( 'wp_head', 'bite_seo_meta_tags', 1 );
 // ============================================
 
 /**
+ * Get aggregate review data
+ */
+function bite_get_review_aggregate() {
+    global $wpdb;
+    $reviews_table = $wpdb->prefix . 'bite_reviews';
+    
+    $results = $wpdb->get_row( "SELECT AVG(rating) as avg_rating, COUNT(*) as total FROM $reviews_table WHERE is_approved = 1" );
+    
+    return array(
+        'average' => $results->avg_rating ? round( $results->avg_rating, 1 ) : 0,
+        'count' => intval( $results->total ),
+    );
+}
+
+/**
  * Add Schema.org JSON-LD markup
  */
 function bite_schema_markup() {
@@ -101,6 +116,9 @@ function bite_schema_markup() {
     $site_description = get_bloginfo( 'description' );
     $site_url = home_url( '/' );
     $logo = get_theme_mod( 'bite_logo' );
+    
+    // Get review aggregate data
+    $review_data = bite_get_review_aggregate();
     
     // Organization Schema
     $organization_schema = array(
@@ -143,6 +161,17 @@ function bite_schema_markup() {
             'CTR Efficiency Report',
         ),
     );
+    
+    // Add aggregate rating if we have reviews
+    if ( $review_data['count'] > 0 ) {
+        $software_schema['aggregateRating'] = array(
+            '@type' => 'AggregateRating',
+            'ratingValue' => $review_data['average'],
+            'bestRating' => '5',
+            'worstRating' => '1',
+            'ratingCount' => $review_data['count'],
+        );
+    }
     
     // WebSite Schema
     $website_schema = array(
