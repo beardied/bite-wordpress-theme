@@ -14,6 +14,92 @@ if ( ! is_user_logged_in() ) {
     exit;
 }
 
+// Process form submission for adding site
+$form_message = '';
+$form_error = '';
+
+if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_add_site_submit'] ) ) {
+    // Verify nonce
+    if ( ! isset( $_POST['bite_add_site_nonce'] ) || ! wp_verify_nonce( $_POST['bite_add_site_nonce'], 'bite_add_site' ) ) {
+        $form_error = 'Security check failed. Please try again.';
+    } else {
+        $current_user_id = get_current_user_id();
+        
+        // Check if user can add more sites
+        if ( ! bite_user_can_add_site( $current_user_id ) ) {
+            $form_error = 'You have reached the maximum number of sites for your plan. Please upgrade to add more sites.';
+        } else {
+            // Process uploaded JSON file
+            $gsc_credentials = '';
+            if ( isset( $_FILES['bite_gsc_credentials'] ) && ! empty( $_FILES['bite_gsc_credentials']['tmp_name'] ) ) {
+                $uploaded_file = $_FILES['bite_gsc_credentials'];
+                
+                if ( $uploaded_file['type'] === 'application/json' || pathinfo( $uploaded_file['name'], PATHINFO_EXTENSION ) === 'json' ) {
+                    $json_content = file_get_contents( $uploaded_file['tmp_name'] );
+                    $credentials_data = json_decode( $json_content, true );
+                    
+                    if ( $credentials_data && isset( $credentials_data['client_email'] ) && isset( $credentials_data['private_key'] ) ) {
+                        $gsc_credentials = $json_content;
+                    } else {
+                        $form_error = 'Invalid JSON file. Please upload a valid Google Service Account key file.';
+                    }
+                } else {
+                    $form_error = 'Please upload a valid JSON file.';
+                }
+            } else {
+                $form_error = 'Please upload your Google Service Account JSON key file.';
+            }
+            
+            if ( empty( $form_error ) ) {
+                global $wpdb;
+                
+                // Get or create user's personal niche
+                $niches_table = $wpdb->prefix . 'bite_niches';
+                $user_niche_name = sanitize_text_field( $_POST['bite_site_name'] ) . ' - ' . $current_user_id;
+                
+                $existing_niche = $wpdb->get_var( $wpdb->prepare(
+                    "SELECT niche_id FROM $niches_table WHERE niche_name = %s",
+                    $user_niche_name
+                ) );
+                
+                if ( $existing_niche ) {
+                    $niche_id = $existing_niche;
+                } else {
+                    $wpdb->insert( $niches_table, array( 'niche_name' => $user_niche_name ) );
+                    $niche_id = $wpdb->insert_id;
+                }
+                
+                // Insert site
+                $sites_table = $wpdb->prefix . 'bite_sites';
+                $site_data = array(
+                    'niche_id'        => $niche_id,
+                    'name'            => sanitize_text_field( $_POST['bite_site_name'] ),
+                    'domain'          => sanitize_text_field( $_POST['bite_domain'] ),
+                    'gsc_property'    => sanitize_text_field( $_POST['bite_gsc_property'] ),
+                    'gsc_credentials' => $gsc_credentials,
+                    'backfill_status' => 'pending',
+                );
+                
+                $result = $wpdb->insert( $sites_table, $site_data );
+                
+                if ( $result ) {
+                    $new_site_id = $wpdb->insert_id;
+                    
+                    // Create metrics table
+                    bite_create_metrics_table_for_site( $new_site_id );
+                    
+                    // Grant user access to this site
+                    bite_grant_user_site_access( $current_user_id, $new_site_id, $current_user_id );
+                    
+                    $form_message = 'Site added successfully! Data will start appearing within a few minutes as we fetch your Google Search Console data.';
+                } else {
+                    $form_error = 'Failed to add site. Please try again.';
+                }
+            }
+        }
+    }
+}
+
 get_header();
 
 global $wpdb;
@@ -21,6 +107,12 @@ $current_user    = wp_get_current_user();
 $current_user_id = get_current_user_id();
 $user_site_ids   = bite_get_user_sites( $current_user_id );
 $is_admin        = current_user_can( 'manage_options' );
+
+// Get user plan info
+$user_plan = bite_get_user_plan( $current_user_id );
+$site_limit = bite_get_user_site_limit( $current_user_id );
+$remaining_sites = bite_get_user_remaining_sites( $current_user_id );
+$can_add_more = bite_user_can_add_site( $current_user_id );
 
 // Get site details
 $user_sites = array();
@@ -89,6 +181,16 @@ if ( $quick_stats['total_impressions'] > 0 ) {
     $quick_stats['calculated_ctr'] = 0;
 }
 
+// Get plan display name
+$plan_names = array(
+    'hosting'    => 'OrangeWidow Hosting',
+    'solo'       => 'Solo',
+    'pro'        => 'Pro',
+    'agency'     => 'Agency',
+    'enterprise' => 'Enterprise',
+);
+$plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] : 'Solo';
+
 ?>
 
 <div class="bite-dashboard-wrapper">
@@ -110,11 +212,13 @@ if ( $quick_stats['total_impressions'] > 0 ) {
                     <?php if ( ! empty( $user_niches ) ) : ?>
                         across <strong><?php echo count( $user_niches ); ?> niche<?php echo count( $user_niches ) !== 1 ? 's' : ''; ?></strong>
                     <?php endif; ?>.
+                    <span class="bite-plan-badge">Plan: <?php echo esc_html( $plan_display ); ?></span>
                 </p>
             </div>
         </section>
 
         <!-- Quick Stats Cards -->
+        <?php if ( ! empty( $user_sites ) ) : ?>
         <section class="bite-dashboard-stats">
             <div class="bite-stats-grid">
                 <div class="bite-stat-card bite-stat-clicks">
@@ -150,12 +254,21 @@ if ( $quick_stats['total_impressions'] > 0 ) {
                 </div>
             </div>
         </section>
+        <?php endif; ?>
 
         <!-- Sites Section -->
         <section class="bite-dashboard-section bite-sites-section">
             <div class="bite-section-header">
                 <h2>Your Sites</h2>
-                <span class="bite-badge"><?php echo count( $user_sites ); ?> total</span>
+                <div class="bite-section-meta">
+                    <span class="bite-badge"><?php echo count( $user_sites ); ?> 
+                        <?php echo count( $user_sites ) === 1 ? 'site' : 'sites'; ?></span>
+                    <?php if ( $site_limit > 0 ) : ?>
+                        <span class="bite-limit-badge"><?php echo $remaining_sites; ?> remaining</span>
+                    <?php elseif ( $site_limit === 0 ) : ?>
+                        <span class="bite-limit-badge unlimited">Unlimited</span>
+                    <?php endif; ?>
+                </div>
             </div>
             
             <?php if ( ! empty( $user_sites ) ) : ?>
@@ -179,14 +292,114 @@ if ( $quick_stats['total_impressions'] > 0 ) {
                         </div>
                     <?php endforeach; ?>
                 </div>
-            <?php else : ?>
-                <div class="bite-empty-state">
-                    <p>No sites assigned to your account yet.</p>
-                    <?php if ( $is_admin ) : ?>
-                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ); ?>" class="bite-button">Add Sites</a>
-                    <?php else : ?>
-                        <p>Contact your administrator for access.</p>
+            <?php endif; ?>
+            
+            <!-- Add Site Form / CTA -->
+            <?php if ( $can_add_more ) : ?>
+                <div class="bite-add-site-section" id="add-site">
+                    <?php if ( ! empty( $form_message ) ) : ?>
+                        <div class="bite-notice success">
+                            <span class="material-icons">check_circle</span>
+                            <?php echo esc_html( $form_message ); ?>
+                        </div>
                     <?php endif; ?>
+                    
+                    <?php if ( ! empty( $form_error ) ) : ?>
+                        <div class="bite-notice error">
+                            <span class="material-icons">error</span>
+                            <?php echo esc_html( $form_error ); ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <div class="bite-add-site-header">
+                        <h3><?php echo empty( $user_sites ) ? 'Get Started: Add Your First Site' : 'Add Another Site'; ?></h3>
+                        <p>Follow the steps below to connect your website's Google Search Console data.</p>
+                    </div>
+                    
+                    <div class="bite-setup-steps">
+                        <div class="bite-step">
+                            <div class="bite-step-number">1</div>
+                            <div class="bite-step-content">
+                                <h4>Create Google Cloud Project</h4>
+                                <p>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> and create a new project.</p>
+                            </div>
+                        </div>
+                        <div class="bite-step">
+                            <div class="bite-step-number">2</div>
+                            <div class="bite-step-content">
+                                <h4>Enable Search Console API</h4>
+                                <p>In your project, go to "APIs & Services" and enable the "Google Search Console API".</p>
+                            </div>
+                        </div>
+                        <div class="bite-step">
+                            <div class="bite-step-number">3</div>
+                            <div class="bite-step-content">
+                                <h4>Create Service Account</h4>
+                                <p>Go to "IAM & Admin > Service Accounts", create a new service account with "Viewer" role.</p>
+                            </div>
+                        </div>
+                        <div class="bite-step">
+                            <div class="bite-step-number">4</div>
+                            <div class="bite-step-content">
+                                <h4>Download JSON Key</h4>
+                                <p>Create a JSON key for your service account and download it.</p>
+                            </div>
+                        </div>
+                        <div class="bite-step">
+                            <div class="bite-step-number">5</div>
+                            <div class="bite-step-content">
+                                <h4>Add to Search Console</h4>
+                                <p>In <a href="https://search.google.com/search-console" target="_blank">GSC</a>, add your service account email as a "Restricted Property User".</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="POST" action="#add-site" class="bite-add-site-form" enctype="multipart/form-data">
+                        <?php wp_nonce_field( 'bite_add_site', 'bite_add_site_nonce' ); ?>
+                        
+                        <div class="bite-form-row">
+                            <div class="bite-form-group">
+                                <label for="bite_site_name">Site Name <span class="required">*</span></label>
+                                <input type="text" id="bite_site_name" name="bite_site_name" required 
+                                       placeholder="My Website">
+                            </div>
+                            
+                            <div class="bite-form-group">
+                                <label for="bite_domain">Domain <span class="required">*</span></label>
+                                <input type="text" id="bite_domain" name="bite_domain" required 
+                                       placeholder="example.com">
+                            </div>
+                        </div>
+                        
+                        <div class="bite-form-group">
+                            <label for="bite_gsc_property">Google Search Console Property <span class="required">*</span></label>
+                            <input type="text" id="bite_gsc_property" name="bite_gsc_property" required 
+                                   placeholder="sc-domain:example.com OR https://www.example.com/">
+                            <p class="bite-field-help">Must match exactly what's in your GSC account. Use <code>sc-domain:</code> prefix for domain properties.</p>
+                        </div>
+                        
+                        <div class="bite-form-group">
+                            <label for="bite_gsc_credentials">Service Account JSON Key <span class="required">*</span></label>
+                            <input type="file" id="bite_gsc_credentials" name="bite_gsc_credentials" 
+                                   accept=".json" required>
+                            <p class="bite-field-help">Upload the JSON file you downloaded from Google Cloud Console.</p>
+                        </div>
+                        
+                        <button type="submit" name="bite_add_site_submit" class="bite-button bite-button-primary">
+                            <span class="material-icons">add</span>
+                            Add Site
+                        </button>
+                    </form>
+                </div>
+            <?php else : ?>
+                <div class="bite-limit-reached">
+                    <div class="bite-notice warning">
+                        <span class="material-icons">info</span>
+                        <p>You've reached the maximum number of sites for your <strong><?php echo esc_html( $plan_display ); ?></strong> plan.</p>
+                        <a href="<?php echo esc_url( home_url( '/contact/?plan=upgrade' ) ); ?>" class="bite-button bite-button-small">
+                            Upgrade Plan
+                        </a>
+                    </div>
                 </div>
             <?php endif; ?>
         </section>

@@ -741,11 +741,10 @@ function bite_get_google_access_token( $site_id = null ) {
     $scopes = array( 'https://www.googleapis.com/auth/webmasters.readonly' );
     $google_token_url = 'https://oauth2.googleapis.com/token';
 
-    // Get credentials - site-specific or global
+    // Get site-specific credentials - NO FALLBACK to global
     $key_file_data = null;
     
     if ( $site_id ) {
-        // Try to get site-specific credentials
         global $wpdb;
         $sites_table = $wpdb->prefix . 'bite_sites';
         $credentials_json = $wpdb->get_var( $wpdb->prepare(
@@ -758,22 +757,10 @@ function bite_get_google_access_token( $site_id = null ) {
         }
     }
     
-    // Fall back to global credentials if no site-specific credentials found
+    // No credentials found - return error, no fallback
     if ( ! $key_file_data ) {
-        $json_key_file_name = 'google-api-credentials.json';
-        $key_file_path = get_template_directory() . '/' . $json_key_file_name;
-        
-        if ( ! file_exists( $key_file_path ) ) {
-            error_log( 'BITE Auth Error: JSON Key file not found at ' . $key_file_path );
-            return new WP_Error( 'key_file_missing', 'JSON Key file not found. Please upload credentials in site settings.' );
-        }
-        
-        $key_file_data = json_decode( file_get_contents( $key_file_path ), true );
-    }
-    
-    if ( ! $key_file_data ) {
-        error_log( 'BITE Auth Error: Could not decode JSON credentials.' );
-        return new WP_Error( 'key_file_corrupt', 'Could not decode JSON credentials.' );
+        error_log( 'BITE Auth Error: No GSC credentials found for site ID ' . $site_id );
+        return new WP_Error( 'no_credentials', 'Google Search Console credentials not configured for this site. Please set up API access in your site settings.' );
     }
 
     // --- JWT Creation ---

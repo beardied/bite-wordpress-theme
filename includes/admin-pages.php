@@ -162,7 +162,6 @@ function bite_handle_admin_form_actions() {
             'domain'          => sanitize_text_field( $_POST['bite_domain'] ),
             'gsc_property'    => sanitize_text_field( $_POST['bite_gsc_property'] ),
             'gsc_credentials' => $gsc_credentials,
-            'matomo_site_id'  => absint( $_POST['bite_matomo_id'] ) ?: null,
             'backfill_status' => 'pending',
         );
 
@@ -370,15 +369,6 @@ function bite_admin_page_sites() {
                         <input type="file" id="bite_gsc_credentials" name="bite_gsc_credentials" accept=".json" required>
                     </p>
                     <p>
-                        <label for="bite_matomo_id">
-                            <?php esc_html_e( 'Matomo Site ID (Optional):', 'bite-theme' ); ?>
-                            <span class="description" style="display: block; font-weight: normal; color: #666;">
-                                For Matomo analytics integration
-                            </span>
-                        </label>
-                        <input type="number" id="bite_matomo_id" name="bite_matomo_id" min="0" step="1">
-                    </p>
-                    <p>
                         <?php submit_button( __( 'Add Site', 'bite-theme' ) ); ?>
                     </p>
                 </div>
@@ -393,7 +383,6 @@ function bite_admin_page_sites() {
                     <th><?php esc_html_e( 'Site Name', 'bite-theme' ); ?></th>
                     <th><?php esc_html_e( 'Niche', 'bite-theme' ); ?></th>
                     <th><?php esc_html_e( 'GSC Property', 'bite-theme' ); ?></th>
-                    <th><?php esc_html_e( 'Matomo ID', 'bite-theme' ); ?></th>
                     <th><?php esc_html_e( 'Backfill', 'bite-theme' ); ?></th>
                     <th><?php esc_html_e( 'Action', 'bite-theme' ); ?></th>
                 </tr>
@@ -406,7 +395,6 @@ function bite_admin_page_sites() {
                             <td><strong><?php echo esc_html( $site->name ); ?></strong><br><?php echo esc_html( $site->domain ); ?></td>
                             <td><?php echo esc_html( $site->niche_name ); ?></td>
                             <td><?php echo esc_html( $site->gsc_property ); ?></td>
-                            <td><?php echo esc_html( $site->matomo_site_id ); ?></td>
                             <td><?php echo esc_html( $site->backfill_status ); ?></td>
                             <td>
                                 <form method="post" action="" class="bite-delete-form" onsubmit="return confirm('Are you sure you want to delete this site AND all its tracked keyword data? This cannot be undone.');">

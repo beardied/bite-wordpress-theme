@@ -60,148 +60,138 @@ function bite_force_login() {
         }
     }
 }
-add_action( 'template_redirect', 'bite_force_login' );
+add_action( 'init', 'bite_force_login' );
+
 
 /**
- * 4. Hide the WP Admin Bar for "BITE Viewer" role.
+ * 4. Add custom login error message for BITE Viewer role.
  */
-function bite_hide_admin_bar_for_viewer( $show ) {
-    if ( current_user_can( 'bite_viewer' ) ) {
-        return false; // Do not show admin bar
+function bite_login_message( $message ) {
+    if ( empty( $message ) ) {
+        return '<p class="message">Welcome to B.I.T.E. (Bulk Insight Tracking Engine)<br>Please log in to access your dashboard.</p>';
     }
-    return $show; // Show for all other users (like admin)
+    return $message;
 }
-add_action( 'show_admin_bar', 'bite_hide_admin_bar_for_viewer' );
+add_filter( 'login_message', 'bite_login_message' );
+
 
 /**
- * 5. Redirect "BITE Viewer" away from the WP Admin Dashboard.
- *
- * If a BITE Viewer tries to access /wp-admin/, send them to the homepage,
- * which will be our BITE dashboard.
- */
-function bite_redirect_viewer_from_admin() {
-    if ( current_user_can( 'bite_viewer' ) && is_admin() && ! ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
-        wp_redirect( home_url() );
-        exit;
-    }
-}
-add_action( 'admin_init', 'bite_redirect_viewer_from_admin' );
-
-/**
- * 6. Enqueue theme scripts and styles.
+ * 5. Enqueue scripts and styles.
  */
 function bite_enqueue_scripts() {
+    // Google Fonts - Material Icons
+    wp_enqueue_style(
+        'material-icons',
+        'https://fonts.googleapis.com/icon?family=Material+Icons',
+        array(),
+        null
+    );
     
-    // Check if we are on the front-end (our dashboard)
-    if ( ! is_admin() ) {
-        
-        // Enqueue self-hosted Material Icons font (for better performance & privacy)
-        wp_enqueue_style(
-            'bite-material-icons',
-            get_template_directory_uri() . '/assets/css/fonts.css',
-            array(),
-            filemtime( get_template_directory() . '/assets/css/fonts.css' )
-        );
+    // Google Fonts - Inter
+    wp_enqueue_style(
+        'google-fonts-inter',
+        'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
+        array(),
+        null
+    );
 
-        // Enqueue the main stylesheet with cache busting
+    // Enqueue CSS Variables and main stylesheet on front-end
+    if ( ! is_admin() ) {
+        // CSS Variables first
+        wp_enqueue_style(
+            'bite-theme-style-vars',
+            get_template_directory_uri() . '/assets/css/variables.css',
+            array(),
+            filemtime( get_template_directory() . '/assets/css/variables.css' )
+        );
+        
+        // Main theme stylesheet
         wp_enqueue_style(
             'bite-theme-style',
             get_stylesheet_uri(),
-            array(),
-            filemtime( get_stylesheet_directory() . '/style.css' ) // Auto cache bust based on file modification time
+            array( 'bite-theme-style-vars' ),
+            filemtime( get_stylesheet_directory() . '/style.css' )
         );
-
-        // Enqueue landing page CSS if on landing page
-        if ( is_page_template( 'template-sales-landing.php' ) ) {
+        
+        // Login page styles
+        if ( in_array( $GLOBALS['pagenow'], array( 'wp-login.php', 'wp-register.php' ) ) ) {
             wp_enqueue_style(
-                'bite-landing-style',
-                get_template_directory_uri() . '/landing-page.css',
-                array(),
-                filemtime( get_template_directory() . '/landing-page.css' )
+                'bite-login-style',
+                get_template_directory_uri() . '/assets/css/login-style.css',
+                array( 'bite-theme-style-vars' ),
+                filemtime( get_template_directory() . '/assets/css/login-style.css' )
             );
         }
-
-        // Enqueue contact page CSS if on contact page
-        if ( is_page_template( 'template-contact.php' ) ) {
+        
+        // Sidebar menu styles for dashboard pages
+        if ( is_page_template( 'template-dashboard.php' ) || 
+             is_page_template( 'template-opportunity-finder.php' ) ||
+             is_page_template( 'template-global-champions.php' ) ||
+             is_page_template( 'template-emerging-trends.php' ) ||
+             is_page_template( 'template-keyword-explorer.php' ) ||
+             is_page_template( 'template-ctr-efficiency.php' ) ) {
             wp_enqueue_style(
-                'bite-contact-style',
-                get_template_directory_uri() . '/assets/css/contact-page.css',
-                array(),
-                filemtime( get_template_directory() . '/assets/css/contact-page.css' )
+                'bite-dashboard-sidebar',
+                get_template_directory_uri() . '/dashboard-sidebar.css',
+                array( 'bite-theme-style-vars' ),
+                filemtime( get_template_directory() . '/dashboard-sidebar.css' )
             );
         }
-
-        // Enqueue reviews page CSS if on reviews page
+        
+        // Reviews page styles
         if ( is_page_template( 'template-reviews.php' ) ) {
             wp_enqueue_style(
                 'bite-reviews-style',
                 get_template_directory_uri() . '/assets/css/reviews-page.css',
-                array(),
+                array( 'bite-theme-style-vars' ),
                 filemtime( get_template_directory() . '/assets/css/reviews-page.css' )
             );
         }
-
-        // Enqueue default page CSS for standard pages
-        if ( is_page_template( 'template-default.php' ) ) {
+        
+        // Contact page styles
+        if ( is_page_template( 'template-contact.php' ) ) {
             wp_enqueue_style(
-                'bite-default-style',
+                'bite-contact-style',
+                get_template_directory_uri() . '/assets/css/contact-page.css',
+                array( 'bite-theme-style-vars' ),
+                filemtime( get_template_directory() . '/assets/css/contact-page.css' )
+            );
+        }
+        
+        // Default page template styles
+        if ( is_page_template( 'template-default-page.php' ) ) {
+            wp_enqueue_style(
+                'bite-default-page-style',
                 get_template_directory_uri() . '/assets/css/default-page.css',
-                array(),
+                array( 'bite-theme-style-vars' ),
                 filemtime( get_template_directory() . '/assets/css/default-page.css' )
             );
         }
+        
+        // Landing page styles
+        if ( is_page_template( 'template-sales-landing.php' ) ) {
+            wp_enqueue_style(
+                'bite-landing-style',
+                get_template_directory_uri() . '/landing-page.css',
+                array( 'bite-theme-style-vars' ),
+                filemtime( get_template_directory() . '/landing-page.css' )
+            );
+        }
+    }
 
-        // --- jQuery & Datepicker ---
-        wp_enqueue_script( 'jquery' );
-        wp_enqueue_script( 'jquery-ui-datepicker' );
+    // Admin styles
+    if ( is_admin() ) {
+        // CSS Variables for admin
         wp_enqueue_style(
-            'jquery-ui-css',
-            '//ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css'
-        );
-
-        // --- Chart.js ---
-        wp_enqueue_script(
-            'chart-js',
-            'https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js',
+            'bite-theme-style-vars',
+            get_template_directory_uri() . '/assets/css/variables.css',
             array(),
-            '4.4.3',
-            true
+            filemtime( get_template_directory() . '/assets/css/variables.css' )
         );
-
-        // --- DataTables.js (for sortable tables) ---
-        wp_enqueue_script(
-            'datatables-js',
-            'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js',
-            array( 'jquery' ),
-            '1.13.6',
-            true
-        );
-        wp_enqueue_style(
-            'datatables-css',
-            'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css'
-        );
-
-        // --- Our Custom JS File ---
-        wp_enqueue_script(
-            'bite-theme-js',
-            get_template_directory_uri() . '/js/bite.js',
-            array( 'jquery', 'jquery-ui-datepicker', 'chart-js', 'datatables-js' ),
-            filemtime( get_template_directory() . '/js/bite.js' ), // Auto cache bust
-            true // Load in footer
-        );
-    
-    } else {
-        // We are on an admin page.
+        
+        // Only load admin styles on BITE admin pages
         $screen = get_current_screen();
         if ( $screen && strpos( $screen->id, 'bite-admin' ) !== false ) {
-            
-            wp_enqueue_style(
-                'bite-theme-style-vars',
-                get_stylesheet_uri(),
-                array(),
-                filemtime( get_stylesheet_directory() . '/style.css' )
-            );
-
             wp_enqueue_style(
                 'bite-admin-style',
                 get_template_directory_uri() . '/admin-style.css',
@@ -278,14 +268,12 @@ function bite_login_redirect( $redirect_to, $request, $user ) {
         if ( $dashboard_page ) {
             return get_permalink( $dashboard_page->ID );
         }
-        
-        // Fallback to home if dashboard page doesn't exist
-        return home_url( '/' );
     }
     
     return $redirect_to;
 }
 add_filter( 'login_redirect', 'bite_login_redirect', 10, 3 );
+
 
 /**
  * 10. Also redirect on wp_login action (backup method).
@@ -309,3 +297,145 @@ function bite_after_login_redirect( $user_login, $user ) {
     }
 }
 add_action( 'wp_login', 'bite_after_login_redirect', 10, 2 );
+
+
+/**
+ * 11. Add BITE Plan field to user profile (admin only).
+ */
+function bite_user_plan_profile_field( $user ) {
+    // Only show for administrators
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+    
+    $plan = get_user_meta( $user->ID, 'bite_plan', true );
+    $plan = $plan ?: 'solo'; // Default to solo
+    ?>
+    <h2><?php _e( 'BITE Plan', 'bite-theme' ); ?></h2>
+    <table class="form-table">
+        <tr>
+            <th><label for="bite_plan"><?php _e( 'Subscription Plan', 'bite-theme' ); ?></label></th>
+            <td>
+                <select name="bite_plan" id="bite_plan">
+                    <option value="hosting" <?php selected( $plan, 'hosting' ); ?>><?php _e( 'OrangeWidow Hosting (Unlimited from hosting)', 'bite-theme' ); ?></option>
+                    <option value="solo" <?php selected( $plan, 'solo' ); ?>><?php _e( 'Solo (3 websites)', 'bite-theme' ); ?></option>
+                    <option value="pro" <?php selected( $plan, 'pro' ); ?>><?php _e( 'Pro (10 websites)', 'bite-theme' ); ?></option>
+                    <option value="agency" <?php selected( $plan, 'agency' ); ?>><?php _e( 'Agency (25 websites)', 'bite-theme' ); ?></option>
+                    <option value="enterprise" <?php selected( $plan, 'enterprise' ); ?>><?php _e( 'Enterprise (Unlimited)', 'bite-theme' ); ?></option>
+                </select>
+                <p class="description">
+                    <?php _e( 'Determines how many sites the user can add to their dashboard.', 'bite-theme' ); ?>
+                </p>
+            </td>
+        </tr>
+    </table>
+    <?php
+}
+add_action( 'show_user_profile', 'bite_user_plan_profile_field' );
+add_action( 'edit_user_profile', 'bite_user_plan_profile_field' );
+
+/**
+ * 12. Save BITE Plan field.
+ */
+function bite_save_user_plan_field( $user_id ) {
+    // Check permissions
+    if ( ! current_user_can( 'edit_user', $user_id ) || ! current_user_can( 'manage_options' ) ) {
+        return false;
+    }
+    
+    if ( isset( $_POST['bite_plan'] ) ) {
+        update_user_meta( $user_id, 'bite_plan', sanitize_text_field( $_POST['bite_plan'] ) );
+    }
+    
+    return true;
+}
+add_action( 'personal_options_update', 'bite_save_user_plan_field' );
+add_action( 'edit_user_profile_update', 'bite_save_user_plan_field' );
+
+/**
+ * 13. Get user's BITE plan.
+ *
+ * @param int $user_id User ID (defaults to current user)
+ * @return string Plan type: hosting, solo, pro, agency, enterprise
+ */
+function bite_get_user_plan( $user_id = null ) {
+    if ( ! $user_id ) {
+        $user_id = get_current_user_id();
+    }
+    
+    $plan = get_user_meta( $user_id, 'bite_plan', true );
+    return $plan ?: 'solo'; // Default to solo
+}
+
+/**
+ * 14. Get maximum sites allowed for user's plan.
+ *
+ * @param int $user_id User ID (defaults to current user)
+ * @return int Maximum number of sites (0 for unlimited)
+ */
+function bite_get_user_site_limit( $user_id = null ) {
+    if ( ! $user_id ) {
+        $user_id = get_current_user_id();
+    }
+    
+    $plan = bite_get_user_plan( $user_id );
+    
+    $limits = array(
+        'hosting'    => 0,      // Unlimited (from hosting)
+        'solo'       => 3,
+        'pro'        => 10,
+        'agency'     => 25,
+        'enterprise' => 0,      // Unlimited
+    );
+    
+    return isset( $limits[ $plan ] ) ? $limits[ $plan ] : 3;
+}
+
+/**
+ * 15. Check if user can add more sites.
+ *
+ * @param int $user_id User ID (defaults to current user)
+ * @return bool True if user can add more sites
+ */
+function bite_user_can_add_site( $user_id = null ) {
+    if ( ! $user_id ) {
+        $user_id = get_current_user_id();
+    }
+    
+    $limit = bite_get_user_site_limit( $user_id );
+    
+    // Unlimited
+    if ( $limit === 0 ) {
+        return true;
+    }
+    
+    // Count user's sites
+    $user_sites = bite_get_user_sites( $user_id );
+    $current_count = count( $user_sites );
+    
+    return $current_count < $limit;
+}
+
+/**
+ * 16. Get count of sites user can still add.
+ *
+ * @param int $user_id User ID (defaults to current user)
+ * @return int Number of sites user can still add (-1 for unlimited)
+ */
+function bite_get_user_remaining_sites( $user_id = null ) {
+    if ( ! $user_id ) {
+        $user_id = get_current_user_id();
+    }
+    
+    $limit = bite_get_user_site_limit( $user_id );
+    
+    // Unlimited
+    if ( $limit === 0 ) {
+        return -1;
+    }
+    
+    $user_sites = bite_get_user_sites( $user_id );
+    $current_count = count( $user_sites );
+    
+    return max( 0, $limit - $current_count );
+}
