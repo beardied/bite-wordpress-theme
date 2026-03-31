@@ -23,39 +23,39 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
             $form_error = 'Spam detected.';
         } else {
             // Get form data
-            $name = sanitize_text_field( $_POST['bite_name'] ?? '' );
-            $email = sanitize_email( $_POST['bite_email'] ?? '' );
-            $company = sanitize_text_field( $_POST['bite_company'] ?? '' );
-            $plan = sanitize_text_field( $_POST['bite_plan'] ?? '' );
-            $websites = sanitize_textarea_field( $_POST['bite_websites'] ?? '' );
-            $message = sanitize_textarea_field( $_POST['bite_message'] ?? '' );
+            $bite_name = sanitize_text_field( $_POST['bite_name'] ?? '' );
+            $bite_email = sanitize_email( $_POST['bite_email'] ?? '' );
+            $bite_company = sanitize_text_field( $_POST['bite_company'] ?? '' );
+            $bite_plan = sanitize_text_field( $_POST['bite_plan'] ?? '' );
+            $bite_websites = sanitize_textarea_field( $_POST['bite_websites'] ?? '' );
+            $bite_message = sanitize_textarea_field( $_POST['bite_message'] ?? '' );
             
             // Validation
-            if ( empty( $name ) || empty( $email ) || empty( $plan ) ) {
+            if ( empty( $bite_name ) || empty( $bite_email ) || empty( $bite_plan ) ) {
                 $form_error = 'Please fill in all required fields.';
-            } elseif ( ! is_email( $email ) ) {
+            } elseif ( ! is_email( $bite_email ) ) {
                 $form_error = 'Please enter a valid email address.';
             } else {
                 // Get recipient email from settings
                 $recipient_email = get_option( 'bite_contact_email', get_option( 'admin_email' ) );
                 
                 // Build email
-                $subject = 'BITE Access Request from ' . $name;
+                $subject = 'BITE Access Request from ' . $bite_name;
                 
                 $email_body = "New BITE Access Request\n\n";
-                $email_body .= "Name: " . $name . "\n";
-                $email_body .= "Email: " . $email . "\n";
-                $email_body .= "Company: " . ( $company ? $company : 'Not provided' ) . "\n";
-                $email_body .= "Interested Plan: " . ( $plan ? $plan : 'Not specified' ) . "\n";
-                $email_body .= "Websites: " . ( $websites ? $websites : 'Not provided' ) . "\n\n";
-                $email_body .= "Message:\n" . ( $message ? $message : 'No additional message' ) . "\n\n";
+                $email_body .= "Name: " . $bite_name . "\n";
+                $email_body .= "Email: " . $bite_email . "\n";
+                $email_body .= "Company: " . ( $bite_company ? $bite_company : 'Not provided' ) . "\n";
+                $email_body .= "Interested Plan: " . ( $bite_plan ? $bite_plan : 'Not specified' ) . "\n";
+                $email_body .= "Websites: " . ( $bite_websites ? $bite_websites : 'Not provided' ) . "\n\n";
+                $email_body .= "Message:\n" . ( $bite_message ? $bite_message : 'No additional message' ) . "\n\n";
                 $email_body .= "Submitted from: " . home_url( '/contact/' ) . "\n";
                 $email_body .= "Date: " . date( 'Y-m-d H:i:s' ) . "\n";
                 $email_body .= "IP: " . ( $_SERVER['REMOTE_ADDR'] ?? 'Unknown' ) . "\n";
                 
                 $headers = array(
                     'From: BITE Contact Form <' . $recipient_email . '>',
-                    'Reply-To: ' . $name . ' <' . $email . '>',
+                    'Reply-To: ' . $bite_name . ' <' . $bite_email . '>',
                     'Content-Type: text/plain; charset=UTF-8',
                 );
                 
@@ -65,7 +65,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
                 if ( $sent ) {
                     $form_message = 'Thank you for your request! We will review your application and get back to you soon.';
                     // Clear form data after successful submission
-                    $name = $email = $company = $websites = $message = '';
+                    $bite_name = $bite_email = $bite_company = $bite_websites = $bite_message = '';
                 } else {
                     $form_error = 'There was an error sending your message. Please try again later or contact us directly.';
                 }
@@ -125,7 +125,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
                                name="bite_name" 
                                required 
                                placeholder="Your full name"
-                               value="<?php echo isset( $name ) ? esc_attr( $name ) : ''; ?>">
+                               value="<?php echo isset( $bite_name ) ? esc_attr( $bite_name ) : ''; ?>">
                     </div>
                     
                     <div class="bite-form-group bite-form-group-half">
@@ -137,7 +137,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
                                name="bite_email" 
                                required 
                                placeholder="your@email.com"
-                               value="<?php echo isset( $email ) ? esc_attr( $email ) : ''; ?>">
+                               value="<?php echo isset( $bite_email ) ? esc_attr( $bite_email ) : ''; ?>">
                     </div>
                 </div>
                 
@@ -147,7 +147,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
                            id="bite_company" 
                            name="bite_company" 
                            placeholder="Your company (optional)"
-                           value="<?php echo isset( $company ) ? esc_attr( $company ) : ''; ?>"
+                           value="<?php echo isset( $bite_company ) ? esc_attr( $bite_company ) : ''; ?>"
                            autocomplete="organization">
                 </div>
                 
@@ -155,12 +155,12 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
                     <label for="bite_plan">Interested Plan <span class="bite-required">*</span></label>
                     <select id="bite_plan" name="bite_plan" required>
                         <option value="">Select a plan...</option>
-                        <option value="hosting" <?php selected( isset( $plan ) && $plan === 'hosting' ); ?>>OrangeWidow Hosting Customer (Free)</option>
-                        <option value="solo" <?php selected( isset( $plan ) && $plan === 'solo' ); ?>>Solo - £29/month (3 websites)</option>
-                        <option value="pro" <?php selected( isset( $plan ) && $plan === 'pro' ); ?>>Pro - £59/month (10 websites)</option>
-                        <option value="agency" <?php selected( isset( $plan ) && $plan === 'agency' ); ?>>Agency - £119/month (25 websites)</option>
-                        <option value="enterprise" <?php selected( isset( $plan ) && $plan === 'enterprise' ); ?>>Enterprise - £199/month (Unlimited)</option>
-                        <option value="custom" <?php selected( isset( $plan ) && $plan === 'custom' ); ?>>Custom Requirements</option>
+                        <option value="hosting" <?php selected( isset( $bite_plan ) && $bite_plan === 'hosting' ); ?>>OrangeWidow Hosting Customer (Free)</option>
+                        <option value="solo" <?php selected( isset( $bite_plan ) && $bite_plan === 'solo' ); ?>>Solo - £29/month (3 websites)</option>
+                        <option value="pro" <?php selected( isset( $bite_plan ) && $bite_plan === 'pro' ); ?>>Pro - £59/month (10 websites)</option>
+                        <option value="agency" <?php selected( isset( $bite_plan ) && $bite_plan === 'agency' ); ?>>Agency - £119/month (25 websites)</option>
+                        <option value="enterprise" <?php selected( isset( $bite_plan ) && $bite_plan === 'enterprise' ); ?>>Enterprise - £199/month (Unlimited)</option>
+                        <option value="custom" <?php selected( isset( $bite_plan ) && $bite_plan === 'custom' ); ?>>Custom Requirements</option>
                     </select>
                 </div>
                 
@@ -171,7 +171,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
                     <textarea id="bite_websites" 
                               name="bite_websites" 
                               rows="3" 
-                              placeholder="Enter the websites you'd like to analyze (one per line)"><?php echo isset( $websites ) ? esc_textarea( $websites ) : ''; ?></textarea>
+                              placeholder="Enter the websites you'd like to analyze (one per line)"><?php echo isset( $bite_websites ) ? esc_textarea( $bite_websites ) : ''; ?></textarea>
                 </div>
                 
                 <div class="bite-form-group">
@@ -179,7 +179,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
                     <textarea id="bite_message" 
                               name="bite_message" 
                               rows="4" 
-                              placeholder="Tell us about your needs, how many sites you manage, etc."><?php echo isset( $message ) ? esc_textarea( $message ) : ''; ?></textarea>
+                              placeholder="Tell us about your needs, how many sites you manage, etc."><?php echo isset( $bite_message ) ? esc_textarea( $bite_message ) : ''; ?></textarea>
                 </div>
                 
                 <div class="bite-form-submit">

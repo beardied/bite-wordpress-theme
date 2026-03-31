@@ -118,7 +118,7 @@ get_header();
         <div class="bite-niche-content">
             <div class="bite-niche-text">
                 <h2>Powerful Niche Intelligence</h2>
-                <p>Organize your websites by niche and unlock powerful cross-site insights. Enterprise and agency users can leverage niche groupings to identify winning strategies across similar properties and apply proven tactics from top-performing sites to others in the same vertical.</p>
+                <p>Organize your websites by niche and unlock powerful cross-site insights. Available on all plans, but especially powerful for agencies and enterprise users managing multiple properties in the same vertical. Leverage niche groupings to identify winning strategies and apply proven tactics across similar sites.</p>
                 <ul class="bite-niche-benefits">
                     <li><span class="material-icons">check_circle</span> Compare performance across niche-specific portfolios</li>
                     <li><span class="material-icons">check_circle</span> Identify high-performing keywords within your niches</li>
@@ -127,11 +127,18 @@ get_header();
                 </ul>
             </div>
             <div class="bite-niche-visual">
-                <div class="bite-niche-demo">
-                    <div class="bite-niche-badge">Enterprise Feature</div>
-                    <div class="bite-niche-graphic">
+                <div class="bite-niche-network">
+                    <div class="bite-network-node bite-node-central">
                         <span class="material-icons">hub</span>
                     </div>
+                    <div class="bite-network-node bite-node-1"><span class="material-icons">language</span></div>
+                    <div class="bite-network-node bite-node-2"><span class="material-icons">language</span></div>
+                    <div class="bite-network-node bite-node-3"><span class="material-icons">language</span></div>
+                    <div class="bite-network-node bite-node-4"><span class="material-icons">language</span></div>
+                    <div class="bite-network-line bite-line-1"></div>
+                    <div class="bite-network-line bite-line-2"></div>
+                    <div class="bite-network-line bite-line-3"></div>
+                    <div class="bite-network-line bite-line-4"></div>
                 </div>
             </div>
         </div>
@@ -157,14 +164,14 @@ get_header();
                 </div>
                 <div class="bite-pricing-features">
                     <ul>
-                        <li><span class="material-icons">check</span> Unlimited websites on your hosting account</li>
+                        <li><span class="material-icons">check</span> All websites on your hosting plan included</li>
                         <li><span class="material-icons">check</span> Full feature access</li>
                         <li><span class="material-icons">check</span> Priority support</li>
                         <li><span class="material-icons">check</span> Daily data updates</li>
                     </ul>
                 </div>
                 <div class="bite-pricing-cta">
-                    <a href="https://orangewidow.com" class="bite-button bite-button-secondary" target="_blank">Get Hosting</a>
+                    <a href="https://orangewidow.com" class="bite-button" target="_blank">Get Hosting</a>
                 </div>
             </div>
             
@@ -225,7 +232,7 @@ get_header();
                     <ul>
                         <li><span class="material-icons">check</span> Up to 25 websites</li>
                         <li><span class="material-icons">check</span> Full feature access</li>
-                        <li><span class="material-icons">check</span> Priority support</li>
+                        <li><span class="material-icons">check</span> Priority email support</li>
                         <li><span class="material-icons">check</span> Daily data updates</li>
                     </ul>
                 </div>
@@ -301,16 +308,16 @@ get_header();
                 <span class="bite-stat-label">Historical Data</span>
             </div>
             <div class="bite-stat">
-                <span class="bite-stat-number">Unlimited</span>
-                <span class="bite-stat-label">Websites</span>
+                <span class="bite-stat-number">Flexible</span>
+                <span class="bite-stat-label">Website Plans</span>
             </div>
             <div class="bite-stat">
                 <span class="bite-stat-number">Daily</span>
                 <span class="bite-stat-label">Data Updates</span>
             </div>
             <div class="bite-stat">
-                <span class="bite-stat-number">Real-time</span>
-                <span class="bite-stat-label">Analytics</span>
+                <span class="bite-stat-number">Always</span>
+                <span class="bite-stat-label">Up-to-date</span>
             </div>
         </div>
     </section>

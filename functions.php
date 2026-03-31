@@ -47,6 +47,9 @@ require_once BITE_THEME_DIR . '/includes/robots-txt.php';
 // 11. SEO Optimization (Meta tags, Schema markup)
 require_once BITE_THEME_DIR . '/includes/seo.php';
 
+// 12. Dynamic Sitemap Generator
+require_once BITE_THEME_DIR . '/includes/sitemap.php';
+
 // ============================================
 // REVIEW SYSTEM AJAX HANDLERS
 // ============================================

@@ -121,7 +121,8 @@
 
 .bite-form-group input[type="text"],
 .bite-form-group input[type="email"],
-.bite-form-group textarea {
+.bite-form-group textarea,
+.bite-form-group select {
     width: 100%;
     padding: 14px 16px;
     border: 2px solid var(--border-light);
@@ -135,10 +136,22 @@
 
 .bite-form-group input[type="text"]:focus,
 .bite-form-group input[type="email"]:focus,
-.bite-form-group textarea:focus {
+.bite-form-group textarea:focus,
+.bite-form-group select:focus {
     border-color: var(--secondary-color);
     box-shadow: 0 0 0 3px rgba(232, 93, 4, 0.15);
     outline: none;
+}
+
+.bite-form-group select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+    cursor: pointer;
 }
 
 .bite-form-group textarea {

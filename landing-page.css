@@ -542,18 +542,140 @@ body.page-template-template-sales-landing #content {
     color: var(--secondary-color);
 }
 
+/* Network Animation */
+.bite-niche-network {
+    position: relative;
+    width: 280px;
+    height: 280px;
+}
+
+.bite-network-node {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: rgba(232, 93, 4, 0.2);
+    border: 2px solid var(--secondary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse-node 2s ease-in-out infinite;
+}
+
+.bite-network-node .material-icons {
+    font-size: 28px;
+    color: var(--secondary-color);
+}
+
+.bite-node-central {
+    width: 80px;
+    height: 80px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(232, 93, 4, 0.3);
+    animation: pulse-central 2s ease-in-out infinite;
+    z-index: 2;
+}
+
+.bite-node-central .material-icons {
+    font-size: 40px;
+}
+
+.bite-node-1 { top: 10%; left: 50%; transform: translateX(-50%); animation-delay: 0s; }
+.bite-node-2 { top: 50%; right: 10%; transform: translateY(-50%); animation-delay: 0.5s; }
+.bite-node-3 { bottom: 10%; left: 50%; transform: translateX(-50%); animation-delay: 1s; }
+.bite-node-4 { top: 50%; left: 10%; transform: translateY(-50%); animation-delay: 1.5s; }
+
+.bite-network-line {
+    position: absolute;
+    background: linear-gradient(90deg, transparent, var(--secondary-color), transparent);
+    height: 2px;
+    transform-origin: left center;
+    animation: pulse-line 2s ease-in-out infinite;
+    opacity: 0.6;
+}
+
+.bite-line-1 {
+    top: 22%;
+    left: 50%;
+    width: 90px;
+    transform: translateX(-50%) rotate(90deg);
+    transform-origin: center top;
+    animation-delay: 0s;
+}
+
+.bite-line-2 {
+    top: 50%;
+    right: 22%;
+    width: 90px;
+    transform: translateY(-50%);
+    animation-delay: 0.5s;
+}
+
+.bite-line-3 {
+    bottom: 22%;
+    left: 50%;
+    width: 90px;
+    transform: translateX(-50%) rotate(90deg);
+    transform-origin: center top;
+    animation-delay: 1s;
+}
+
+.bite-line-4 {
+    top: 50%;
+    left: 22%;
+    width: 90px;
+    transform: translateY(-50%);
+    animation-delay: 1.5s;
+}
+
+@keyframes pulse-node {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 4, 0.4); }
+    50% { box-shadow: 0 0 0 15px rgba(232, 93, 4, 0); }
+}
+
+@keyframes pulse-central {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 4, 0.5); transform: translate(-50%, -50%) scale(1); }
+    50% { box-shadow: 0 0 0 25px rgba(232, 93, 4, 0); transform: translate(-50%, -50%) scale(1.05); }
+}
+
+@keyframes pulse-line {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+}
+
 /* Pricing Section */
 .bite-pricing {
     padding: 100px 24px;
     background: var(--background-color);
 }
 
+.bite-pricing .bite-section-header {
+    max-width: 1400px;
+    margin: 0 auto 60px;
+}
+
 .bite-pricing-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 30px;
-    max-width: 1400px;
+    max-width: 1200px;
     margin: 0 auto;
+}
+
+.bite-pricing-grid > *:nth-child(4),
+.bite-pricing-grid > *:nth-child(5) {
+    grid-column: span 1;
+}
+
+/* Center the last two cards */
+.bite-pricing-grid > *:nth-child(4) {
+    grid-column-start: 1;
+}
+
+.bite-pricing-grid > *:nth-child(5) {
+    grid-column-start: 2;
 }
 
 .bite-pricing-card {
@@ -671,6 +793,17 @@ body.page-template-template-sales-landing #content {
 }
 
 /* Responsive for new sections */
+@media screen and (max-width: 1200px) {
+    .bite-pricing-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .bite-pricing-grid > *:nth-child(4),
+    .bite-pricing-grid > *:nth-child(5) {
+        grid-column-start: auto;
+    }
+}
+
 @media screen and (max-width: 1024px) {
     .bite-niche-content {
         grid-template-columns: 1fr;
@@ -687,6 +820,10 @@ body.page-template-template-sales-landing #content {
     
     .bite-pricing-featured:hover {
         transform: translateY(-4px);
+    }
+    
+    .bite-niche-network {
+        margin: 0 auto;
     }
 }
 
@@ -715,5 +852,10 @@ body.page-template-template-sales-landing #content {
     .bite-pricing-grid {
         grid-template-columns: 1fr;
         max-width: 400px;
+    }
+    
+    .bite-pricing-grid > *:nth-child(4),
+    .bite-pricing-grid > *:nth-child(5) {
+        grid-column-start: auto;
     }
 }
