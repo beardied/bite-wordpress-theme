@@ -159,5 +159,14 @@ function bite_create_missing_tables() {
         ) $charset_collate;";
         dbDelta( $sql_reviews );
     }
+    
+    // Check if gsc_credentials column exists in sites table
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    $column_exists = $wpdb->get_results( "SHOW COLUMNS FROM $sites_table LIKE 'gsc_credentials'" );
+    
+    if ( empty( $column_exists ) ) {
+        $wpdb->query( "ALTER TABLE $sites_table ADD COLUMN gsc_credentials TEXT NULL AFTER gsc_property" );
+    }
 }
+add_action( 'admin_init', 'bite_create_missing_tables' );
 add_action( 'admin_init', 'bite_create_missing_tables' );
