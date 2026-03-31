@@ -17,6 +17,7 @@ if ( ! is_user_logged_in() ) {
 // Process form submission for adding site
 $form_message = '';
 $form_error = '';
+$extracted_email = '';
 
 if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_add_site_submit'] ) ) {
     // Verify nonce
@@ -29,9 +30,17 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_add_site_submi
         if ( ! bite_user_can_add_site( $current_user_id ) ) {
             $form_error = 'You have reached the maximum number of sites for your plan. Please upgrade to add more sites.';
         } else {
-            // Process uploaded JSON file
-            $gsc_credentials = '';
-            if ( isset( $_FILES['bite_gsc_credentials'] ) && ! empty( $_FILES['bite_gsc_credentials']['tmp_name'] ) ) {
+            // Validate required fields
+            if ( empty( $_POST['bite_site_name'] ) ) {
+                $form_error = 'Please enter a site name.';
+            } elseif ( empty( $_POST['bite_domain'] ) ) {
+                $form_error = 'Please enter a domain.';
+            } elseif ( empty( $_POST['bite_gsc_property'] ) ) {
+                $form_error = 'Please enter your Google Search Console property.';
+            } elseif ( ! isset( $_FILES['bite_gsc_credentials'] ) || empty( $_FILES['bite_gsc_credentials']['tmp_name'] ) ) {
+                $form_error = 'Please upload your Google Service Account JSON key file.';
+            } else {
+                // Process uploaded JSON file
                 $uploaded_file = $_FILES['bite_gsc_credentials'];
                 
                 if ( $uploaded_file['type'] === 'application/json' || pathinfo( $uploaded_file['name'], PATHINFO_EXTENSION ) === 'json' ) {
@@ -40,60 +49,58 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_add_site_submi
                     
                     if ( $credentials_data && isset( $credentials_data['client_email'] ) && isset( $credentials_data['private_key'] ) ) {
                         $gsc_credentials = $json_content;
+                        $extracted_email = $credentials_data['client_email'];
+                        
+                        global $wpdb;
+                        
+                        // Get or create user's personal niche
+                        $niches_table = $wpdb->prefix . 'bite_niches';
+                        $user_niche_name = sanitize_text_field( $_POST['bite_site_name'] ) . ' - ' . $current_user_id;
+                        
+                        $existing_niche = $wpdb->get_var( $wpdb->prepare(
+                            "SELECT niche_id FROM $niches_table WHERE niche_name = %s",
+                            $user_niche_name
+                        ) );
+                        
+                        if ( $existing_niche ) {
+                            $niche_id = $existing_niche;
+                        } else {
+                            $wpdb->insert( $niches_table, array( 'niche_name' => $user_niche_name ) );
+                            $niche_id = $wpdb->insert_id;
+                        }
+                        
+                        // Insert site
+                        $sites_table = $wpdb->prefix . 'bite_sites';
+                        $site_data = array(
+                            'niche_id'        => $niche_id,
+                            'name'            => sanitize_text_field( $_POST['bite_site_name'] ),
+                            'domain'          => sanitize_text_field( $_POST['bite_domain'] ),
+                            'gsc_property'    => sanitize_text_field( $_POST['bite_gsc_property'] ),
+                            'gsc_credentials' => $gsc_credentials,
+                            'backfill_status' => 'pending',
+                        );
+                        
+                        $result = $wpdb->insert( $sites_table, $site_data );
+                        
+                        if ( $result ) {
+                            $new_site_id = $wpdb->insert_id;
+                            
+                            // Create metrics table
+                            bite_create_metrics_table_for_site( $new_site_id );
+                            
+                            // Grant user access to this site
+                            bite_grant_user_site_access( $current_user_id, $new_site_id, $current_user_id );
+                            
+                            $form_message = 'Site added successfully! Data will start appearing within a few minutes as we fetch your Google Search Console data.';
+                        } else {
+                            $form_error = 'Failed to add site to database. Error: ' . $wpdb->last_error;
+                        }
                     } else {
-                        $form_error = 'Invalid JSON file. Please upload a valid Google Service Account key file.';
+                        $form_error = 'Invalid JSON file. The file should contain "client_email" and "private_key" fields. Please download the correct Service Account key from Google Cloud Console.';
+                        $extracted_email = '';
                     }
                 } else {
-                    $form_error = 'Please upload a valid JSON file.';
-                }
-            } else {
-                $form_error = 'Please upload your Google Service Account JSON key file.';
-            }
-            
-            if ( empty( $form_error ) ) {
-                global $wpdb;
-                
-                // Get or create user's personal niche
-                $niches_table = $wpdb->prefix . 'bite_niches';
-                $user_niche_name = sanitize_text_field( $_POST['bite_site_name'] ) . ' - ' . $current_user_id;
-                
-                $existing_niche = $wpdb->get_var( $wpdb->prepare(
-                    "SELECT niche_id FROM $niches_table WHERE niche_name = %s",
-                    $user_niche_name
-                ) );
-                
-                if ( $existing_niche ) {
-                    $niche_id = $existing_niche;
-                } else {
-                    $wpdb->insert( $niches_table, array( 'niche_name' => $user_niche_name ) );
-                    $niche_id = $wpdb->insert_id;
-                }
-                
-                // Insert site
-                $sites_table = $wpdb->prefix . 'bite_sites';
-                $site_data = array(
-                    'niche_id'        => $niche_id,
-                    'name'            => sanitize_text_field( $_POST['bite_site_name'] ),
-                    'domain'          => sanitize_text_field( $_POST['bite_domain'] ),
-                    'gsc_property'    => sanitize_text_field( $_POST['bite_gsc_property'] ),
-                    'gsc_credentials' => $gsc_credentials,
-                    'backfill_status' => 'pending',
-                );
-                
-                $result = $wpdb->insert( $sites_table, $site_data );
-                
-                if ( $result ) {
-                    $new_site_id = $wpdb->insert_id;
-                    
-                    // Create metrics table
-                    bite_create_metrics_table_for_site( $new_site_id );
-                    
-                    // Grant user access to this site
-                    bite_grant_user_site_access( $current_user_id, $new_site_id, $current_user_id );
-                    
-                    $form_message = 'Site added successfully! Data will start appearing within a few minutes as we fetch your Google Search Console data.';
-                } else {
-                    $form_error = 'Failed to add site. Please try again.';
+                    $form_error = 'Please upload a valid JSON file (with .json extension). The file you uploaded appears to be a different format.';
                 }
             }
         }
@@ -305,7 +312,7 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                     
                     <div class="bite-wizard-header">
                         <h3><?php echo empty( $user_sites ) ? '🚀 Add Your First Site' : '➕ Add Another Site'; ?></h3>
-                        <p>Complete the setup to connect your Google Search Console data.</p>
+                        <p>Follow these 5 simple steps to connect your Google Search Console data.</p>
                         <?php if ( $site_limit > 0 ) : ?>
                             <span class="bite-wizard-remaining"><?php echo $remaining_sites; ?> of <?php echo $site_limit; ?> sites remaining</span>
                         <?php endif; ?>
@@ -325,35 +332,56 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                             </div>
                         </div>
                         
-                        <!-- Step 1: Google Cloud Project -->
+                        <!-- Step 1: Create Google Cloud Project -->
                         <div class="bite-wizard-step active" data-step="1">
                             <div class="bite-step-content">
                                 <div class="bite-step-icon">🔧</div>
-                                <h4>Step 1: Create Google Cloud Project</h4>
-                                <p>You'll need a Google Cloud project to access the Search Console API.</p>
-                                <ol class="bite-step-instructions">
-                                    <li>Go to <a href="https://console.cloud.google.com/" target="_blank" class="bite-external-link">Google Cloud Console</a></li>
-                                    <li>Click "Select a project" → "New Project"</li>
-                                    <li>Give it a name (e.g., "My Website BITE")</li>
-                                    <li>Click "Create"</li>
-                                </ol>
+                                <h4>Step 1: Create a Google Cloud Project</h4>
+                                <p>First, you need a Google Cloud project to access the API.</p>
+                                
+                                <div class="bite-step-box">
+                                    <h5>What to do:</h5>
+                                    <ol class="bite-step-instructions">
+                                        <li>Go to <a href="https://console.cloud.google.com/" target="_blank" class="bite-external-link">Google Cloud Console →</a></li>
+                                        <li>Click the <strong>project selector</strong> at the top (shows "Select a project")</li>
+                                        <li>Click <strong>"New Project"</strong></li>
+                                        <li>Give your project a name like "My Website Analytics"</li>
+                                        <li>Click <strong>"Create"</strong></li>
+                                    </ol>
+                                </div>
+                                
+                                <div class="bite-step-tip">
+                                    <strong>Tip:</strong> You'll need a Google account. If you don't have one, create it first at <a href="https://accounts.google.com/" target="_blank">accounts.google.com</a>
+                                </div>
+                                
                                 <div class="bite-step-actions">
                                     <button type="button" class="bite-button bite-button-primary" onclick="wizardNext()">I've Created the Project →</button>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Step 2: Enable API -->
+                        <!-- Step 2: Enable Search Console API -->
                         <div class="bite-wizard-step" data-step="2">
                             <div class="bite-step-content">
                                 <div class="bite-step-icon">🚀</div>
-                                <h4>Step 2: Enable Search Console API</h4>
-                                <p>Enable the API so BITE can read your search data.</p>
-                                <ol class="bite-step-instructions">
-                                    <li>In your project, go to "APIs & Services" → "Library"</li>
-                                    <li>Search for "Google Search Console API"</li>
-                                    <li>Click on it and hit "Enable"</li>
-                                </ol>
+                                <h4>Step 2: Enable the Search Console API</h4>
+                                <p>Now we need to turn on access to your search data.</p>
+                                
+                                <div class="bite-step-box">
+                                    <h5>What to do:</h5>
+                                    <ol class="bite-step-instructions">
+                                        <li>Make sure you're in your new project (check the project selector at top)</li>
+                                        <li>Click the <strong>hamburger menu (☰)</strong> in top left</li>
+                                        <li>Go to <strong>"APIs & Services"</strong> → <strong>"Library"</strong></li>
+                                        <li>Search for <strong>"Google Search Console API"</strong></li>
+                                        <li>Click on it, then click the <strong>"Enable"</strong> button</li>
+                                    </ol>
+                                </div>
+                                
+                                <div class="bite-step-tip">
+                                    <strong>Note:</strong> This is free. You may need to accept terms of service.
+                                </div>
+                                
                                 <div class="bite-step-actions">
                                     <button type="button" class="bite-button bite-button-secondary" onclick="wizardPrev()">← Back</button>
                                     <button type="button" class="bite-button bite-button-primary" onclick="wizardNext()">I've Enabled the API →</button>
@@ -365,15 +393,22 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                         <div class="bite-wizard-step" data-step="3">
                             <div class="bite-step-content">
                                 <div class="bite-step-icon">👤</div>
-                                <h4>Step 3: Create Service Account</h4>
-                                <p>Create a service account that BITE will use to access your data.</p>
-                                <ol class="bite-step-instructions">
-                                    <li>Go to "IAM & Admin" → "Service Accounts"</li>
-                                    <li>Click "Create Service Account"</li>
-                                    <li>Name: <code>bite-access</code></li>
-                                    <li>Grant role: "Viewer" (Search Console)</li>
-                                    <li>Click "Done"</li>
-                                </ol>
+                                <h4>Step 3: Create a Service Account</h4>
+                                <p>This creates a special account that BITE will use to read your data.</p>
+                                
+                                <div class="bite-step-box">
+                                    <h5>What to do:</h5>
+                                    <ol class="bite-step-instructions">
+                                        <li>In Google Cloud Console, click the <strong>hamburger menu (☰)</strong></li>
+                                        <li>Go to <strong>"IAM & Admin"</strong> → <strong>"Service Accounts"</strong></li>
+                                        <li>Click <strong>"Create Service Account"</strong> at the top</li>
+                                        <li><strong>Service account name:</strong> Type "bite-reader"</li>
+                                        <li>Click <strong>"Create and Continue"</strong></li>
+                                        <li>For <strong>Role</strong>, select: <code>Project</code> → <code>Viewer</code></li>
+                                        <li>Click <strong>"Continue"</strong> then <strong>"Done"</strong></li>
+                                    </ol>
+                                </div>
+                                
                                 <div class="bite-step-actions">
                                     <button type="button" class="bite-button bite-button-secondary" onclick="wizardPrev()">← Back</button>
                                     <button type="button" class="bite-button bite-button-primary" onclick="wizardNext()">I've Created the Account →</button>
@@ -385,14 +420,25 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                         <div class="bite-wizard-step" data-step="4">
                             <div class="bite-step-content">
                                 <div class="bite-step-icon">🔑</div>
-                                <h4>Step 4: Download JSON Key</h4>
-                                <p>Download the key file that you'll upload here.</p>
-                                <ol class="bite-step-instructions">
-                                    <li>Click on your new service account</li>
-                                    <li>Go to "Keys" tab → "Add Key" → "Create New Key"</li>
-                                    <li>Select "JSON" and click "Create"</li>
-                                    <li>Save the downloaded file - you'll need it in the next step</li>
-                                </ol>
+                                <h4>Step 4: Download Your Key File</h4>
+                                <p>Download the file BITE needs to connect to your data.</p>
+                                
+                                <div class="bite-step-box">
+                                    <h5>What to do:</h5>
+                                    <ol class="bite-step-instructions">
+                                        <li>You should be on the "Service Accounts" page</li>
+                                        <li>Find your "bite-reader" account and <strong>click on it</strong></li>
+                                        <li>Click the <strong>"Keys"</strong> tab at the top</li>
+                                        <li>Click <strong>"Add Key"</strong> → <strong>"Create New Key"</strong></li>
+                                        <li>Select <strong>"JSON"</strong> and click <strong>"Create"</strong></li>
+                                        <li>A file will download - <strong>keep this file safe!</strong></li>
+                                    </ol>
+                                </div>
+                                
+                                <div class="bite-step-tip warning">
+                                    <strong>Important:</strong> This file contains sensitive information. Don't share it with anyone.
+                                </div>
+                                
                                 <div class="bite-step-actions">
                                     <button type="button" class="bite-button bite-button-secondary" onclick="wizardPrev()">← Back</button>
                                     <button type="button" class="bite-button bite-button-primary" onclick="wizardNext()">I've Downloaded the Key →</button>
@@ -404,15 +450,30 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                         <div class="bite-wizard-step" data-step="5">
                             <div class="bite-step-content">
                                 <div class="bite-step-icon">🔗</div>
-                                <h4>Step 5: Add to Search Console & Submit</h4>
-                                <p>Give the service account access to your property, then complete the form below.</p>
-                                <ol class="bite-step-instructions">
-                                    <li>Go to <a href="https://search.google.com/search-console" target="_blank" class="bite-external-link">Google Search Console</a></li>
-                                    <li>Select your property</li>
-                                    <li>Settings → Users and Permissions → Add User</li>
-                                    <li>Enter the service account email (from your JSON file)</li>
-                                    <li>Set permission to "Restricted Property User"</li>
-                                </ol>
+                                <h4>Step 5: Give Access in Search Console</h4>
+                                <p>Now let BITE access your search data.</p>
+                                
+                                <div class="bite-step-box">
+                                    <h5>What to do:</h5>
+                                    <ol class="bite-step-instructions">
+                                        <li>Go to <a href="https://search.google.com/search-console" target="_blank" class="bite-external-link">Google Search Console →</a></li>
+                                        <li>Select your website property from the list</li>
+                                        <li>Click the <strong>gear icon (Settings)</strong> in the left sidebar</li>
+                                        <li>Click <strong>"Users and Permissions"</strong></li>
+                                        <li>Click the <strong>blue "Add User"</strong> button</li>
+                                        <li>Paste the <strong>Service Account Email</strong> shown below</li>
+                                        <li>Set permission to <strong>"Restricted Property User"</strong></li>
+                                        <li>Click <strong>"Add"</strong></li>
+                                    </ol>
+                                </div>
+                                
+                                <div class="bite-step-email-box" id="email-display-box" style="display: none;">
+                                    <p class="bite-email-label">Your Service Account Email:</p>
+                                    <div class="bite-email-value" id="service-account-email">Upload your JSON file to see the email</div>
+                                    <button type="button" class="bite-copy-btn" onclick="copyEmail()">
+                                        <span class="material-icons">content_copy</span> Copy
+                                    </button>
+                                </div>
                                 
                                 <form method="POST" action="#add-site" class="bite-wizard-form" enctype="multipart/form-data" id="site-form">
                                     <?php wp_nonce_field( 'bite_add_site', 'bite_add_site_nonce' ); ?>
@@ -420,14 +481,14 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                                     <div class="bite-form-group">
                                         <label for="bite_site_name">Site Name <span class="required">*</span></label>
                                         <input type="text" id="bite_site_name" name="bite_site_name" required 
-                                               placeholder="My Website">
+                                               placeholder="e.g., My Business Website">
                                     </div>
                                     
                                     <div class="bite-form-row">
                                         <div class="bite-form-group">
                                             <label for="bite_domain">Domain <span class="required">*</span></label>
                                             <input type="text" id="bite_domain" name="bite_domain" required 
-                                                   placeholder="example.com">
+                                                   placeholder="e.g., example.com">
                                         </div>
                                         
                                         <div class="bite-form-group">
@@ -438,16 +499,16 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                                     </div>
                                     
                                     <div class="bite-form-group">
-                                        <label for="bite_gsc_credentials">Upload JSON Key File <span class="required">*</span></label>
+                                        <label for="bite_gsc_credentials">Upload Your JSON Key File <span class="required">*</span></label>
                                         <div class="bite-file-upload">
                                             <input type="file" id="bite_gsc_credentials" name="bite_gsc_credentials" 
-                                                   accept=".json" required onchange="updateFileName(this)">
+                                                   accept=".json" required onchange="extractEmailFromJSON(this)">
                                             <label for="bite_gsc_credentials" class="bite-file-label">
                                                 <span class="material-icons">upload_file</span>
-                                                <span class="bite-file-text">Choose JSON file...</span>
+                                                <span class="bite-file-text" id="file-text">Click to choose your JSON file...</span>
                                             </label>
-                                            <span class="bite-file-name" id="file-name"></span>
                                         </div>
+                                        <p class="bite-field-help">This is the file you downloaded in Step 4 (ends in .json)</p>
                                     </div>
                                     
                                     <div class="bite-step-actions">
@@ -461,53 +522,78 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <script>
-                let currentStep = 1;
-                const totalSteps = 5;
-                
-                function updateProgress() {
-                    const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
-                    document.getElementById('wizard-progress').style.width = progress + '%';
                     
-                    document.querySelectorAll('.step-dot').forEach((dot, index) => {
-                        dot.classList.remove('active', 'completed');
-                        if (index + 1 < currentStep) {
-                            dot.classList.add('completed');
-                        } else if (index + 1 === currentStep) {
-                            dot.classList.add('active');
+                    <script>
+                    let currentStep = 1;
+                    const totalSteps = 5;
+                    
+                    function updateProgress() {
+                        const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+                        document.getElementById('wizard-progress').style.setProperty('--progress', progress + '%');
+                        document.getElementById('wizard-progress').style.width = progress + '%';
+                        
+                        document.querySelectorAll('.step-dot').forEach((dot, index) => {
+                            dot.classList.remove('active', 'completed');
+                            if (index + 1 < currentStep) {
+                                dot.classList.add('completed');
+                            } else if (index + 1 === currentStep) {
+                                dot.classList.add('active');
+                            }
+                        });
+                    }
+                    
+                    function wizardNext() {
+                        if (currentStep < totalSteps) {
+                            document.querySelector('.bite-wizard-step.active').classList.remove('active');
+                            currentStep++;
+                            document.querySelector('.bite-wizard-step[data-step="' + currentStep + '"]').classList.add('active');
+                            updateProgress();
+                            window.location.hash = 'step-' + currentStep;
                         }
-                    });
-                }
-                
-                function wizardNext() {
-                    if (currentStep < totalSteps) {
-                        document.querySelector('.bite-wizard-step.active').classList.remove('active');
-                        currentStep++;
-                        document.querySelector('.bite-wizard-step[data-step="' + currentStep + '"]').classList.add('active');
-                        updateProgress();
                     }
-                }
-                
-                function wizardPrev() {
-                    if (currentStep > 1) {
-                        document.querySelector('.bite-wizard-step.active').classList.remove('active');
-                        currentStep--;
-                        document.querySelector('.bite-wizard-step[data-step="' + currentStep + '"]').classList.add('active');
-                        updateProgress();
+                    
+                    function wizardPrev() {
+                        if (currentStep > 1) {
+                            document.querySelector('.bite-wizard-step.active').classList.remove('active');
+                            currentStep--;
+                            document.querySelector('.bite-wizard-step[data-step="' + currentStep + '"]').classList.add('active');
+                            updateProgress();
+                            window.location.hash = 'step-' + currentStep;
+                        }
                     }
-                }
-                
-                function updateFileName(input) {
-                    const fileName = input.files[0] ? input.files[0].name : '';
-                    document.getElementById('file-name').textContent = fileName;
-                }
-                
-                // Initialize progress
-                updateProgress();
-                </script>
-                
+                    
+                    function extractEmailFromJSON(input) {
+                        const file = input.files[0];
+                        if (file) {
+                            document.getElementById('file-text').textContent = file.name;
+                            
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                try {
+                                    const data = JSON.parse(e.target.result);
+                                    if (data.client_email) {
+                                        document.getElementById('service-account-email').textContent = data.client_email;
+                                        document.getElementById('email-display-box').style.display = 'block';
+                                    }
+                                } catch (err) {
+                                    console.error('Invalid JSON');
+                                }
+                            };
+                            reader.readAsText(file);
+                        }
+                    }
+                    
+                    function copyEmail() {
+                        const email = document.getElementById('service-account-email').textContent;
+                        navigator.clipboard.writeText(email).then(function() {
+                            alert('Email copied to clipboard!');
+                        });
+                    }
+                    
+                    // Initialize progress
+                    updateProgress();
+                    </script>
+                </div>
             <?php else : ?>
                 <div class="bite-limit-reached">
                     <div class="bite-notice warning">
