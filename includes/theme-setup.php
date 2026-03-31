@@ -40,13 +40,18 @@ add_action( 'switch_theme', 'bite_deactivate_theme' );
  * ensuring the BITE system is private. Public access allowed to landing page.
  */
 function bite_force_login() {
-    // Allow access to login/register pages and the landing page template
+    // Allow access to login/register pages, landing page, and contact page
     if ( ! is_user_logged_in() ) {
         $allowed_pages = array( 'wp-login.php', 'wp-register.php' );
         
         // Check if current page is using the landing page template
         if ( is_page_template( 'template-sales-landing.php' ) ) {
             return; // Allow access to landing page
+        }
+        
+        // Check if current page is the contact page
+        if ( is_page_template( 'template-contact.php' ) ) {
+            return; // Allow access to contact page for requests
         }
         
         if ( ! in_array( $GLOBALS['pagenow'], $allowed_pages ) ) {
