@@ -140,6 +140,61 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
     </nav>
     
     <div class="bite-sidebar-footer">
+        
+        <?php
+        // Show review section after user has been registered for 1 day (for testing - change to 7 days in production)
+        $user_registered = strtotime( $current_user->user_registered );
+        $days_registered = ( time() - $user_registered ) / DAY_IN_SECONDS;
+        $has_reviewed = get_user_meta( $current_user->ID, 'bite_review_submitted', true );
+        $google_review_url = get_option( 'bite_google_review_url', '' );
+        
+        if ( $days_registered >= 1 && ! $has_reviewed ) : 
+        ?>
+        <!-- Review Section -->
+        <div class="bite-sidebar-review" id="bite-review-section">
+            <div class="bite-review-question">
+                <p>How are you enjoying B.I.T.E.?</p>
+                <div class="bite-review-stars">
+                    <button class="bite-star" data-rating="1" title="1 star">★</button>
+                    <button class="bite-star" data-rating="2" title="2 stars">★</button>
+                    <button class="bite-star" data-rating="3" title="3 stars">★</button>
+                    <button class="bite-star" data-rating="4" title="4 stars">★</button>
+                    <button class="bite-star" data-rating="5" title="5 stars">★</button>
+                </div>
+            </div>
+            
+            <!-- Positive Review (4-5 stars) -->
+            <div class="bite-review-positive" id="bite-review-positive" style="display: none;">
+                <p class="bite-review-message">We're so glad you're enjoying it! Would you mind sharing that on Google to help others find us?</p>
+                <?php if ( $google_review_url ) : ?>
+                    <a href="<?php echo esc_url( $google_review_url ); ?>" target="_blank" class="bite-review-button" id="bite-google-review-btn">
+                        <span class="material-icons">star</span>
+                        Leave a Google Review
+                    </a>
+                <?php endif; ?>
+                <button class="bite-review-skip" id="bite-skip-positive">Maybe later</button>
+            </div>
+            
+            <!-- Negative Review (1-3 stars) -->
+            <div class="bite-review-negative" id="bite-review-negative" style="display: none;">
+                <p class="bite-review-message">We're sorry to hear that. How can we make the tool better for you?</p>
+                <form id="bite-feedback-form" class="bite-feedback-form">
+                    <textarea id="bite-feedback-text" placeholder="Tell us what we can improve..." rows="3"></textarea>
+                    <button type="submit" class="bite-review-button">
+                        <span class="material-icons">send</span>
+                        Send Feedback
+                    </button>
+                </form>
+                <button class="bite-review-skip" id="bite-skip-negative">Skip</button>
+            </div>
+            
+            <!-- Thank You Message -->
+            <div class="bite-review-thanks" id="bite-review-thanks" style="display: none;">
+                <p class="bite-review-message">Thank you for your feedback!</p>
+            </div>
+        </div>
+        <?php endif; ?>
+        
         <!-- Account Section -->
         <div class="bite-sidebar-account">
             <div class="bite-account-header">
@@ -206,5 +261,116 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
             }
         }
     });
+    
+    // Review System
+    const reviewSection = document.getElementById('bite-review-section');
+    if (reviewSection) {
+        const stars = reviewSection.querySelectorAll('.bite-star');
+        const positiveSection = document.getElementById('bite-review-positive');
+        const negativeSection = document.getElementById('bite-review-negative');
+        const thanksSection = document.getElementById('bite-review-thanks');
+        const skipPositive = document.getElementById('bite-skip-positive');
+        const skipNegative = document.getElementById('bite-skip-negative');
+        const feedbackForm = document.getElementById('bite-feedback-form');
+        const googleReviewBtn = document.getElementById('bite-google-review-btn');
+        
+        let selectedRating = 0;
+        
+        // Star rating hover and click
+        stars.forEach(function(star) {
+            star.addEventListener('mouseenter', function() {
+                const rating = parseInt(this.dataset.rating);
+                highlightStars(rating);
+            });
+            
+            star.addEventListener('mouseleave', function() {
+                highlightStars(selectedRating);
+            });
+            
+            star.addEventListener('click', function() {
+                selectedRating = parseInt(this.dataset.rating);
+                highlightStars(selectedRating);
+                submitReview(selectedRating);
+            });
+        });
+        
+        function highlightStars(rating) {
+            stars.forEach(function(star, index) {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+        
+        function submitReview(rating) {
+            // Hide question, show appropriate section
+            reviewSection.querySelector('.bite-review-question').style.display = 'none';
+            
+            if (rating >= 4) {
+                positiveSection.style.display = 'block';
+            } else {
+                negativeSection.style.display = 'block';
+            }
+            
+            // Save rating via AJAX
+            const formData = new FormData();
+            formData.append('action', 'bite_submit_review');
+            formData.append('rating', rating);
+            formData.append('nonce', '<?php echo wp_create_nonce( 'bite_review_nonce' ); ?>');
+            
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                body: formData
+            });
+        }
+        
+        // Skip buttons
+        if (skipPositive) {
+            skipPositive.addEventListener('click', function() {
+                hideReviewSection();
+            });
+        }
+        
+        if (skipNegative) {
+            skipNegative.addEventListener('click', function() {
+                hideReviewSection();
+            });
+        }
+        
+        // Google review button
+        if (googleReviewBtn) {
+            googleReviewBtn.addEventListener('click', function() {
+                hideReviewSection();
+            });
+        }
+        
+        // Feedback form
+        if (feedbackForm) {
+            feedbackForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const feedback = document.getElementById('bite-feedback-text').value;
+                
+                const formData = new FormData();
+                formData.append('action', 'bite_submit_feedback');
+                formData.append('feedback', feedback);
+                formData.append('nonce', '<?php echo wp_create_nonce( 'bite_review_nonce' ); ?>');
+                
+                fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                    method: 'POST',
+                    body: formData
+                }).then(function() {
+                    negativeSection.style.display = 'none';
+                    thanksSection.style.display = 'block';
+                    setTimeout(hideReviewSection, 3000);
+                });
+            });
+        }
+        
+        function hideReviewSection() {
+            reviewSection.style.display = 'none';
+        }
+    }
 })();
 </script>

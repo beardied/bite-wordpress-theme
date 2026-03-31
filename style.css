@@ -1301,3 +1301,134 @@ th span[title] {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* ==========================================================================
+   SIDEBAR REVIEW SYSTEM
+   ========================================================================== */
+
+.bite-sidebar-review {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-md);
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bite-review-question {
+    text-align: center;
+}
+
+.bite-review-question p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9em;
+    margin: 0 0 10px 0;
+    font-weight: 500;
+}
+
+.bite-review-stars {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.bite-star {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+
+.bite-star:hover,
+.bite-star.active {
+    color: #ffc107;
+}
+
+.bite-review-positive,
+.bite-review-negative,
+.bite-review-thanks {
+    text-align: center;
+}
+
+.bite-review-message {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.85em;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+}
+
+.bite-review-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
+    color: var(--light-text-color);
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.85em;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.bite-review-button:hover {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-dark) 100%);
+    color: var(--light-text-color);
+    text-decoration: none;
+}
+
+.bite-review-button .material-icons {
+    font-size: 16px;
+}
+
+.bite-review-skip {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8em;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.bite-review-skip:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.bite-feedback-form {
+    margin-bottom: 10px;
+}
+
+.bite-feedback-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--light-text-color);
+    font-size: 0.85em;
+    margin-bottom: 10px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.bite-feedback-form textarea::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.bite-feedback-form textarea:focus {
+    border-color: var(--secondary-color);
+    outline: none;
+}
+
+.bite-review-thanks .bite-review-message {
+    color: #4ade80;
+    font-weight: 500;
+}

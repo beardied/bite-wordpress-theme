@@ -113,6 +113,152 @@ get_header();
         </div>
     </section>
 
+    <!-- Niche Feature Highlight -->
+    <section class="bite-niche-highlight">
+        <div class="bite-niche-content">
+            <div class="bite-niche-text">
+                <h2>Powerful Niche Intelligence</h2>
+                <p>Organize your websites by niche and unlock powerful cross-site insights. Enterprise and agency users can leverage niche groupings to identify winning strategies across similar properties and apply proven tactics from top-performing sites to others in the same vertical.</p>
+                <ul class="bite-niche-benefits">
+                    <li><span class="material-icons">check_circle</span> Compare performance across niche-specific portfolios</li>
+                    <li><span class="material-icons">check_circle</span> Identify high-performing keywords within your niches</li>
+                    <li><span class="material-icons">check_circle</span> Apply winning strategies from top sites to underperformers</li>
+                    <li><span class="material-icons">check_circle</span> Discover content gaps across similar properties</li>
+                </ul>
+            </div>
+            <div class="bite-niche-visual">
+                <div class="bite-niche-demo">
+                    <div class="bite-niche-badge">Enterprise Feature</div>
+                    <div class="bite-niche-graphic">
+                        <span class="material-icons">hub</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="bite-pricing" id="pricing">
+        <div class="bite-section-header">
+            <h2>Simple, Transparent Pricing</h2>
+            <p>Choose the plan that fits your needs. All plans include full access to B.I.T.E. features.</p>
+        </div>
+        
+        <div class="bite-pricing-grid">
+            <!-- Free for Hosting Customers -->
+            <div class="bite-pricing-card bite-pricing-featured">
+                <div class="bite-pricing-badge">Best Value</div>
+                <div class="bite-pricing-header">
+                    <h3>OrangeWidow Hosting</h3>
+                    <div class="bite-pricing-price">
+                        <span class="bite-price">Free</span>
+                        <span class="bite-period">with hosting</span>
+                    </div>
+                </div>
+                <div class="bite-pricing-features">
+                    <ul>
+                        <li><span class="material-icons">check</span> Unlimited websites on your hosting account</li>
+                        <li><span class="material-icons">check</span> Full feature access</li>
+                        <li><span class="material-icons">check</span> Priority support</li>
+                        <li><span class="material-icons">check</span> Daily data updates</li>
+                    </ul>
+                </div>
+                <div class="bite-pricing-cta">
+                    <a href="https://orangewidow.com" class="bite-button bite-button-secondary" target="_blank">Get Hosting</a>
+                </div>
+            </div>
+            
+            <!-- Solo -->
+            <div class="bite-pricing-card">
+                <div class="bite-pricing-header">
+                    <h3>Solo</h3>
+                    <div class="bite-pricing-price">
+                        <span class="bite-price">£29</span>
+                        <span class="bite-period">/month</span>
+                    </div>
+                </div>
+                <div class="bite-pricing-features">
+                    <ul>
+                        <li><span class="material-icons">check</span> Up to 3 websites</li>
+                        <li><span class="material-icons">check</span> Full feature access</li>
+                        <li><span class="material-icons">check</span> Email support</li>
+                        <li><span class="material-icons">check</span> Daily data updates</li>
+                    </ul>
+                </div>
+                <div class="bite-pricing-cta">
+                    <a href="<?php echo esc_url( home_url( '/contact/' ) ); ?>" class="bite-button">Request Access</a>
+                </div>
+            </div>
+            
+            <!-- Pro -->
+            <div class="bite-pricing-card">
+                <div class="bite-pricing-header">
+                    <h3>Pro</h3>
+                    <div class="bite-pricing-price">
+                        <span class="bite-price">£59</span>
+                        <span class="bite-period">/month</span>
+                    </div>
+                </div>
+                <div class="bite-pricing-features">
+                    <ul>
+                        <li><span class="material-icons">check</span> Up to 10 websites</li>
+                        <li><span class="material-icons">check</span> Full feature access</li>
+                        <li><span class="material-icons">check</span> Priority email support</li>
+                        <li><span class="material-icons">check</span> Daily data updates</li>
+                    </ul>
+                </div>
+                <div class="bite-pricing-cta">
+                    <a href="<?php echo esc_url( home_url( '/contact/' ) ); ?>" class="bite-button">Request Access</a>
+                </div>
+            </div>
+            
+            <!-- Agency -->
+            <div class="bite-pricing-card">
+                <div class="bite-pricing-header">
+                    <h3>Agency</h3>
+                    <div class="bite-pricing-price">
+                        <span class="bite-price">£119</span>
+                        <span class="bite-period">/month</span>
+                    </div>
+                </div>
+                <div class="bite-pricing-features">
+                    <ul>
+                        <li><span class="material-icons">check</span> Up to 25 websites</li>
+                        <li><span class="material-icons">check</span> Full feature access</li>
+                        <li><span class="material-icons">check</span> Priority support</li>
+                        <li><span class="material-icons">check</span> Daily data updates</li>
+                    </ul>
+                </div>
+                <div class="bite-pricing-cta">
+                    <a href="<?php echo esc_url( home_url( '/contact/' ) ); ?>" class="bite-button">Request Access</a>
+                </div>
+            </div>
+            
+            <!-- Enterprise -->
+            <div class="bite-pricing-card bite-pricing-enterprise">
+                <div class="bite-pricing-header">
+                    <h3>Enterprise</h3>
+                    <div class="bite-pricing-price">
+                        <span class="bite-price">£199</span>
+                        <span class="bite-period">/month</span>
+                    </div>
+                </div>
+                <div class="bite-pricing-features">
+                    <ul>
+                        <li><span class="material-icons">check</span> Unlimited websites</li>
+                        <li><span class="material-icons">check</span> Full feature access</li>
+                        <li><span class="material-icons">check</span> Dedicated support</li>
+                        <li><span class="material-icons">check</span> Daily data updates</li>
+                        <li><span class="material-icons">check</span> Custom integrations available</li>
+                    </ul>
+                </div>
+                <div class="bite-pricing-cta">
+                    <a href="<?php echo esc_url( home_url( '/contact/' ) ); ?>" class="bite-button">Request Access</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- How It Works -->
     <section class="bite-how-it-works">
         <div class="bite-section-header">

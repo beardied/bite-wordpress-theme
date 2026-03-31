@@ -26,11 +26,12 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
             $name = sanitize_text_field( $_POST['bite_name'] ?? '' );
             $email = sanitize_email( $_POST['bite_email'] ?? '' );
             $company = sanitize_text_field( $_POST['bite_company'] ?? '' );
+            $plan = sanitize_text_field( $_POST['bite_plan'] ?? '' );
             $websites = sanitize_textarea_field( $_POST['bite_websites'] ?? '' );
             $message = sanitize_textarea_field( $_POST['bite_message'] ?? '' );
             
             // Validation
-            if ( empty( $name ) || empty( $email ) ) {
+            if ( empty( $name ) || empty( $email ) || empty( $plan ) ) {
                 $form_error = 'Please fill in all required fields.';
             } elseif ( ! is_email( $email ) ) {
                 $form_error = 'Please enter a valid email address.';
@@ -45,6 +46,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
                 $email_body .= "Name: " . $name . "\n";
                 $email_body .= "Email: " . $email . "\n";
                 $email_body .= "Company: " . ( $company ? $company : 'Not provided' ) . "\n";
+                $email_body .= "Interested Plan: " . ( $plan ? $plan : 'Not specified' ) . "\n";
                 $email_body .= "Websites: " . ( $websites ? $websites : 'Not provided' ) . "\n\n";
                 $email_body .= "Message:\n" . ( $message ? $message : 'No additional message' ) . "\n\n";
                 $email_body .= "Submitted from: " . home_url( '/contact/' ) . "\n";
@@ -145,7 +147,21 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['bite_contact_submit
                            id="bite_company" 
                            name="bite_company" 
                            placeholder="Your company (optional)"
-                           value="<?php echo isset( $company ) ? esc_attr( $company ) : ''; ?>">
+                           value="<?php echo isset( $company ) ? esc_attr( $company ) : ''; ?>"
+                           autocomplete="organization">
+                </div>
+                
+                <div class="bite-form-group">
+                    <label for="bite_plan">Interested Plan <span class="bite-required">*</span></label>
+                    <select id="bite_plan" name="bite_plan" required>
+                        <option value="">Select a plan...</option>
+                        <option value="hosting" <?php selected( isset( $plan ) && $plan === 'hosting' ); ?>>OrangeWidow Hosting Customer (Free)</option>
+                        <option value="solo" <?php selected( isset( $plan ) && $plan === 'solo' ); ?>>Solo - £29/month (3 websites)</option>
+                        <option value="pro" <?php selected( isset( $plan ) && $plan === 'pro' ); ?>>Pro - £59/month (10 websites)</option>
+                        <option value="agency" <?php selected( isset( $plan ) && $plan === 'agency' ); ?>>Agency - £119/month (25 websites)</option>
+                        <option value="enterprise" <?php selected( isset( $plan ) && $plan === 'enterprise' ); ?>>Enterprise - £199/month (Unlimited)</option>
+                        <option value="custom" <?php selected( isset( $plan ) && $plan === 'custom' ); ?>>Custom Requirements</option>
+                    </select>
                 </div>
                 
                 <div class="bite-form-group">
