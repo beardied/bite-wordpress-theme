@@ -487,6 +487,46 @@
     margin: 0;
 }
 
+/* Site Card Status Badges */
+.bite-site-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.bite-site-niche {
+    background: var(--background-color);
+    color: var(--text-muted);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75em;
+}
+
+.bite-site-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+}
+
+.bite-status-pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: #b45309;
+}
+
+.bite-status-pending .material-icons {
+    font-size: 14px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* Autocomplete */
 .bite-autocomplete-container {
     position: relative;

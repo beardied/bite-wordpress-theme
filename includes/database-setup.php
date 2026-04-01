@@ -169,4 +169,3 @@ function bite_create_missing_tables() {
     }
 }
 add_action( 'admin_init', 'bite_create_missing_tables' );
-add_action( 'admin_init', 'bite_create_missing_tables' );

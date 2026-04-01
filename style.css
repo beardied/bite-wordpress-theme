@@ -7,33 +7,6 @@ Description: A custom Bulk Insight Tracking Engine theme for OrangeWidow.
 Version: 1.1.0
 */
 
-:root {
-    /* OrangeWidow Brand Colors */
-    --primary-color: #1A1A2E;           /* Deep navy/charcoal - headers */
-    --secondary-color: #E85D04;         /* Vibrant orange - buttons, links */
-    --accent-color: #F48C06;            /* Lighter orange - hover states */
-    --accent-dark: #DC2F02;             /* Darker orange - emphasis */
-    --background-color: #F8F9FA;        /* Light gray background */
-    --card-bg: #FFFFFF;                 /* White cards/widgets */
-    --text-color: #2D3436;              /* Dark charcoal text */
-    --text-muted: #636E72;              /* Muted gray text */
-    --light-text-color: #ffffff;        /* White text */
-    --border-color: #DFE6E9;            /* Light border gray */
-    --border-light: #F1F2F6;            /* Very light border */
-    --success-color: #00B894;           /* Green for positive */
-    --error-color: #E74C3C;             /* Red for errors */
-    --warning-color: #F39C12;           /* Amber for warnings */
-    --table-header-bg: #1A1A2E;         /* Navy header */
-    --table-row-even-bg: #FFFFFF;       /* White rows */
-    --table-row-odd-bg: #F8F9FA;        /* Light gray rows */
-    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
-    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
-    --radius-sm: 6px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-}
-
 body {
     background-color: var(--background-color);
     color: var(--text-color);
@@ -627,34 +600,6 @@ th span[title] {
 }
 .bite-insight-box p strong {
     color: var(--accent-dark);
-}/* --- Help Tooltips in Tables --- */
-th span[title] {
-    text-decoration: underline dotted;
-    cursor: help;
-}
-
-/* --- Insight Box --- */
-.bite-insight-box {
-    background: linear-gradient(135deg, #FFF8E7 0%, #FFF3D6 100%);
-    border: 1px solid #FFD699;
-    border-left-width: 4px;
-    border-left-color: var(--secondary-color);
-    padding: 20px 24px;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-}
-.bite-insight-box h2 {
-    margin-top: 0;
-    color: var(--accent-dark);
-    font-size: 1.2em;
-}
-.bite-insight-box p {
-    font-size: 1.05em;
-    margin-bottom: 0;
-    line-height: 1.7;
-}
-.bite-insight-box p strong {
-    color: var(--accent-dark);
 }
 
 /* --- Responsive Header --- */
@@ -1192,9 +1137,9 @@ th span[title] {
 
 .bite-site-niche {
     font-size: 0.75em;
-    background: var(--secondary-color);
-    color: var(--light-text-color);
-    padding: 2px 8px;
+    background: var(--background-color);
+    color: var(--text-muted);
+    padding: 4px 12px;
     border-radius: 12px;
     white-space: nowrap;
 }
@@ -1222,13 +1167,6 @@ th span[title] {
 
 .bite-site-link:hover {
     color: var(--accent-color);
-}
-
-/* --- Sites List ---
-.bite-sites-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
 }
 
 /* Empty State */

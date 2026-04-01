@@ -116,7 +116,7 @@ if ( ! empty( $user_site_ids ) ) {
     $niches_table = $wpdb->prefix . 'bite_niches';
     $placeholders = implode( ', ', array_fill( 0, count( $user_site_ids ), '%d' ) );
     $user_sites   = $wpdb->get_results( $wpdb->prepare(
-        "SELECT s.site_id, s.name, s.domain, s.gsc_property, s.created_at, n.niche_name 
+        "SELECT s.site_id, s.name, s.domain, s.gsc_property, s.created_at, s.backfill_status, n.niche_name 
          FROM $sites_table s 
          LEFT JOIN $niches_table n ON s.niche_id = n.niche_id 
          WHERE s.site_id IN ($placeholders) 
@@ -211,9 +211,17 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                         <div class="bite-site-card">
                             <div class="bite-site-header">
                                 <h3 class="bite-site-name"><?php echo esc_html( $site->name ); ?></h3>
-                                <?php if ( ! empty( $site->niche_name ) ) : ?>
-                                    <span class="bite-site-niche"><?php echo esc_html( $site->niche_name ); ?></span>
-                                <?php endif; ?>
+                                <div class="bite-site-badges">
+                                    <?php if ( ! empty( $site->niche_name ) ) : ?>
+                                        <span class="bite-site-niche"><?php echo esc_html( $site->niche_name ); ?></span>
+                                    <?php endif; ?>
+                                    <?php if ( $site->backfill_status === 'pending' || $site->backfill_status === 'in_progress' ) : ?>
+                                        <span class="bite-site-status bite-status-pending">
+                                            <span class="material-icons">hourglass_empty</span>
+                                            Data Importing...
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <div class="bite-site-meta">
                                 <span class="bite-site-domain"><?php echo esc_html( $site->domain ); ?></span>
