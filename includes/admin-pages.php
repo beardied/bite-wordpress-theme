@@ -129,31 +129,13 @@ function bite_handle_admin_form_actions() {
     if ( $_POST['bite_action'] === 'add_site' ) {
         check_admin_referer( 'bite_add_site_nonce' );
 
-        // Process uploaded JSON file
-        $gsc_credentials = '';
-        if ( isset( $_FILES['bite_gsc_credentials'] ) && ! empty( $_FILES['bite_gsc_credentials']['tmp_name'] ) ) {
-            $uploaded_file = $_FILES['bite_gsc_credentials'];
-            
-            // Verify it's a JSON file
-            if ( $uploaded_file['type'] === 'application/json' || pathinfo( $uploaded_file['name'], PATHINFO_EXTENSION ) === 'json' ) {
-                $json_content = file_get_contents( $uploaded_file['tmp_name'] );
-                $credentials_data = json_decode( $json_content, true );
-                
-                // Validate JSON structure
-                if ( $credentials_data && isset( $credentials_data['client_email'] ) && isset( $credentials_data['private_key'] ) ) {
-                    $gsc_credentials = $json_content;
-                } else {
-                    add_action( 'admin_notices', function() {
-                        echo '<div class="notice notice-error"><p>Invalid JSON file. Please upload a valid Google Service Account key file.</p></div>';
-                    } );
-                    return;
-                }
-            } else {
-                add_action( 'admin_notices', function() {
-                    echo '<div class="notice notice-error"><p>Please upload a valid JSON file.</p></div>';
-                } );
-                return;
-            }
+        // Check if admin has connected their Google account
+        $admin_id = get_current_user_id();
+        if ( ! bite_user_has_google_connection( $admin_id ) ) {
+            add_action( 'admin_notices', function() {
+                echo '<div class="notice notice-error"><p>You must connect your Google account in BITE Settings before adding sites. <a href="' . admin_url( 'admin.php?page=bite-admin-settings' ) . '">Go to Settings →</a></p></div>';
+            } );
+            return;
         }
 
         $site_data = array(
@@ -161,7 +143,6 @@ function bite_handle_admin_form_actions() {
             'name'            => sanitize_text_field( $_POST['bite_site_name'] ),
             'domain'          => sanitize_text_field( $_POST['bite_domain'] ),
             'gsc_property'    => sanitize_text_field( $_POST['bite_gsc_property'] ),
-            'gsc_credentials' => $gsc_credentials,
             'backfill_status' => 'pending',
         );
 
@@ -178,6 +159,8 @@ function bite_handle_admin_form_actions() {
             $new_site_id = $wpdb->insert_id;
             if ( $new_site_id > 0 ) {
                 bite_create_metrics_table_for_site( $new_site_id );
+                // Grant admin access to the site
+                bite_grant_user_site_access( $admin_id, $new_site_id, $admin_id );
                 add_action( 'admin_notices', function() {
                     echo '<div class="notice notice-success"><p>Site added successfully! Data fetching will begin automatically.</p></div>';
                 } );
@@ -212,18 +195,6 @@ function bite_handle_admin_form_actions() {
                 'domain'       => sanitize_text_field( $_POST['bite_domain'] ),
                 'gsc_property' => sanitize_text_field( $_POST['bite_gsc_property'] ),
             );
-            
-            // Only update credentials if a new file was uploaded
-            if ( isset( $_FILES['bite_gsc_credentials'] ) && ! empty( $_FILES['bite_gsc_credentials']['tmp_name'] ) ) {
-                $uploaded_file = $_FILES['bite_gsc_credentials'];
-                if ( $uploaded_file['type'] === 'application/json' || pathinfo( $uploaded_file['name'], PATHINFO_EXTENSION ) === 'json' ) {
-                    $json_content = file_get_contents( $uploaded_file['tmp_name'] );
-                    $credentials_data = json_decode( $json_content, true );
-                    if ( $credentials_data && isset( $credentials_data['client_email'] ) && isset( $credentials_data['private_key'] ) ) {
-                        $site_data['gsc_credentials'] = $json_content;
-                    }
-                }
-            }
             
             $table_name = $wpdb->prefix . 'bite_sites';
             $result = $wpdb->update( $table_name, $site_data, array( 'site_id' => $site_id ) );
@@ -403,41 +374,20 @@ function bite_admin_page_sites() {
         
         <h2><?php esc_html_e( 'Add New Site', 'bite-theme' ); ?></h2>
         
-        <!-- Google API Setup Instructions -->
-        <div class="bite-api-instructions" style="background: #f0f6fc; border: 1px solid #c5d9ed; padding: 20px; margin-bottom: 20px; border-radius: 4px;">
-            <h3 style="margin-top: 0;">📘 Google Search Console API Setup Required</h3>
-            <p>Before adding a site, you need to set up Google Search Console API access. Each site requires its own Service Account credentials.</p>
-            
-            <details>
-                <summary style="cursor: pointer; font-weight: 600; color: #2271b1;">Click to view setup instructions</summary>
-                <div style="margin-top: 15px; padding: 15px; background: #fff; border-radius: 4px;">
-                    <h4>Step-by-Step Setup:</h4>
-                    <ol>
-                        <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
-                        <li>Create a new project (or use existing)</li>
-                        <li>Enable the <strong>Google Search Console API</strong></li>
-                        <li>Go to <strong>IAM & Admin > Service Accounts</strong></li>
-                        <li>Create a Service Account:
-                            <ul>
-                                <li>Name: bite-[domain-name]</li>
-                                <li>Grant "Viewer" role for Search Console</li>
-                            </ul>
-                        </li>
-                        <li>Create a JSON key for the service account (Keys > Add Key > Create New Key)</li>
-                        <li>In Google Search Console, add the service account email as a <strong>Restricted Property User</strong></li>
-                        <li>Upload the JSON file below when adding the site</li>
-                    </ol>
-                    
-                    <h4>GSC Property Format:</h4>
-                    <ul>
-                        <li><strong>Domain property:</strong> <code>sc-domain:example.com</code> (recommended)</li>
-                        <li><strong>URL prefix:</strong> <code>https://www.example.com/</code> (must match exactly)</li>
-                    </ul>
-                </div>
-            </details>
-        </div>
+        <?php 
+        $admin_connected = bite_user_has_google_connection( get_current_user_id() );
+        if ( ! $admin_connected ) : 
+        ?>
+            <div class="notice notice-error" style="margin: 20px 0;">
+                <p><strong>⚠️ Google Account Not Connected</strong></p>
+                <p>You must connect your Google account in <a href="<?php echo admin_url( 'admin.php?page=bite-admin-settings' ); ?>">BITE Settings</a> before adding sites.</p>
+            </div>
+        <?php else : ?>
+            <div class="notice notice-success" style="margin: 20px 0;">
+                <p>✅ Your Google account is connected. You can now add sites from your Search Console.</p>
+            </div>
         
-        <form method="post" action="" class="bite-admin-form" enctype="multipart/form-data">
+        <form method="post" action="" class="bite-admin-form">
             <input type="hidden" name="bite_action" value="add_site">
             <?php wp_nonce_field( 'bite_add_site_nonce' ); ?>
             
@@ -455,6 +405,9 @@ function bite_admin_page_sites() {
                         <label for="bite_gsc_property"><?php esc_html_e( 'GSC Property:', 'bite-theme' ); ?></label>
                         <input type="text" id="bite_gsc_property" name="bite_gsc_property" required 
                                placeholder="sc-domain:example.com OR https://www.example.com/">
+                        <span class="description">
+                            Must match exactly as shown in your Google Search Console.
+                        </span>
                     </p>
                 </div>
                 <div class="bite-admin-form-col-1">
@@ -470,20 +423,12 @@ function bite_admin_page_sites() {
                         </select>
                     </p>
                     <p>
-                        <label for="bite_gsc_credentials">
-                            <?php esc_html_e( 'GSC Service Account JSON:', 'bite-theme' ); ?>
-                            <span class="description" style="display: block; font-weight: normal; color: #666;">
-                                Upload the JSON key file from Google Cloud Console
-                            </span>
-                        </label>
-                        <input type="file" id="bite_gsc_credentials" name="bite_gsc_credentials" accept=".json" required>
-                    </p>
-                    <p>
                         <?php submit_button( __( 'Add Site', 'bite-theme' ) ); ?>
                     </p>
                 </div>
             </div>
         </form>
+        <?php endif; ?>
 
         <h2><?php esc_html_e( 'Existing Sites', 'bite-theme' ); ?></h2>
         <table class="bite-admin-table">
@@ -821,6 +766,8 @@ function bite_admin_page_user_access() {
  */
 function bite_register_settings() {
     register_setting( 'bite_settings', 'bite_contact_email' );
+    register_setting( 'bite_settings', 'bite_google_client_id' );
+    register_setting( 'bite_settings', 'bite_google_client_secret' );
 }
 add_action( 'admin_init', 'bite_register_settings' );
 
@@ -833,21 +780,124 @@ function bite_admin_page_settings() {
         wp_die( __( 'You do not have permission to access this page.', 'bite-theme' ) );
     }
 
+    // Handle OAuth disconnect
+    if ( isset( $_GET['disconnect_google'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'disconnect_google' ) ) {
+        bite_disconnect_google_account( get_current_user_id() );
+        echo '<div class="notice notice-success"><p>Google account disconnected.</p></div>';
+    }
+
     // Save settings
     if ( isset( $_POST['bite_settings_save'] ) && isset( $_POST['bite_settings_nonce'] ) && wp_verify_nonce( $_POST['bite_settings_nonce'], 'bite_save_settings' ) ) {
         $contact_email = sanitize_email( $_POST['bite_contact_email'] );
+        $client_id = sanitize_text_field( $_POST['bite_google_client_id'] );
+        $client_secret = sanitize_text_field( $_POST['bite_google_client_secret'] );
+        
         update_option( 'bite_contact_email', $contact_email );
+        update_option( 'bite_google_client_id', $client_id );
+        update_option( 'bite_google_client_secret', $client_secret );
+        
         echo '<div class="notice notice-success"><p>Settings saved successfully.</p></div>';
     }
 
     // Get current settings
     $contact_email = get_option( 'bite_contact_email', get_option( 'admin_email' ) );
+    $client_id = bite_get_google_client_id();
+    $client_secret = bite_get_google_client_secret();
+    $is_connected = bite_user_has_google_connection( get_current_user_id() );
     ?>
-    <div class="wrap">
+    <div class="wrap bite-admin-wrap">
         <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+        
+        <!-- Google OAuth Configuration Section -->
+        <h2>🔐 Google Search Console OAuth Configuration</h2>
+        
+        <?php if ( ! bite_is_oauth_configured() ) : ?>
+            <div class="notice notice-warning">
+                <p><strong>OAuth Not Configured:</strong> You need to set up Google OAuth credentials before users can connect their Google accounts.</p>
+            </div>
+        <?php endif; ?>
         
         <form method="post" action="">
             <?php wp_nonce_field( 'bite_save_settings', 'bite_settings_nonce' ); ?>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="bite_google_client_id">Google Client ID</label>
+                    </th>
+                    <td>
+                        <input type="text" 
+                               id="bite_google_client_id" 
+                               name="bite_google_client_id" 
+                               value="<?php echo esc_attr( $client_id ); ?>" 
+                               class="regular-text"
+                               style="width: 100%; max-width: 600px;"
+                               placeholder="e.g., 123456789-abc123.apps.googleusercontent.com">
+                        <p class="description">
+                            The Client ID from your Google Cloud OAuth 2.0 credentials.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="bite_google_client_secret">Google Client Secret</label>
+                    </th>
+                    <td>
+                        <input type="password" 
+                               id="bite_google_client_secret" 
+                               name="bite_google_client_secret" 
+                               value="<?php echo esc_attr( $client_secret ); ?>" 
+                               class="regular-text"
+                               style="width: 100%; max-width: 600px;"
+                               placeholder="Your Client Secret">
+                        <p class="description">
+                            The Client Secret from your Google Cloud OAuth 2.0 credentials.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Authorized Redirect URI</th>
+                    <td>
+                        <code style="background: #f0f0f1; padding: 8px 12px; display: inline-block; word-break: break-all;">
+                            <?php echo esc_html( bite_get_oauth_redirect_uri() ); ?>
+                        </code>
+                        <p class="description">
+                            Copy this URL and add it to your Google Cloud OAuth credentials as an "Authorized redirect URI".
+                        </p>
+                    </td>
+                </tr>
+            </table>
+            
+            <h3>Connection Status</h3>
+            <?php if ( $is_connected ) : ?>
+                <div class="notice notice-success inline" style="margin: 15px 0;">
+                    <p>✅ Your Google account is connected. You can now add sites from your Search Console.</p>
+                </div>
+                <p>
+                    <a href="<?php echo wp_nonce_url( admin_url( 'admin.php?page=bite-admin-settings&disconnect_google=1' ), 'disconnect_google' ); ?>" 
+                       class="button button-secondary" 
+                       onclick="return confirm('Are you sure? This will disconnect your Google account and stop data fetching for all your sites.');">
+                        Disconnect Google Account
+                    </a>
+                </p>
+            <?php else : ?>
+                <div class="notice notice-warning inline" style="margin: 15px 0;">
+                    <p>⚠️ Your Google account is not connected. You need to connect before adding sites.</p>
+                </div>
+                <?php if ( bite_is_oauth_configured() ) : ?>
+                    <p>
+                        <a href="<?php echo esc_url( bite_get_google_auth_url( get_current_user_id() ) ); ?>" class="button button-primary">
+                            Connect Google Account
+                        </a>
+                    </p>
+                <?php else : ?>
+                    <p><em>Enter your OAuth credentials above first, then save settings.</em></p>
+                <?php endif; ?>
+            <?php endif; ?>
+            
+            <hr style="margin: 30px 0;">
+            
+            <h2>📧 Contact Form Settings</h2>
             
             <table class="form-table">
                 <tr>
@@ -871,6 +921,52 @@ function bite_admin_page_settings() {
             
             <?php submit_button( 'Save Settings', 'primary', 'bite_settings_save' ); ?>
         </form>
+        
+        <hr style="margin: 30px 0;">
+        
+        <h2>📘 Google Cloud Setup Instructions</h2>
+        
+        <div style="background: #f0f6fc; border: 1px solid #c5d9ed; padding: 20px; border-radius: 4px;">
+            <p>Follow these steps to create your Google OAuth application:</p>
+            
+            <ol>
+                <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+                <li>Create a new project (or select an existing one)</li>
+                <li>Enable the <strong>Google Search Console API</strong>:
+                    <ul style="margin-top: 5px;">
+                        <li>Menu (☰) → <strong>APIs & Services</strong> → <strong>Library</strong></li>
+                        <li>Search "Google Search Console API" and click <strong>Enable</strong></li>
+                    </ul>
+                </li>
+                <li>Create OAuth 2.0 credentials:
+                    <ul style="margin-top: 5px;">
+                        <li>Menu (☰) → <strong>APIs & Services</strong> → <strong>Credentials</strong></li>
+                        <li>Click <strong>Create Credentials</strong> → <strong>OAuth client ID</strong></li>
+                        <li>Application type: <strong>Web application</strong></li>
+                        <li>Name: "BITE Dashboard" (or your preferred name)</li>
+                        <li>Authorized redirect URIs: Add the URL shown above</li>
+                        <li>Click <strong>Create</strong></li>
+                    </ul>
+                </li>
+                <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong> and paste them above</li>
+                <li>Configure the OAuth consent screen:
+                    <ul style="margin-top: 5px;">
+                        <li>Menu (☰) → <strong>APIs & Services</strong> → <strong>OAuth consent screen</strong></li>
+                        <li>User Type: <strong>External</strong></li>
+                        <li>App name: "BITE Dashboard"</li>
+                        <li>User support email: Your email</li>
+                        <li>Developer contact email: Your email</li>
+                        <li>Scopes: Add ".../auth/webmasters.readonly" (Search Console read-only access)</li>
+                        <li>Test users: Add your own email address</li>
+                    </ul>
+                </li>
+            </ol>
+            
+            <p style="margin-top: 15px;">
+                <strong>Note:</strong> While in "Testing" mode, your OAuth app can support up to 100 test users. 
+                For production use with more users, you'll need to submit your app for verification.
+            </p>
+        </div>
     </div>
     <?php
 }

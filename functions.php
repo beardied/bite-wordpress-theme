@@ -26,6 +26,9 @@ require_once BITE_THEME_DIR . '/includes/admin-pages.php';
 // 4. BITE Dashboard Pages (The main UI for viewers)
 // require_once BITE_THEME_DIR . '/includes/dashboard-pages.php';
 
+// 4.5. OAuth 2.0 Handler (Google authentication)
+require_once BITE_THEME_DIR . '/includes/oauth-handler.php';
+
 // 5. Google API Logic (Cron jobs, data fetching)
 require_once BITE_THEME_DIR . '/includes/google-api.php';
 
@@ -118,3 +121,28 @@ function bite_ajax_submit_internal_review() {
     wp_send_json_success( 'Review submitted' );
 }
 add_action( 'wp_ajax_bite_submit_internal_review', 'bite_ajax_submit_internal_review' );
+
+// ============================================
+// GOOGLE OAUTH DISCONNECT HANDLER
+// ============================================
+
+/**
+ * Handle Google OAuth disconnect from dashboard
+ */
+function bite_handle_dashboard_disconnect() {
+    if ( ! is_user_logged_in() ) {
+        return;
+    }
+    
+    if ( isset( $_GET['disconnect_google'] ) && isset( $_GET['_wpnonce'] ) ) {
+        if ( wp_verify_nonce( $_GET['_wpnonce'], 'disconnect_google' ) ) {
+            $result = bite_disconnect_google_account( get_current_user_id() );
+            
+            if ( ! is_wp_error( $result ) ) {
+                wp_redirect( home_url( '/dashboard/?disconnected=1' ) );
+                exit;
+            }
+        }
+    }
+}
+add_action( 'template_redirect', 'bite_handle_dashboard_disconnect' );

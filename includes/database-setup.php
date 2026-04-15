@@ -57,8 +57,7 @@ function bite_create_database_tables() {
     ) $charset_collate;";
     dbDelta( $sql_keywords );
     
-    // 4. NEW: Daily Summary Table
-    // This table stores the *true totals* (including anonymized data)
+    // 4. Daily Summary Table
     $table_name_summary = $wpdb->prefix . 'bite_daily_summary';
     $sql_summary = "CREATE TABLE $table_name_summary (
         summary_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -76,7 +75,6 @@ function bite_create_database_tables() {
     dbDelta( $sql_summary );
     
     // 5. User Site Access Table
-    // This table links users to sites they have access to
     $table_name_user_sites = $wpdb->prefix . 'bite_user_sites';
     $sql_user_sites = "CREATE TABLE $table_name_user_sites (
         user_site_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -92,7 +90,6 @@ function bite_create_database_tables() {
     dbDelta( $sql_user_sites );
     
     // 6. Reviews Table
-    // Stores user reviews and ratings for BITE
     $table_name_reviews = $wpdb->prefix . 'bite_reviews';
     $sql_reviews = "CREATE TABLE $table_name_reviews (
         review_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -108,11 +105,26 @@ function bite_create_database_tables() {
         KEY idx_approved (is_approved)
     ) $charset_collate;";
     dbDelta( $sql_reviews );
+
+    // 7. OAuth Tokens Table (NEW)
+    $table_name_oauth = $wpdb->prefix . 'bite_user_oauth';
+    $sql_oauth = "CREATE TABLE $table_name_oauth (
+        oauth_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id BIGINT UNSIGNED NOT NULL,
+        refresh_token TEXT NOT NULL,
+        access_token TEXT NULL,
+        token_expires_at TIMESTAMP NULL,
+        connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (oauth_id),
+        UNIQUE KEY uq_user_id (user_id),
+        KEY idx_user_id (user_id)
+    ) $charset_collate;";
+    dbDelta( $sql_oauth );
 }
 add_action( 'after_switch_theme', 'bite_create_database_tables' );
 
 /**
- * Create missing tables on theme version update (for existing installations)
+ * Create missing tables on theme version update
  */
 function bite_create_missing_tables() {
     global $wpdb;
@@ -166,6 +178,25 @@ function bite_create_missing_tables() {
     
     if ( empty( $column_exists ) ) {
         $wpdb->query( "ALTER TABLE $sites_table ADD COLUMN gsc_credentials TEXT NULL AFTER gsc_property" );
+    }
+
+    // Check if OAuth tokens table exists (NEW)
+    $oauth_table = $wpdb->prefix . 'bite_user_oauth';
+    $table_exists = $wpdb->get_var( "SHOW TABLES LIKE '$oauth_table'" );
+    
+    if ( ! $table_exists ) {
+        $sql_oauth = "CREATE TABLE $oauth_table (
+            oauth_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT UNSIGNED NOT NULL,
+            refresh_token TEXT NOT NULL,
+            access_token TEXT NULL,
+            token_expires_at TIMESTAMP NULL,
+            connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (oauth_id),
+            UNIQUE KEY uq_user_id (user_id),
+            KEY idx_user_id (user_id)
+        ) $charset_collate;";
+        dbDelta( $sql_oauth );
     }
 }
 add_action( 'admin_init', 'bite_create_missing_tables' );
