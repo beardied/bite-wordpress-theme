@@ -427,6 +427,17 @@ h1, h2, h3, h4, h5, h6 {
     overflow-x: auto;
     max-width: 100%;
 }
+
+/* DataTables responsive fixes */
+.bite-table-container .dataTables_wrapper {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.bite-table-container table {
+    width: 100% !important;
+    table-layout: auto;
+}
 .bite-widget-container h2 {
     margin-top: 0;
     margin-bottom: 16px;

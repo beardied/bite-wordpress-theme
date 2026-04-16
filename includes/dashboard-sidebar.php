@@ -233,6 +233,15 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
         const isCollapsed = sidebar.classList.toggle('collapsed');
         if (floatToggleBtn) floatToggleBtn.style.display = isCollapsed ? 'flex' : 'none';
         localStorage.setItem('bite-sidebar-collapsed', isCollapsed);
+        
+        // Recalculate DataTables after sidebar transition completes
+        setTimeout(function() {
+            if (window.jQuery && jQuery.fn.DataTable) {
+                jQuery('.bite-data-table').DataTable().columns.adjust();
+            }
+            // Trigger window resize for charts
+            window.dispatchEvent(new Event('resize'));
+        }, 350);
     }
     
     // Event listeners
