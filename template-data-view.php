@@ -74,8 +74,7 @@ if ( $selected_site_id > 0 && in_array( $selected_site_id, $user_site_ids ) ) {
             </div>
         </section>
 
-        <section class="bite-dashboard-section">
-            <div class="bite-filter-bar">
+        <div class="bite-filter-bar">
                 <form method="GET" action="<?php echo esc_url( get_permalink() ); ?>">
                     
                     <div class="bite-filter-group">
@@ -176,7 +175,6 @@ if ( $selected_site_id > 0 && in_array( $selected_site_id, $user_site_ids ) ) {
                     <p><strong>Please select a site to view data.</strong></p>
                 </div>
             <?php endif; ?>
-        </section>
 
     </main>
 </div>
