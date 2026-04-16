@@ -404,8 +404,9 @@ h1, h2, h3, h4, h5, h6 {
 /* --- Dashboard Widgets Area --- */
 .bite-dashboard-widgets {
     padding: 24px;
-    max-width: 1600px;
+    max-width: 100%;
     margin: 0 auto;
+    box-sizing: border-box;
 }
 
 /* --- Widget Containers --- */
@@ -421,6 +422,11 @@ h1, h2, h3, h4, h5, h6 {
 .bite-widget-container:hover {
     box-shadow: var(--shadow-md);
 }
+
+.bite-table-container {
+    overflow-x: auto;
+    max-width: 100%;
+}
 .bite-widget-container h2 {
     margin-top: 0;
     margin-bottom: 16px;
@@ -435,10 +441,12 @@ h1, h2, h3, h4, h5, h6 {
     height: 400px !important;
     position: relative;
     width: 100%;
+    max-width: 100%;
     background: var(--card-bg);
     border-radius: var(--radius-sm);
     padding: 16px;
     box-sizing: border-box;
+    overflow: hidden;
 }
 #bite-line-chart,
 #bite-ctr-chart {
