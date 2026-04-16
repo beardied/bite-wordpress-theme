@@ -180,6 +180,7 @@ function bite_enqueue_scripts() {
         
         // Sidebar menu styles for dashboard pages
         if ( is_page_template( 'template-dashboard.php' ) || 
+             is_page_template( 'template-data-view.php' ) ||
              is_page_template( 'template-opportunity-finder.php' ) ||
              is_page_template( 'template-global-champions.php' ) ||
              is_page_template( 'template-emerging-trends.php' ) ||
