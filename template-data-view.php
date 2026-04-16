@@ -16,81 +16,47 @@ global $wpdb;
 $current_user_id = get_current_user_id();
 $user_site_ids   = bite_get_user_sites( $current_user_id );
 
+// Get all user sites for dropdown
+$user_sites = array();
+if ( ! empty( $user_site_ids ) ) {
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    $placeholders = implode( ', ', array_fill( 0, count( $user_site_ids ), '%d' ) );
+    $user_sites = $wpdb->get_results( $wpdb->prepare(
+        "SELECT site_id, name, domain FROM $sites_table WHERE site_id IN ($placeholders) ORDER BY name ASC",
+        $user_site_ids
+    ) );
+}
+
 // Get selected site
 $selected_site_id = isset( $_GET['site_id'] ) ? absint( $_GET['site_id'] ) : 0;
+$selected_site = null;
+$table_data = null;
+$chart_data = null;
 
-// If no site selected, show site selector
-if ( $selected_site_id === 0 || ! in_array( $selected_site_id, $user_site_ids ) ) {
-    // Get all user sites for dropdown
-    $user_sites = array();
-    if ( ! empty( $user_site_ids ) ) {
-        $sites_table = $wpdb->prefix . 'bite_sites';
-        $placeholders = implode( ', ', array_fill( 0, count( $user_site_ids ), '%d' ) );
-        $user_sites = $wpdb->get_results( $wpdb->prepare(
-            "SELECT site_id, name, domain FROM $sites_table WHERE site_id IN ($placeholders) ORDER BY name ASC",
-            $user_site_ids
-        ) );
-    }
-    ?>
-    <div class="bite-dashboard-wrapper">
-        <?php get_template_part( 'includes/dashboard-sidebar' ); ?>
-        <main id="main" class="bite-dashboard-main-content" role="main">
-            <section class="bite-dashboard-welcome">
-                <div class="bite-welcome-content">
-                    <h1 class="bite-welcome-title">📊 View Data</h1>
-                    <p class="bite-welcome-subtitle">Select a site to view detailed analytics</p>
-                </div>
-            </section>
-
-            <section class="bite-dashboard-section">
-                <?php if ( ! empty( $user_sites ) ) : ?>
-                    <div class="bite-site-selector">
-                        <?php foreach ( $user_sites as $site ) : 
-                            $view_data_url = add_query_arg( 'site_id', $site->site_id, get_permalink() );
-                        ?>
-                            <a href="<?php echo esc_url( $view_data_url ); ?>" class="bite-site-selector-card">
-                                <h3><?php echo esc_html( $site->name ); ?></h3>
-                                <span class="bite-site-domain"><?php echo esc_html( $site->domain ); ?></span>
-                                <span class="bite-button bite-button-primary">View Data →</span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else : ?>
-                    <div class="bite-notice info">
-                        <p>No sites available. <a href="<?php echo esc_url( home_url( '/dashboard/' ) ); ?>">Add a site first →</a></p>
-                    </div>
-                <?php endif; ?>
-            </section>
-        </main>
-    </div>
-    <?php
-    get_footer();
-    exit;
-}
-
-// Site is selected - show data view
-$selected_site = $wpdb->get_row( $wpdb->prepare(
-    "SELECT * FROM {$wpdb->prefix}bite_sites WHERE site_id = %d",
-    $selected_site_id
-) );
-
-if ( ! $selected_site ) {
-    wp_redirect( get_permalink() );
-    exit;
-}
-
-// Get filter values
+// Get filter values (default to last 30 days)
 $selected_device = isset( $_GET['device'] ) ? sanitize_text_field( $_GET['device'] ) : 'all';
 $display_start_date = isset( $_GET['start_date'] ) && ! empty( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : date( 'd-m-Y', strtotime( '-30 days' ) );
 $display_end_date = isset( $_GET['end_date'] ) && ! empty( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : date( 'd-m-Y', strtotime( '-1 day' ) );
 
-// Convert to SQL dates
-$sql_start_date = date( 'Y-m-d', strtotime( $display_start_date ) );
-$sql_end_date = date( 'Y-m-d', strtotime( $display_end_date ) );
+// If site is selected, fetch data
+if ( $selected_site_id > 0 && in_array( $selected_site_id, $user_site_ids ) ) {
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    $selected_site = $wpdb->get_row( $wpdb->prepare(
+        "SELECT * FROM $sites_table WHERE site_id = %d",
+        $selected_site_id
+    ) );
+    
+    if ( $selected_site ) {
+        // Convert to SQL dates
+        $sql_start_date = date( 'Y-m-d', strtotime( $display_start_date ) );
+        $sql_end_date = date( 'Y-m-d', strtotime( $display_end_date ) );
+        
+        // Fetch data
+        $table_data = bite_get_data_for_table( $selected_site_id, $sql_start_date, $sql_end_date, $selected_device );
+        $chart_data = bite_get_data_for_chart( $selected_site_id, $sql_start_date, $sql_end_date, $selected_device );
+    }
+}
 
-// Fetch data
-$table_data = bite_get_data_for_table( $selected_site_id, $sql_start_date, $sql_end_date, $selected_device );
-$chart_data = bite_get_data_for_chart( $selected_site_id, $sql_start_date, $sql_end_date, $selected_device );
 ?>
 
 <div class="bite-dashboard-wrapper">
@@ -100,20 +66,27 @@ $chart_data = bite_get_data_for_chart( $selected_site_id, $sql_start_date, $sql_
         
         <section class="bite-dashboard-welcome">
             <div class="bite-welcome-content">
-                <h1 class="bite-welcome-title">📊 <?php echo esc_html( $selected_site->name ); ?></h1>
-                <p class="bite-welcome-subtitle">
-                    <a href="<?php echo esc_url( get_permalink() ); ?>" class="bite-button bite-button-secondary" style="font-size: 0.9em; padding: 6px 16px;">
-                        ← Change Site
-                    </a>
-                </p>
+                <h1 class="bite-welcome-title">📊 View Data</h1>
+                <p class="bite-welcome-subtitle">Analyze your site performance</p>
             </div>
         </section>
 
         <section class="bite-dashboard-section">
             <div class="bite-filter-bar">
                 <form method="GET" action="<?php echo esc_url( get_permalink() ); ?>">
-                    <input type="hidden" name="site_id" value="<?php echo esc_attr( $selected_site_id ); ?>">
                     
+                    <div class="bite-filter-group">
+                        <label for="site_id">Site:</label>
+                        <select id="site_id" name="site_id" required onchange="this.form.submit()">
+                            <option value="">-- Select a site --</option>
+                            <?php foreach ( $user_sites as $site ) : ?>
+                                <option value="<?php echo esc_attr( $site->site_id ); ?>" <?php selected( $selected_site_id, $site->site_id ); ?>>
+                                    <?php echo esc_html( $site->name ); ?> (<?php echo esc_html( $site->domain ); ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
                     <div class="bite-filter-group">
                         <label for="device">Device:</label>
                         <select id="device" name="device">
@@ -140,14 +113,17 @@ $chart_data = bite_get_data_for_chart( $selected_site_id, $sql_start_date, $sql_
                 </form>
             </div>
 
-            <div class="bite-dashboard-widgets">
-                <?php if ( ! empty( $chart_data['labels'] ) ) : ?>
-                    
+            <?php if ( $selected_site ) : ?>
+                <div class="bite-dashboard-widgets">
                     <div class="bite-widget-container">
-                        <h2>Performance Overview</h2>
-                        <div class="bite-chart-wrapper">
-                            <canvas id="bite-line-chart"></canvas>
-                        </div>
+                        <h2>Performance Overview - <?php echo esc_html( $selected_site->name ); ?></h2>
+                        <?php if ( ! empty( $chart_data['labels'] ) ) : ?>
+                            <div class="bite-chart-wrapper">
+                                <canvas id="bite-line-chart"></canvas>
+                            </div>
+                        <?php else : ?>
+                            <p>No chart data available for this date range.</p>
+                        <?php endif; ?>
                     </div>
 
                     <div class="bite-widget-container bite-table-container">
@@ -187,18 +163,16 @@ $chart_data = bite_get_data_for_chart( $selected_site_id, $sql_start_date, $sql_
                             <p><strong>No discoverable keywords found for this period.</strong></p>
                         <?php endif; ?>
                     </div>
-
-                <?php else : ?>
-                    <div class="bite-widget-container">
-                        <h2>No Data Found</h2>
-                        <p>No search data available for this site in the selected date range.</p>
-                        <p>The backfill may still be in progress, or there may be no search data for this period.</p>
-                    </div>
-                <?php endif; ?>
-            </div>
+                </div>
+            <?php else : ?>
+                <div class="bite-widget-container">
+                    <h2>Select a Site</h2>
+                    <p>Please select a site from the dropdown above to view detailed analytics.</p>
+                </div>
+            <?php endif; ?>
         </section>
 
-        <?php if ( $chart_data ) : ?>
+        <?php if ( $chart_data && ! empty( $chart_data['labels'] ) ) : ?>
             <script type="text/javascript">
                 const biteChartData = <?php echo wp_json_encode( $chart_data ); ?>;
             </script>
