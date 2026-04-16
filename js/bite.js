@@ -241,4 +241,23 @@ jQuery(document).ready(function($) {
         
     })();
 
+    // Scroll Progress Bar
+    (function() {
+        var $progressBar = $('.bite-scroll-progress');
+        if ( !$progressBar.length ) return;
+        
+        function updateScrollProgress() {
+            var scrollTop = $(window).scrollTop();
+            var docHeight = $(document).height() - $(window).height();
+            var scrollPercent = (scrollTop / docHeight) * 100;
+            $progressBar.css('width', scrollPercent + '%');
+        }
+        
+        // Update on scroll
+        $(window).on('scroll', updateScrollProgress);
+        
+        // Initial update
+        updateScrollProgress();
+    })();
+
 });

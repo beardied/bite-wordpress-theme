@@ -119,6 +119,18 @@ h1, h2, h3, h4, h5, h6 {
     gap: 30px;
 }
 
+/* Scroll Progress Bar */
+.bite-scroll-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: var(--secondary-color);
+    width: 0%;
+    transition: width 0.1s ease-out;
+    z-index: 3001;
+}
+
 /* Logo Styles */
 .bite-logo a {
     display: flex;

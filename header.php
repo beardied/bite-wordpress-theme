@@ -100,6 +100,7 @@
 			</div>
 			<?php endif; ?>
 		</div>
+		<div class="bite-scroll-progress"></div>
 	</header>
 
 	<div id="content" class="bite-site-content">
