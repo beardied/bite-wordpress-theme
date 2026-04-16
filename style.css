@@ -103,7 +103,7 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: var(--shadow-md);
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: 3000; /* Above sidebar (2000) */
     min-height: 85px;
     display: flex;
     align-items: center;
@@ -713,9 +713,9 @@ th span[title] {
     flex-direction: column;
     position: fixed;
     left: 0;
-    top: 0; /* Full height from top */
+    top: 85px; /* Start below header */
     bottom: 0;
-    z-index: 2000; /* Above header (1000) */
+    z-index: 2000; /* Below header (3000) */
     transition: transform 0.3s ease;
     box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
 }
