@@ -34,9 +34,15 @@ jQuery(document).ready(function($) {
     }
 
     // 3. Initialize Chart.js (Total vs. Anonymized Line Chart)
-    if (typeof biteChartData !== 'undefined' && biteChartData.labels && biteChartData.labels.length > 0) {
-        const ctx = document.getElementById('bite-line-chart');
-        if (!ctx) return;
+    function initChart() {
+        if (typeof biteChartData === 'undefined' || !biteChartData.labels || biteChartData.labels.length === 0) {
+            return;
+        }
+        
+        var ctx = document.getElementById('bite-line-chart');
+        if (!ctx) {
+            return;
+        }
         
         // Define our colors
         const clicksColor = 'rgb(52, 152, 219)';
@@ -149,6 +155,9 @@ jQuery(document).ready(function($) {
             }
         });
     }
+    
+    // Call chart init
+    initChart();
 
     // 4. NEW: Initialize "Proportional Analysis" Chart (Simplified)
     if (typeof biteCtrChartData !== 'undefined' && biteCtrChartData.labels.length > 0) {
