@@ -32,9 +32,54 @@ function bite_deactivate_theme() {
 }
 add_action( 'switch_theme', 'bite_deactivate_theme' );
 
+/**
+ * 3. Hide admin bar for BITE Viewer role.
+ */
+function bite_hide_admin_bar_for_viewers() {
+    if ( current_user_can( 'bite_viewer' ) ) {
+        show_admin_bar( false );
+    }
+}
+add_action( 'after_setup_theme', 'bite_hide_admin_bar_for_viewers' );
 
 /**
- * 3. Force login for all pages EXCEPT the landing page.
+ * 4. Block WordPress backend access for BITE Viewer role.
+ * Redirects them to the dashboard page.
+ */
+function bite_block_backend_for_viewers() {
+    // Don't block AJAX requests
+    if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+        return;
+    }
+    
+    // Don't block in admin-ajax.php
+    if ( basename( $_SERVER['PHP_SELF'] ) === 'admin-ajax.php' ) {
+        return;
+    }
+    
+    // Check if user is bite_viewer trying to access admin
+    if ( is_admin() && current_user_can( 'bite_viewer' ) && ! current_user_can( 'edit_posts' ) ) {
+        wp_redirect( home_url( '/dashboard/' ) );
+        exit;
+    }
+}
+add_action( 'admin_init', 'bite_block_backend_for_viewers' );
+
+/**
+ * 5. Redirect BITE Viewers to dashboard on login.
+ */
+function bite_login_redirect_viewers( $redirect_to, $request, $user ) {
+    if ( $user && is_object( $user ) && is_a( $user, 'WP_User' ) ) {
+        if ( $user->has_cap( 'bite_viewer' ) && ! $user->has_cap( 'edit_posts' ) ) {
+            return home_url( '/dashboard/' );
+        }
+    }
+    return $redirect_to;
+}
+add_filter( 'login_redirect', 'bite_login_redirect_viewers', 10, 3 );
+
+/**
+ * 6. Force login for all pages EXCEPT the landing page.
  *
  * Redirects any user who is not logged in to the WP login page,
  * ensuring the BITE system is private. Public access allowed to landing page.
@@ -74,7 +119,7 @@ add_action( 'template_redirect', 'bite_force_login' );
 
 
 /**
- * 4. Add custom login error message for BITE Viewer role.
+ * 7. Add custom login error message for BITE Viewer role.
  */
 function bite_login_message( $message ) {
     if ( empty( $message ) ) {
@@ -86,7 +131,7 @@ add_filter( 'login_message', 'bite_login_message' );
 
 
 /**
- * 5. Enqueue scripts and styles.
+ * 8. Enqueue scripts and styles.
  */
 function bite_enqueue_scripts() {
     // Google Fonts - Material Icons
