@@ -35,7 +35,7 @@ jQuery(document).ready(function($) {
 
     // 3. Initialize Chart.js (Total vs. Anonymized Line Chart)
     if (typeof biteChartData !== 'undefined' && biteChartData.labels.length > 0) {
-        const ctx = document.getElementById('kts-line-chart');
+        const ctx = document.getElementById('bite-line-chart');
         
         // Define our colors
         const clicksColor = 'rgb(52, 152, 219)';
@@ -151,7 +151,7 @@ jQuery(document).ready(function($) {
 
     // 4. NEW: Initialize "Proportional Analysis" Chart (Simplified)
     if (typeof biteCtrChartData !== 'undefined' && biteCtrChartData.labels.length > 0) {
-        const ctxCtr = document.getElementById('kts-ctr-chart');
+        const ctxCtr = document.getElementById('bite-ctr-chart');
         
         new Chart(ctxCtr, {
             type: 'line',

@@ -146,3 +146,33 @@ function bite_handle_dashboard_disconnect() {
     }
 }
 add_action( 'template_redirect', 'bite_handle_dashboard_disconnect' );
+
+// ============================================
+// DASHBOARD DATEPICKER INITIALIZATION
+// ============================================
+
+/**
+ * Initialize datepicker for dashboard data view
+ */
+function bite_dashboard_datepicker_init() {
+    if ( ! is_page_template( 'template-dashboard.php' ) ) {
+        return;
+    }
+    ?>
+    <script type="text/javascript">
+    jQuery(document).ready(function($) {
+        if ( $('.bite-datepicker').length > 0 ) {
+            $('.bite-datepicker').datepicker({
+                dateFormat: 'dd-mm-yy',
+                changeMonth: true,
+                changeYear: true,
+                maxDate: 0, // Today
+                yearRange: '-5:+0',
+                showAnim: 'slideDown'
+            });
+        }
+    });
+    </script>
+    <?php
+}
+add_action( 'wp_footer', 'bite_dashboard_datepicker_init', 100 );

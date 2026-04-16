@@ -12,6 +12,64 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Get quick stats for a site (last 30 days) for dashboard cards.
+ *
+ * @param int $site_id The site ID.
+ * @return array Stats array with clicks, impressions, ctr, position.
+ */
+function bite_get_site_quick_stats( $site_id ) {
+    global $wpdb;
+    
+    $site_id = absint( $site_id );
+    if ( ! $site_id ) {
+        return array(
+            'total_clicks'      => 0,
+            'total_impressions' => 0,
+            'calculated_ctr'    => 0,
+            'avg_position'      => 0,
+        );
+    }
+    
+    $summary_table = $wpdb->prefix . 'bite_daily_summary';
+    $end_date   = date( 'Y-m-d', strtotime( '-1 day' ) );
+    $start_date = date( 'Y-m-d', strtotime( '-30 days' ) );
+    
+    $results = $wpdb->get_row( $wpdb->prepare(
+        "SELECT 
+            SUM(total_clicks) as total_clicks,
+            SUM(total_impressions) as total_impressions,
+            AVG(avg_position) as avg_position
+        FROM $summary_table 
+        WHERE site_id = %d 
+        AND date BETWEEN %s AND %s",
+        $site_id,
+        $start_date,
+        $end_date
+    ) );
+    
+    if ( ! $results || is_null( $results->total_clicks ) ) {
+        return array(
+            'total_clicks'      => 0,
+            'total_impressions' => 0,
+            'calculated_ctr'    => 0,
+            'avg_position'      => 0,
+        );
+    }
+    
+    $clicks      = (int) $results->total_clicks;
+    $impressions = (int) $results->total_impressions;
+    $ctr         = ( $impressions > 0 ) ? ( $clicks / $impressions ) * 100 : 0;
+    $position    = (float) $results->avg_position;
+    
+    return array(
+        'total_clicks'      => $clicks,
+        'total_impressions' => $impressions,
+        'calculated_ctr'    => $ctr,
+        'avg_position'      => $position,
+    );
+}
+
+/**
  * Get aggregated keyword data for the dashboard table.
  *
  * @param int    $site_id    The site ID to query.

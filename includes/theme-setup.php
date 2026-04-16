@@ -146,6 +146,26 @@ function bite_enqueue_scripts() {
                 array( 'bite-theme-style-vars' ),
                 filemtime( get_template_directory() . '/dashboard-sidebar.css' )
             );
+            
+            // jQuery UI Datepicker CSS and JS for date range pickers
+            wp_enqueue_style( 'jquery-ui-css', 'https://code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css', array(), '1.13.2' );
+            wp_enqueue_script( 'jquery-ui-datepicker' );
+            
+            // Chart.js for charts
+            wp_enqueue_script( 'chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js', array(), '4.4.1', true );
+            
+            // DataTables for sortable tables
+            wp_enqueue_style( 'datatables-css', 'https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css', array(), '1.13.7' );
+            wp_enqueue_script( 'datatables-js', 'https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js', array( 'jquery' ), '1.13.7', true );
+            
+            // BITE custom JS (depends on Chart.js and DataTables)
+            wp_enqueue_script( 
+                'bite-js', 
+                get_template_directory_uri() . '/js/bite.js', 
+                array( 'jquery', 'chart-js', 'datatables-js', 'jquery-ui-datepicker' ), 
+                filemtime( get_template_directory() . '/js/bite.js' ), 
+                true 
+            );
         }
         
         // Reviews page styles

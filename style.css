@@ -1169,6 +1169,168 @@ th span[title] {
     color: var(--accent-color);
 }
 
+/* --- Full-Width Site Cards (New Dashboard) --- */
+.bite-sites-list-fullwidth {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.bite-site-card-fullwidth {
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bite-site-card-fullwidth:hover {
+    border-color: var(--secondary-color);
+    box-shadow: var(--shadow-lg);
+}
+
+.bite-site-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.bite-site-card-title {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bite-site-card-title .bite-site-name {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0;
+}
+
+.bite-site-card-title .bite-site-domain {
+    font-size: 0.95em;
+    color: var(--text-muted);
+}
+
+.bite-site-card-badges {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bite-site-card-stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    align-items: center;
+}
+
+.bite-site-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 16px;
+    background: var(--background-color);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+}
+
+.bite-site-stat-icon {
+    font-size: 1.5em;
+    margin-bottom: 8px;
+}
+
+.bite-site-stat-value {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 4px;
+}
+
+.bite-site-stat-label {
+    font-size: 0.8em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bite-site-stat-action {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.bite-site-stat-action .bite-button {
+    width: 100%;
+    height: 100%;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1em;
+}
+
+/* Site status badges */
+.bite-site-status.bite-status-active {
+    background: rgba(46, 204, 113, 0.15);
+    color: #27ae60;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.bite-site-status.bite-status-active .material-icons {
+    font-size: 16px;
+}
+
+/* Responsive full-width cards */
+@media screen and (max-width: 1200px) {
+    .bite-site-card-stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .bite-site-stat-action {
+        grid-column: span 3;
+    }
+    
+    .bite-site-stat-action .bite-button {
+        min-height: 50px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .bite-site-card-fullwidth {
+        padding: 16px;
+    }
+    
+    .bite-site-card-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .bite-site-card-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .bite-site-stat-action {
+        grid-column: span 2;
+    }
+    
+    .bite-site-card-title .bite-site-name {
+        font-size: 1.2em;
+    }
+}
+
 /* Empty State */
 .bite-empty-state {
     text-align: center;
