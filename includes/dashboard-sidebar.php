@@ -251,6 +251,17 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
             }
             // Trigger window resize for charts
             window.dispatchEvent(new Event('resize'));
+            
+            // Force Chart.js to resize if chart exists
+            if (window.Chart && window.biteChartData) {
+                var chartCanvas = document.getElementById('bite-line-chart');
+                if (chartCanvas) {
+                    var chartInstance = Chart.getChart(chartCanvas);
+                    if (chartInstance) {
+                        chartInstance.resize();
+                    }
+                }
+            }
         }, 350);
     }
     
