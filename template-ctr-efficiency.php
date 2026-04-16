@@ -109,7 +109,7 @@ if ( $selected_site_id > 0 ) {
 
 				<div class="bite-widget-container bite-insight-box">
 					<h2><?php esc_html_e( 'Summary & Insight', 'bite-theme' ); ?></h2>
-					<p><?php echo $ctr_report_data['insight_text']; ?></p>
+					<p><?php echo wp_kses_post( $ctr_report_data['insight_text'] ); ?></p>
 				</div>
 
             <?php else : ?>

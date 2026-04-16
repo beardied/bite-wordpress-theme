@@ -3,7 +3,8 @@
  * BITE Dedicated Cron Script
  * 
  * Place this file in your WordPress root directory and add to crontab:
- * */2 * * * * cd /path/to/wordpress && php -q bite-cron.php >> /var/log/bite-cron.log 2>&1
+ * Run every 2 minutes:
+ * # 2min * * * * cd /path/to/wordpress && php -q bite-cron.php >> /var/log/bite-cron.log 2>&1
  */
 
 set_time_limit(300);
