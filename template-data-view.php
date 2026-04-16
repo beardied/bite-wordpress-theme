@@ -32,6 +32,7 @@ $selected_site_id = isset( $_GET['site_id'] ) ? absint( $_GET['site_id'] ) : 0;
 $selected_site = null;
 $table_data = null;
 $chart_data = null;
+$selected_site_name = '';
 
 // Get filter values (default to last 30 days)
 $selected_device = isset( $_GET['device'] ) ? sanitize_text_field( $_GET['device'] ) : 'all';
@@ -47,6 +48,8 @@ if ( $selected_site_id > 0 && in_array( $selected_site_id, $user_site_ids ) ) {
     ) );
     
     if ( $selected_site ) {
+        $selected_site_name = $selected_site->name;
+        
         // Convert to SQL dates
         $sql_start_date = date( 'Y-m-d', strtotime( $display_start_date ) );
         $sql_end_date = date( 'Y-m-d', strtotime( $display_end_date ) );
@@ -77,7 +80,7 @@ if ( $selected_site_id > 0 && in_array( $selected_site_id, $user_site_ids ) ) {
                     
                     <div class="bite-filter-group">
                         <label for="site_id">Site:</label>
-                        <select id="site_id" name="site_id" required onchange="this.form.submit()">
+                        <select id="site_id" name="site_id">
                             <option value="">-- Select a site --</option>
                             <?php foreach ( $user_sites as $site ) : ?>
                                 <option value="<?php echo esc_attr( $site->site_id ); ?>" <?php selected( $selected_site_id, $site->site_id ); ?>>
@@ -108,75 +111,83 @@ if ( $selected_site_id > 0 && in_array( $selected_site_id, $user_site_ids ) ) {
                     </div>
 
                     <div class="bite-filter-group">
-                        <button type="submit" class="bite-button">Update View</button>
+                        <button type="submit" class="bite-button">View Data</button>
                     </div>
                 </form>
             </div>
 
             <?php if ( $selected_site ) : ?>
-                <?php if ( $chart_data && ! empty( $chart_data['labels'] ) ) : ?>
-                    <script type="text/javascript">var biteChartData = <?php echo wp_json_encode( $chart_data ); ?>;</script>
-                <?php endif; ?>
-                
                 <div class="bite-dashboard-widgets">
-                    <div class="bite-widget-container">
-                        <h2>Performance Overview - <?php echo esc_html( $selected_site->name ); ?></h2>
-                        <?php if ( $chart_data && ! empty( $chart_data['labels'] ) ) : ?>
+                    
+                    <?php if ( ! empty( $chart_data['labels'] ) ) : ?>
+                        
+                        <div class="bite-widget-container">
+                            <h2>Performance Overview - <?php echo esc_html( $selected_site_name ); ?></h2>
                             <div class="bite-chart-wrapper">
                                 <canvas id="bite-line-chart"></canvas>
                             </div>
-                        <?php else : ?>
-                            <p>No chart data available for this date range.</p>
-                        <?php endif; ?>
-                    </div>
+                        </div>
 
-                    <div class="bite-widget-container bite-table-container">
-                        <h2>Discoverable Keywords</h2>
-                        <p>
-                            Showing data for <strong><?php echo esc_html( $selected_site->name ); ?></strong> 
-                            (<?php echo esc_html( $selected_device ); ?>) 
-                            from <strong><?php echo esc_html( $display_start_date ); ?></strong> 
-                            to <strong><?php echo esc_html( $display_end_date ); ?></strong>
-                            <br><small>Note: Totals may not match the chart. The chart shows ALL data, while this table shows only discoverable (non-anonymized) keywords.</small>
-                        </p>
-                        
-                        <?php if ( ! empty( $table_data ) ) : ?>
-                            <table id="bite-data-table" class="bite-data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Keyword</th>
-                                        <th>Clicks</th>
-                                        <th>Impressions</th>
-                                        <th>Avg. CTR</th>
-                                        <th>Avg. Position</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ( $table_data as $row ) : ?>
+                        <div class="bite-widget-container bite-table-container">
+                            <h2>Discoverable Keywords</h2>
+                            <p>
+                                Displaying keywords for <strong><?php echo esc_html( $selected_site_name ); ?></strong> 
+                                (<?php echo esc_html( $selected_device ); ?>) 
+                                from <strong><?php echo esc_html( $display_start_date ); ?></strong> 
+                                to <strong><?php echo esc_html( $display_end_date ); ?></strong>.
+                                <br><small>Note: Totals in this table may not match the chart above. The chart shows ALL data, while this table only shows data for discoverable (non-anonymized) keywords.</small>
+                            </p>
+                            
+                            <?php if ( ! empty( $table_data ) ) : ?>
+                                <table id="bite-data-table" class="bite-data-table">
+                                    <thead>
                                         <tr>
-                                            <td><?php echo esc_html( $row['keyword'] ); ?></td>
-                                            <td><?php echo esc_html( number_format( $row['total_clicks'] ) ); ?></td>
-                                            <td><?php echo esc_html( number_format( $row['total_impressions'] ) ); ?></td>
-                                            <td><?php echo esc_html( number_format( $row['avg_ctr'] * 100, 2 ) ); ?>%</td>
-                                            <td><?php echo esc_html( number_format( $row['avg_position'], 1 ) ); ?></td>
+                                            <th>Keyword</th>
+                                            <th>Clicks</th>
+                                            <th>Impressions</th>
+                                            <th>Avg. CTR</th>
+                                            <th>Avg. Position</th>
                                         </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        <?php else: ?>
-                            <p><strong>No discoverable keywords found for this period.</strong></p>
-                        <?php endif; ?>
-                    </div>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ( $table_data as $row ) : ?>
+                                            <tr>
+                                                <td><?php echo esc_html( $row['keyword'] ); ?></td>
+                                                <td><?php echo esc_html( number_format( $row['total_clicks'] ) ); ?></td>
+                                                <td><?php echo esc_html( number_format( $row['total_impressions'] ) ); ?></td>
+                                                <td><?php echo esc_html( number_format( $row['avg_ctr'] * 100, 2 ) ); ?>%</td>
+                                                <td><?php echo esc_html( number_format( $row['avg_position'], 1 ) ); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            <?php else: ?>
+                                <p><strong>No discoverable keywords found for this period.</strong></p>
+                            <?php endif; ?>
+                        </div>
+
+                    <?php else : ?>
+                        <p><strong>No data found for this site in this date range.</strong></p>
+                        <p>The backfill may still be in progress, or there may be no search data for this period.</p>
+                    <?php endif; ?>
                 </div>
             <?php else : ?>
                 <div class="bite-widget-container">
-                    <h2>Select a Site</h2>
-                    <p>Please select a site from the dropdown above to view detailed analytics.</p>
+                    <p><strong>Please select a site to view data.</strong></p>
                 </div>
             <?php endif; ?>
         </section>
 
     </main>
 </div>
+
+<?php
+// Pass data from PHP to our bite.js file - MUST be at end of page before footer
+if ( $chart_data ) {
+    echo '<script type="text/javascript">';
+    echo 'const biteChartData = ' . wp_json_encode( $chart_data ) . ';';
+    echo '</script>';
+}
+?>
 
 <?php get_footer(); ?>
