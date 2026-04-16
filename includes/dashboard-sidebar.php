@@ -239,10 +239,15 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
         if (floatToggleBtn) floatToggleBtn.style.display = isCollapsed ? 'flex' : 'none';
         localStorage.setItem('bite-sidebar-collapsed', isCollapsed);
         
-        // Recalculate DataTables after sidebar transition completes
+        // Recalculate DataTables and charts after sidebar transition completes
         setTimeout(function() {
+            // Recalculate DataTables
             if (window.jQuery && jQuery.fn.DataTable) {
-                jQuery('.bite-data-table').DataTable().columns.adjust();
+                jQuery('.bite-data-table').each(function() {
+                    var table = jQuery(this).DataTable();
+                    table.columns.adjust();
+                    table.responsive.recalc();
+                });
             }
             // Trigger window resize for charts
             window.dispatchEvent(new Event('resize'));

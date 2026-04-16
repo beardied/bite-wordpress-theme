@@ -204,6 +204,10 @@ function bite_enqueue_scripts() {
             wp_enqueue_style( 'datatables-css', 'https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css', array(), '1.13.7' );
             wp_enqueue_script( 'datatables-js', 'https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js', array( 'jquery' ), '1.13.7', true );
             
+            // DataTables Responsive extension
+            wp_enqueue_style( 'datatables-responsive-css', 'https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css', array(), '2.5.0' );
+            wp_enqueue_script( 'datatables-responsive-js', 'https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js', array( 'datatables-js' ), '2.5.0', true );
+            
             // BITE custom JS (depends on Chart.js and DataTables)
             wp_enqueue_script( 
                 'bite-js', 

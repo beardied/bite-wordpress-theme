@@ -9,7 +9,9 @@ jQuery(document).ready(function($) {
     // 2. Initialize DataTables
     if( $('#bite-data-table').length ) {
         $('#bite-data-table').DataTable({
-            "order": [[ 1, "desc" ]] // Default sort by Clicks
+            "order": [[ 1, "desc" ]], // Default sort by Clicks
+            "responsive": true,
+            "autoWidth": false
         });
     }
     if( $('#bite-opportunity-table').length ) {
