@@ -349,33 +349,42 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                                     </div>
                                 </div>
                                 
-                                <div class="bite-site-card-stats">
-                                    <div class="bite-site-stat">
-                                        <span class="bite-site-stat-icon">👆</span>
-                                        <span class="bite-site-stat-value"><?php echo esc_html( number_format( $site_stats['total_clicks'] ) ); ?></span>
-                                        <span class="bite-site-stat-label">Clicks (30d)</span>
+                                <?php if ( $site_stats['total_impressions'] > 0 ) : ?>
+                                    <div class="bite-site-card-stats">
+                                        <div class="bite-site-stat">
+                                            <span class="bite-site-stat-icon">👆</span>
+                                            <span class="bite-site-stat-value"><?php echo esc_html( number_format( $site_stats['total_clicks'] ) ); ?></span>
+                                            <span class="bite-site-stat-label">Clicks (30d)</span>
+                                        </div>
+                                        <div class="bite-site-stat">
+                                            <span class="bite-site-stat-icon">👁️</span>
+                                            <span class="bite-site-stat-value"><?php echo esc_html( number_format( $site_stats['total_impressions'] ) ); ?></span>
+                                            <span class="bite-site-stat-label">Impressions</span>
+                                        </div>
+                                        <div class="bite-site-stat">
+                                            <span class="bite-site-stat-icon">📈</span>
+                                            <span class="bite-site-stat-value"><?php echo esc_html( number_format( $site_stats['calculated_ctr'], 2 ) ); ?>%</span>
+                                            <span class="bite-site-stat-label">Avg CTR</span>
+                                        </div>
+                                        <div class="bite-site-stat">
+                                            <span class="bite-site-stat-icon">🎯</span>
+                                            <span class="bite-site-stat-value"><?php echo esc_html( number_format( $site_stats['avg_position'], 1 ) ); ?></span>
+                                            <span class="bite-site-stat-label">Avg Position</span>
+                                        </div>
+                                        <div class="bite-site-stat bite-site-stat-action">
+                                            <a href="<?php echo esc_url( $view_data_url ); ?>" class="bite-button bite-button-primary">
+                                                View Data →
+                                            </a>
+                                        </div>
                                     </div>
-                                    <div class="bite-site-stat">
-                                        <span class="bite-site-stat-icon">👁️</span>
-                                        <span class="bite-site-stat-value"><?php echo esc_html( number_format( $site_stats['total_impressions'] ) ); ?></span>
-                                        <span class="bite-site-stat-label">Impressions</span>
-                                    </div>
-                                    <div class="bite-site-stat">
-                                        <span class="bite-site-stat-icon">📈</span>
-                                        <span class="bite-site-stat-value"><?php echo esc_html( number_format( $site_stats['calculated_ctr'], 2 ) ); ?>%</span>
-                                        <span class="bite-site-stat-label">Avg CTR</span>
-                                    </div>
-                                    <div class="bite-site-stat">
-                                        <span class="bite-site-stat-icon">🎯</span>
-                                        <span class="bite-site-stat-value"><?php echo esc_html( number_format( $site_stats['avg_position'], 1 ) ); ?></span>
-                                        <span class="bite-site-stat-label">Avg Position</span>
-                                    </div>
-                                    <div class="bite-site-stat bite-site-stat-action">
-                                        <a href="<?php echo esc_url( $view_data_url ); ?>" class="bite-button bite-button-primary">
-                                            View Data →
+                                <?php else : ?>
+                                    <div class="bite-site-no-data">
+                                        <p class="bite-no-data-text">📊 No data available for the last 30 days</p>
+                                        <a href="<?php echo esc_url( $view_data_url ); ?>" class="bite-button bite-button-secondary">
+                                            View Historical Data →
                                         </a>
                                     </div>
-                                </div>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     </div>

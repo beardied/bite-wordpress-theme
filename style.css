@@ -1363,6 +1363,26 @@ th span[title] {
         font-size: 1.3em;
     }
 }
+
+/* No data state */
+.bite-site-no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    background: var(--background-color);
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--border-light);
+    text-align: center;
+    gap: 16px;
+}
+
+.bite-no-data-text {
+    color: var(--text-muted);
+    font-size: 1.1em;
+    margin: 0;
+}
     
     .bite-site-stat-action {
         grid-column: span 2;
