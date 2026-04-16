@@ -11,12 +11,23 @@ get_header();
 
 global $wpdb;
 
-// --- Get data for filters ---
-$sites_table = $wpdb->prefix . 'bite_sites';
-$all_sites = $wpdb->get_results( "SELECT site_id, name FROM $sites_table ORDER BY name ASC" );
+// --- Get user's allowed sites ---
+$current_user_id = get_current_user_id();
+$user_site_ids = bite_get_user_sites( $current_user_id );
+
+// Get site details for user's sites
+$all_sites = array();
 $site_name_lookup = array();
-foreach ( $all_sites as $site ) {
-    $site_name_lookup[ $site->site_id ] = $site->name;
+if ( ! empty( $user_site_ids ) ) {
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    $placeholders = implode( ', ', array_fill( 0, count( $user_site_ids ), '%d' ) );
+    $all_sites = $wpdb->get_results( $wpdb->prepare(
+        "SELECT site_id, name FROM $sites_table WHERE site_id IN ($placeholders) ORDER BY name ASC",
+        $user_site_ids
+    ) );
+    foreach ( $all_sites as $site ) {
+        $site_name_lookup[ $site->site_id ] = $site->name;
+    }
 }
 
 // --- Get current filter values from URL ---

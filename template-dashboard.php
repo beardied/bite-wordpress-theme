@@ -235,7 +235,11 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                                 <span class="bite-site-domain"><?php echo esc_html( $site->domain ); ?></span>
                             </div>
                             <div class="bite-site-actions">
-                                <a href="<?php echo esc_url( home_url( '/?site_id=' . $site->site_id ) ); ?>" class="bite-site-link">View Data →</a>
+                                <?php
+                                    $dashboard_page = get_page_by_path( 'dashboard' );
+                                    $view_data_url = $dashboard_page ? add_query_arg( 'site_id', $site->site_id, get_permalink( $dashboard_page->ID ) ) : home_url( '/?site_id=' . $site->site_id );
+                                    ?>
+                                    <a href="<?php echo esc_url( $view_data_url ); ?>" class="bite-site-link">View Data →</a>
                             </div>
                         </div>
                     <?php endforeach; ?>
