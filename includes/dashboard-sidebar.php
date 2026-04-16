@@ -78,6 +78,11 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
                     'icon'  => 'dashboard',
                 ),
                 array(
+                    'slug'  => 'data-view',
+                    'title' => 'View Data',
+                    'icon'  => 'insert_chart',
+                ),
+                array(
                     'slug'  => 'opportunity-finder',
                     'title' => 'Opportunity Finder',
                     'icon'  => 'search',

@@ -103,34 +103,6 @@ $user_site_ids   = bite_get_user_sites( $current_user_id );
 $is_admin        = current_user_can( 'manage_options' );
 $user_connected  = bite_user_has_google_connection( $current_user_id );
 
-// Check if we're viewing data for a specific site
-$selected_site_id = isset( $_GET['site_id'] ) ? absint( $_GET['site_id'] ) : 0;
-$viewing_data = false;
-
-if ( $selected_site_id > 0 && in_array( $selected_site_id, $user_site_ids ) ) {
-    $viewing_data = true;
-    
-    // Get site details
-    $sites_table = $wpdb->prefix . 'bite_sites';
-    $selected_site = $wpdb->get_row( $wpdb->prepare(
-        "SELECT * FROM $sites_table WHERE site_id = %d",
-        $selected_site_id
-    ) );
-    
-    // Get filter values
-    $selected_device = isset( $_GET['device'] ) ? sanitize_text_field( $_GET['device'] ) : 'all';
-    $display_start_date = isset( $_GET['start_date'] ) && ! empty( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : date( 'd-m-Y', strtotime( '-30 days' ) );
-    $display_end_date = isset( $_GET['end_date'] ) && ! empty( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : date( 'd-m-Y', strtotime( '-1 day' ) );
-    
-    // Convert to SQL dates
-    $sql_start_date = date( 'Y-m-d', strtotime( $display_start_date ) );
-    $sql_end_date = date( 'Y-m-d', strtotime( $display_end_date ) );
-    
-    // Fetch data
-    $table_data = bite_get_data_for_table( $selected_site_id, $sql_start_date, $sql_end_date, $selected_device );
-    $chart_data = bite_get_data_for_chart( $selected_site_id, $sql_start_date, $sql_end_date, $selected_device );
-}
-
 $user_plan = bite_get_user_plan( $current_user_id );
 $site_limit = bite_get_user_site_limit( $current_user_id );
 $current_site_count = count( $user_site_ids );
@@ -187,118 +159,21 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
 
     <main id="main" class="bite-dashboard-main-content" role="main">
         
-        <?php if ( $viewing_data && $selected_site ) : ?>
-            
-            <!-- DATA VIEW MODE -->
-            <section class="bite-dashboard-welcome">
-                <div class="bite-welcome-content">
-                    <h1 class="bite-welcome-title">📊 <?php echo esc_html( $selected_site->name ); ?></h1>
-                    <p class="bite-welcome-subtitle">
-                        <a href="<?php echo esc_url( get_permalink() ); ?>" class="bite-button bite-button-secondary" style="font-size: 0.9em; padding: 6px 16px;">
-                            ← Back to Dashboard
-                        </a>
-                    </p>
-                </div>
-            </section>
-
-            <section class="bite-dashboard-section">
-                <div class="bite-filter-bar">
-                    <form method="GET" action="<?php echo esc_url( get_permalink() ); ?>">
-                        <input type="hidden" name="site_id" value="<?php echo esc_attr( $selected_site_id ); ?>">
-                        
-                        <div class="bite-filter-group">
-                            <label for="device">Device:</label>
-                            <select id="device" name="device">
-                                <option value="all" <?php selected( 'all', $selected_device ); ?>>All Devices</option>
-                                <option value="desktop" <?php selected( 'desktop', $selected_device ); ?>>Desktop</option>
-                                <option value="mobile" <?php selected( 'mobile', $selected_device ); ?>>Mobile</option>
-                                <option value="tablet" <?php selected( 'tablet', $selected_device ); ?>>Tablet</option>
-                            </select>
-                        </div>
-
-                        <div class="bite-filter-group">
-                            <label for="start_date">Start Date:</label>
-                            <input type="text" id="start_date" name="start_date" class="bite-datepicker" value="<?php echo esc_attr( $display_start_date ); ?>">
-                        </div>
-
-                        <div class="bite-filter-group">
-                            <label for="end_date">End Date:</label>
-                            <input type="text" id="end_date" name="end_date" class="bite-datepicker" value="<?php echo esc_attr( $display_end_date ); ?>">
-                        </div>
-
-                        <div class="bite-filter-group">
-                            <button type="submit" class="bite-button">Update View</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="bite-dashboard-widgets">
-                    <?php if ( ! empty( $chart_data['labels'] ) ) : ?>
-                        
-                        <div class="bite-widget-container">
-                            <h2>Performance Overview</h2>
-                            <div class="bite-chart-wrapper">
-                                <canvas id="bite-line-chart"></canvas>
-                            </div>
-                        </div>
-
-                        <div class="bite-widget-container bite-table-container">
-                            <h2>Discoverable Keywords</h2>
-                            <p>
-                                Showing data for <strong><?php echo esc_html( $selected_site->name ); ?></strong> 
-                                (<?php echo esc_html( $selected_device ); ?>) 
-                                from <strong><?php echo esc_html( $display_start_date ); ?></strong> 
-                                to <strong><?php echo esc_html( $display_end_date ); ?></strong>
-                                <br><small>Note: Totals may not match the chart. The chart shows ALL data, while this table shows only discoverable (non-anonymized) keywords.</small>
-                            </p>
-                            
-                            <?php if ( ! empty( $table_data ) ) : ?>
-                                <table id="bite-data-table" class="bite-data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Keyword</th>
-                                            <th>Clicks</th>
-                                            <th>Impressions</th>
-                                            <th>Avg. CTR</th>
-                                            <th>Avg. Position</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ( $table_data as $row ) : ?>
-                                            <tr>
-                                                <td><?php echo esc_html( $row['keyword'] ); ?></td>
-                                                <td><?php echo esc_html( number_format( $row['total_clicks'] ) ); ?></td>
-                                                <td><?php echo esc_html( number_format( $row['total_impressions'] ) ); ?></td>
-                                                <td><?php echo esc_html( number_format( $row['avg_ctr'] * 100, 2 ) ); ?>%</td>
-                                                <td><?php echo esc_html( number_format( $row['avg_position'], 1 ) ); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            <?php else: ?>
-                                <p><strong>No discoverable keywords found for this period.</strong></p>
-                            <?php endif; ?>
-                        </div>
-
+        <section class="bite-dashboard-welcome">
+            <div class="bite-welcome-content">
+                <h1 class="bite-welcome-title">Welcome back, <?php echo esc_html( $current_user->display_name ); ?>!</h1>
+                <p class="bite-welcome-subtitle">
+                    <span class="bite-plan-badge"><?php echo esc_html( $plan_display ); ?> Plan</span>
+                    <?php if ( $site_limit > 0 ) : ?>
+                        <span class="bite-sites-count"><?php echo $current_site_count; ?> of <?php echo $site_limit; ?> sites used</span>
                     <?php else : ?>
-                        <div class="bite-widget-container">
-                            <h2>No Data Found</h2>
-                            <p>No search data available for this site in the selected date range.</p>
-                            <p>The backfill may still be in progress, or there may be no search data for this period.</p>
-                        </div>
+                        <span class="bite-sites-count"><?php echo $current_site_count; ?> sites</span>
                     <?php endif; ?>
-                </div>
-            </section>
+                </p>
+            </div>
+        </section>
 
-            <?php if ( $chart_data ) : ?>
-                <script type="text/javascript">
-                    const biteChartData = <?php echo wp_json_encode( $chart_data ); ?>;
-                </script>
-            <?php endif; ?>
-
-        <?php else : ?>
-            
-            <!-- DASHBOARD HOME MODE -->
+        <section class="bite-dashboard-section bite-sites-section">
             <section class="bite-dashboard-welcome">
                 <div class="bite-welcome-content">
                     <h1 class="bite-welcome-title">Welcome back, <?php echo esc_html( $current_user->display_name ); ?>!</h1>
@@ -320,10 +195,11 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
                 
                 <?php if ( ! empty( $user_sites ) ) : ?>
                     <div class="bite-sites-list-fullwidth">
-                        <?php foreach ( $user_sites as $site ) : 
+                        <?php 
+                        $data_view_page = get_page_by_path( 'data-view' );
+                        foreach ( $user_sites as $site ) : 
                             $site_stats = bite_get_site_quick_stats( $site->site_id );
-                            $dashboard_page = get_page_by_path( 'dashboard' );
-                            $view_data_url = $dashboard_page ? add_query_arg( 'site_id', $site->site_id, get_permalink( $dashboard_page->ID ) ) : home_url( '/?site_id=' . $site->site_id );
+                            $view_data_url = $data_view_page ? add_query_arg( 'site_id', $site->site_id, get_permalink( $data_view_page->ID ) ) : home_url( '/data-view/?site_id=' . $site->site_id );
                         ?>
                             <div class="bite-site-card-fullwidth">
                                 <div class="bite-site-card-header">
@@ -562,7 +438,6 @@ $plan_display = isset( $plan_names[ $user_plan ] ) ? $plan_names[ $user_plan ] :
             }
             </script>
 
-        <?php endif; ?>
     </main>
 </div>
 
