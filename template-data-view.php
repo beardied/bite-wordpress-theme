@@ -114,6 +114,10 @@ if ( $selected_site_id > 0 && in_array( $selected_site_id, $user_site_ids ) ) {
             </div>
 
             <?php if ( $selected_site ) : ?>
+                <?php if ( $chart_data && ! empty( $chart_data['labels'] ) ) : ?>
+                    <script type="text/javascript">var biteChartData = <?php echo wp_json_encode( $chart_data ); ?>;</script>
+                <?php endif; ?>
+                
                 <div class="bite-dashboard-widgets">
                     <div class="bite-widget-container">
                         <h2>Performance Overview - <?php echo esc_html( $selected_site->name ); ?></h2>
@@ -171,12 +175,6 @@ if ( $selected_site_id > 0 && in_array( $selected_site_id, $user_site_ids ) ) {
                 </div>
             <?php endif; ?>
         </section>
-
-        <?php if ( $chart_data && ! empty( $chart_data['labels'] ) ) : ?>
-            <script type="text/javascript">
-                var biteChartData = <?php echo wp_json_encode( $chart_data ); ?>;
-            </script>
-        <?php endif; ?>
 
     </main>
 </div>
