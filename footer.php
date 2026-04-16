@@ -39,5 +39,23 @@
 	</footer>
 </div><?php wp_footer(); ?>
 
+<script>
+// Scroll Progress Bar - runs on all pages
+(function() {
+    var progressBar = document.querySelector('.bite-scroll-progress');
+    if ( !progressBar ) return;
+    
+    function updateScrollProgress() {
+        var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        var scrollPercent = (scrollTop / docHeight) * 100;
+        progressBar.style.width = scrollPercent + '%';
+    }
+    
+    window.addEventListener('scroll', updateScrollProgress);
+    updateScrollProgress();
+})();
+</script>
+
 </body>
 </html>
