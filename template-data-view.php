@@ -172,7 +172,7 @@ if ( $selected_site_id > 0 && in_array( $selected_site_id, $user_site_ids ) ) {
             <?php endif; ?>
         </section>
 
-        <?php if ( $chart_data && ! empty( $chart_data['labels'] ) ) : ?>
+        <?php if ( $chart_data ) : ?>
             <script type="text/javascript">
                 const biteChartData = <?php echo wp_json_encode( $chart_data ); ?>;
             </script>

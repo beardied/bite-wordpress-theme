@@ -34,8 +34,9 @@ jQuery(document).ready(function($) {
     }
 
     // 3. Initialize Chart.js (Total vs. Anonymized Line Chart)
-    if (typeof biteChartData !== 'undefined' && biteChartData.labels.length > 0) {
+    if (typeof biteChartData !== 'undefined' && biteChartData.labels && biteChartData.labels.length > 0) {
         const ctx = document.getElementById('bite-line-chart');
+        if (!ctx) return;
         
         // Define our colors
         const clicksColor = 'rgb(52, 152, 219)';
