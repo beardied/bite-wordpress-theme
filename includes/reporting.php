@@ -42,7 +42,7 @@ function bite_get_site_quick_stats( $site_id ) {
         "SELECT 
             SUM(total_clicks) as total_clicks,
             SUM(total_impressions) as total_impressions,
-            AVG(avg_position) as avg_position
+            AVG(total_position) as avg_position
         FROM $summary_table 
         WHERE site_id = %d 
         AND date BETWEEN %s AND %s",
