@@ -31,9 +31,13 @@ function bite_get_site_quick_stats( $site_id ) {
     }
     
     $summary_table = $wpdb->prefix . 'bite_daily_summary';
-    $end_date   = date( 'Y-m-d', strtotime( '-1 day' ) );
-    $start_date = date( 'Y-m-d', strtotime( '-30 days' ) );
     
+    // Use WordPress current time for consistency
+    $now        = current_time( 'timestamp' );
+    $end_date   = date( 'Y-m-d', $now );
+    $start_date = date( 'Y-m-d', strtotime( '-30 days', $now ) );
+    
+    // Get aggregated data (sum across all devices for each day, then average position)
     $results = $wpdb->get_row( $wpdb->prepare(
         "SELECT 
             SUM(total_clicks) as total_clicks,
@@ -47,6 +51,7 @@ function bite_get_site_quick_stats( $site_id ) {
         $end_date
     ) );
     
+    // If no results or NULL, return zeros
     if ( ! $results || is_null( $results->total_clicks ) ) {
         return array(
             'total_clicks'      => 0,
