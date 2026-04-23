@@ -138,6 +138,7 @@ function bite_handle_google_oauth_callback() {
     
     // Clear any pending OAuth errors
     delete_user_meta( $user_id, 'bite_oauth_state' );
+    delete_user_meta( $user_id, 'bite_google_auth_failed' );
     
     // Fire action for connected hook (resumes backfill if there were auth errors)
     do_action( 'bite_google_connected', $user_id );
@@ -334,6 +335,15 @@ function bite_get_user_access_token( $user_id ) {
     $new_tokens = bite_refresh_access_token( $refresh_token );
     
     if ( is_wp_error( $new_tokens ) ) {
+        // Record auth failure on user so dashboard can show reconnect notice
+        $error_msg = strtolower( $new_tokens->get_error_message() );
+        $auth_indicators = array( 'invalid_grant', 'expired', 'revoked', 'unauthorized_client' );
+        foreach ( $auth_indicators as $indicator ) {
+            if ( strpos( $error_msg, $indicator ) !== false ) {
+                update_user_meta( $user_id, 'bite_google_auth_failed', current_time( 'mysql' ) );
+                break;
+            }
+        }
         return $new_tokens;
     }
     
@@ -427,6 +437,27 @@ function bite_disconnect_google_account( $user_id ) {
     
     return true;
 }
+
+/**
+ * AJAX handler to disconnect Google account
+ */
+function bite_ajax_disconnect_google() {
+    check_ajax_referer( 'bite_disconnect_google', 'nonce' );
+    
+    $user_id = get_current_user_id();
+    if ( ! $user_id ) {
+        wp_send_json_error( 'Not logged in' );
+    }
+    
+    $result = bite_disconnect_google_account( $user_id );
+    
+    if ( is_wp_error( $result ) ) {
+        wp_send_json_error( $result->get_error_message() );
+    }
+    
+    wp_send_json_success( array( 'message' => 'Google account disconnected successfully.' ) );
+}
+add_action( 'wp_ajax_bite_disconnect_google', 'bite_ajax_disconnect_google' );
 
 /**
  * Encrypt a token using WordPress salts

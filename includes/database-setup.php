@@ -205,4 +205,4 @@ function bite_create_missing_tables() {
         $wpdb->query( "ALTER TABLE $sites_table MODIFY COLUMN backfill_status ENUM('pending', 'in_progress', 'complete', 'auth_error') NOT NULL DEFAULT 'pending'" );
     }
 }
-add_action( 'admin_init', 'bite_create_missing_tables' );
+add_action( 'init', 'bite_create_missing_tables' );

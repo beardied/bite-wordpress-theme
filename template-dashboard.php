@@ -282,7 +282,16 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                         <?php endif; ?>
                     </div>
                     
-                    <?php if ( ! $user_connected ) : ?>
+                    <?php
+                    // Check if user has auth errors (expired token) — either site-level or user-level flag
+                    $has_site_auth_errors = ! empty( bite_get_user_auth_error_sites( $current_user_id ) );
+                    $has_user_auth_flag   = (bool) get_user_meta( $current_user_id, 'bite_google_auth_failed', true );
+                    $has_auth_errors      = $has_site_auth_errors || $has_user_auth_flag;
+                    $auth_url = bite_get_google_auth_url( $current_user_id );
+                    $auth_url_valid = ! is_wp_error( $auth_url );
+                    ?>
+                    
+                    <?php if ( ! $user_connected || $has_auth_errors ) : ?>
                         <div class="bite-wizard" id="site-wizard">
                             <div class="bite-wizard-progress">
                                 <div class="bite-wizard-progress-bar" style="width: 0%;"></div>
@@ -294,19 +303,47 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                             
                             <div class="bite-wizard-step active" data-step="1">
                                 <div class="bite-step-content">
-                                    <div class="bite-step-icon">🔗</div>
-                                    <h4>Connect Your Google Account</h4>
-                                    <p>To access your Google Search Console data, you need to authorize BITE.</p>
+                                    <?php if ( $has_auth_errors ) : ?>
+                                        <div class="bite-step-icon">⚠️</div>
+                                        <h4>Google Connection Expired</h4>
+                                        <p style="color: #c0392b; font-weight: 500;">Your Google authorization has expired. Please reconnect to continue syncing data.</p>
+                                    <?php else : ?>
+                                        <div class="bite-step-icon">🔗</div>
+                                        <h4>Connect Your Google Account</h4>
+                                        <p>To access your Google Search Console data, you need to authorize BITE.</p>
+                                    <?php endif; ?>
                                     
                                     <div class="bite-step-box" style="text-align: center; padding: 40px;">
-                                        <p style="font-size: 1.1em; margin-bottom: 25px;">
-                                            Click the button below to securely connect your Google account.<br>
-                                            We'll only access your Search Console data - nothing else.
-                                        </p>
-                                        <a href="<?php echo esc_url( bite_get_google_auth_url( $current_user_id ) ); ?>" class="bite-button bite-button-primary bite-button-large">
-                                            <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">login</span>
-                                            Connect Google Account
-                                        </a>
+                                        <?php if ( $has_auth_errors ) : ?>
+                                            <p style="font-size: 1.1em; margin-bottom: 25px; color: #5d4037;">
+                                                Your Google access token has expired or been revoked.<br>
+                                                Click below to reconnect your account — data syncing will resume automatically.
+                                            </p>
+                                            <?php if ( $auth_url_valid ) : ?>
+                                                <a href="<?php echo esc_url( $auth_url ); ?>" class="bite-button bite-button-primary bite-button-large">
+                                                    <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">refresh</span>
+                                                    Reconnect Google Account
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ( $user_connected ) : ?>
+                                                <br><br>
+                                                <button type="button" class="bite-button bite-button-secondary" id="bite-disconnect-google" style="font-size: 0.9em;">
+                                                    <span class="material-icons" style="vertical-align: middle; margin-right: 4px; font-size: 16px;">link_off</span>
+                                                    Disconnect Account
+                                                </button>
+                                            <?php endif; ?>
+                                        <?php else : ?>
+                                            <p style="font-size: 1.1em; margin-bottom: 25px;">
+                                                Click the button below to securely connect your Google account.<br>
+                                                We'll only access your Search Console data — nothing else.
+                                            </p>
+                                            <?php if ( $auth_url_valid ) : ?>
+                                                <a href="<?php echo esc_url( $auth_url ); ?>" class="bite-button bite-button-primary bite-button-large">
+                                                    <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">login</span>
+                                                    Connect Google Account
+                                                </a>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -326,6 +363,12 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                                     <div class="bite-step-icon">✅</div>
                                     <h4>Google Account Connected!</h4>
                                     <p>Your Google account is connected. Now add a site from your Search Console.</p>
+                                    <p style="margin-top: 10px;">
+                                        <button type="button" class="bite-button bite-button-secondary" id="bite-disconnect-google" style="font-size: 0.85em;">
+                                            <span class="material-icons" style="vertical-align: middle; margin-right: 4px; font-size: 16px;">link_off</span>
+                                            Disconnect Account
+                                        </button>
+                                    </p>
                                     
                                     <form method="POST" action="#add-site" class="bite-wizard-form">
                                         <?php wp_nonce_field( 'bite_add_site', 'bite_add_site_nonce' ); ?>
@@ -436,6 +479,42 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                 }
             });
         }
+        </script>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var disconnectBtn = document.getElementById('bite-disconnect-google');
+            if ( disconnectBtn ) {
+                disconnectBtn.addEventListener('click', function() {
+                    if ( ! confirm( 'Are you sure you want to disconnect your Google account? You will need to reconnect to sync data.' ) ) {
+                        return;
+                    }
+                    disconnectBtn.disabled = true;
+                    disconnectBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:4px;font-size:16px;">hourglass_empty</span> Disconnecting...';
+                    
+                    fetch( '<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'action=bite_disconnect_google&nonce=<?php echo wp_create_nonce( 'bite_disconnect_google' ); ?>'
+                    })
+                    .then( function( response ) { return response.json(); } )
+                    .then( function( data ) {
+                        if ( data.success ) {
+                            window.location.reload();
+                        } else {
+                            alert( 'Error: ' + ( data.data || 'Failed to disconnect' ) );
+                            disconnectBtn.disabled = false;
+                            disconnectBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:4px;font-size:16px;">link_off</span> Disconnect Account';
+                        }
+                    })
+                    .catch( function() {
+                        alert( 'Network error. Please try again.' );
+                        disconnectBtn.disabled = false;
+                        disconnectBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:4px;font-size:16px;">link_off</span> Disconnect Account';
+                    });
+                });
+            }
+        });
         </script>
 
     </main>
