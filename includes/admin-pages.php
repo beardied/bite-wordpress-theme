@@ -233,6 +233,14 @@ function bite_handle_admin_form_actions() {
         exit;
     }
 
+    // --- Run Daily Update Check ---
+    if ( $_POST['bite_action'] === 'run_daily_update' ) {
+        check_admin_referer( 'bite_system_status_nonce' );
+        bite_run_daily_update();
+        wp_redirect( admin_url( 'admin.php?page=bite-admin-system&bite_notice=daily_update_ran' ) );
+        exit;
+    }
+
     // --- Reset Site Status ---
     if ( isset( $_POST['bite_site_id'] ) && $_POST['bite_action'] === 'reset_site' ) {
         check_admin_referer( 'bite_system_status_nonce' );
@@ -1071,6 +1079,7 @@ function bite_admin_page_system() {
     if ( isset( $_GET["bite_notice"] ) ) {
         $notices = array(
             "backfill_triggered" => array( "success", "Backfill triggered. It will start within a few seconds." ),
+            "daily_update_ran"   => array( "success", "Daily update check completed. Any sites needing new data have been flagged." ),
             "site_reset"         => array( "success", "Site has been reset to pending status." ),
             "site_resumed"       => array( "success", "Site auth error cleared and set to resume." ),
             "transient_cleared"  => array( "success", "The backfill running transient has been cleared." ),
@@ -1115,8 +1124,35 @@ function bite_admin_page_system() {
             </tbody>
         </table>
 
+        <h2>How This System Works</h2>
+        <div style="background: #f0f6fc; border: 1px solid #c5d9ed; padding: 15px 20px; border-radius: 4px; margin-bottom: 25px; font-size: 13px; line-height: 1.6;">
+            <p><strong>There are two separate processes that run automatically:</strong></p>
+            <ol style="margin-left: 20px;">
+                <li><strong>Daily Update (6am UTC)</strong> — Checks all "complete" sites for missing days since the last data was fetched. If gaps are found, the site is flagged as "pending" with the next needed date. <em>This is the scheduler.</em></li>
+                <li><strong>Backfill Queue (every 2 minutes)</strong> — Processes sites flagged as "pending" or "in_progress", fetching one day of data at a time. <em>This is the worker.</em></li>
+            </ol>
+            <p><strong>Site statuses explained:</strong></p>
+            <ul style="margin-left: 20px;">
+                <li><strong>pending</strong> — Site is waiting to start (or needs new data). Daily update sets this.</li>
+                <li><strong>in_progress</strong> — Backfill is actively fetching historical data for this site.</li>
+                <li><strong>complete</strong> — Site is up to date. Daily update monitors these.</li>
+                <li><strong>auth_error</strong> — Google token expired or revoked. User must reconnect their account.</li>
+            </ul>
+            <p><strong>What to do when things go wrong:</strong></p>
+            <ul style="margin-left: 20px;">
+                <li><strong>No new data appearing?</strong> Run "Daily Update Check" first to flag sites, then "Trigger Backfill" to process them.</li>
+                <li><strong>Backfill stuck?</strong> Check if "Backfill Running Now" says Yes for a long time. If so, "Clear Running Transient" to release it.</li>
+                <li><strong>Auth errors?</strong> Tell the affected user to visit their dashboard and click "Reconnect Google Account".</li>
+            </ul>
+        </div>
+
         <h2>Manual Controls</h2>
         <div style="margin-bottom: 25px;">
+            <form method="POST" action="" style="display:inline-block; margin-right:10px;">
+                <?php wp_nonce_field( "bite_system_status_nonce" ); ?>
+                <input type="hidden" name="bite_action" value="run_daily_update">
+                <button type="submit" class="button button-primary">Run Daily Update Check</button>
+            </form>
             <form method="POST" action="" style="display:inline-block; margin-right:10px;">
                 <?php wp_nonce_field( "bite_system_status_nonce" ); ?>
                 <input type="hidden" name="bite_action" value="trigger_backfill">
@@ -1128,6 +1164,11 @@ function bite_admin_page_system() {
                 <button type="submit" class="button button-secondary" onclick="return confirm(\"Clear the running transient? Only do this if you believe the backfill is stuck.\");">Clear Running Transient</button>
             </form>
         </div>
+        <p style="color: #666; font-size: 12px; margin-bottom: 25px;">
+            <strong>Run Daily Update Check</strong> = Scans all "complete" sites for missing days and flags them.<br>
+            <strong>Trigger Backfill Now</strong> = Processes sites already flagged as "pending" or "in_progress".<br>
+            <strong>Tip:</strong> If you want to force a full catch-up, run <em>Daily Update Check</em> first, wait 10 seconds, then run <em>Trigger Backfill</em>.
+        </p>
 
         <h2>Sites Overview</h2>
         <table class="wp-list-table widefat fixed striped">
