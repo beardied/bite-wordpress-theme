@@ -84,6 +84,16 @@ function bite_register_admin_menu() {
         'bite-admin-settings',
         'bite_admin_page_settings'
     );
+
+    // Add the "System Status" submenu page
+    add_submenu_page(
+        'bite-admin-main',
+        __( 'BITE System Status', 'bite-theme' ),
+        __( 'System Status', 'bite-theme' ),
+        'manage_options',
+        'bite-admin-system',
+        'bite_admin_page_system'
+    );
 }
 add_action( 'admin_menu', 'bite_register_admin_menu' );
 
@@ -209,6 +219,57 @@ function bite_handle_admin_form_actions() {
                 } );
             }
         }
+    }
+
+    // === SYSTEM STATUS ACTIONS ===
+
+    // --- Trigger Backfill ---
+    if ( $_POST['bite_action'] === 'trigger_backfill' ) {
+        check_admin_referer( 'bite_system_status_nonce' );
+        if ( ! wp_next_scheduled( 'bite_backfill_hook' ) && ! get_transient( 'bite_backfill_running' ) ) {
+            wp_schedule_single_event( time() + 5, 'bite_backfill_hook' );
+        }
+        wp_redirect( admin_url( 'admin.php?page=bite-admin-system&bite_notice=backfill_triggered' ) );
+        exit;
+    }
+
+    // --- Reset Site Status ---
+    if ( isset( $_POST['bite_site_id'] ) && $_POST['bite_action'] === 'reset_site' ) {
+        check_admin_referer( 'bite_system_status_nonce' );
+        $site_id = absint( $_POST['bite_site_id'] );
+        if ( $site_id > 0 ) {
+            bite_clear_auth_error( $site_id );
+            bite_clear_retry_backoff( $site_id );
+            $wpdb->update(
+                $wpdb->prefix . 'bite_sites',
+                array( 'backfill_status' => 'pending', 'backfill_next_date' => null ),
+                array( 'site_id' => $site_id ),
+                array( '%s', '%s' ),
+                array( '%d' )
+            );
+        }
+        wp_redirect( admin_url( 'admin.php?page=bite-admin-system&bite_notice=site_reset' ) );
+        exit;
+    }
+
+    // --- Resume Site (auth_error → pending) ---
+    if ( isset( $_POST['bite_site_id'] ) && $_POST['bite_action'] === 'resume_site' ) {
+        check_admin_referer( 'bite_system_status_nonce' );
+        $site_id = absint( $_POST['bite_site_id'] );
+        if ( $site_id > 0 ) {
+            bite_clear_auth_error( $site_id );
+            bite_clear_retry_backoff( $site_id );
+        }
+        wp_redirect( admin_url( 'admin.php?page=bite-admin-system&bite_notice=site_resumed' ) );
+        exit;
+    }
+
+    // --- Clear Running Transient ---
+    if ( $_POST['bite_action'] === 'clear_transient' ) {
+        check_admin_referer( 'bite_system_status_nonce' );
+        delete_transient( 'bite_backfill_running' );
+        wp_redirect( admin_url( 'admin.php?page=bite-admin-system&bite_notice=transient_cleared' ) );
+        exit;
     }
 }
 add_action( 'admin_init', 'bite_handle_admin_form_actions' );
@@ -967,6 +1028,198 @@ function bite_admin_page_settings() {
                 For production use with more users, you'll need to submit your app for verification.
             </p>
         </div>
+    </div>
+    <?php
+}
+/**
+ * Renders the "System Status" admin page.
+ */
+function bite_admin_page_system() {
+    global $wpdb;
+    $sites_table = $wpdb->prefix . "bite_sites";
+
+    $total_sites   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $sites_table" );
+    $pending       = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $sites_table WHERE backfill_status = \"pending\"" );
+    $in_progress   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $sites_table WHERE backfill_status = \"in_progress\"" );
+    $complete      = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $sites_table WHERE backfill_status = \"complete\"" );
+    $auth_errors   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $sites_table WHERE backfill_status = \"auth_error\"" );
+
+    $backfill_scheduled = wp_next_scheduled( "bite_backfill_hook" );
+    $daily_scheduled    = wp_next_scheduled( "bite_daily_update_hook" );
+    $backfill_running   = get_transient( "bite_backfill_running" );
+
+    $sites = $wpdb->get_results( "SELECT * FROM $sites_table ORDER BY site_id DESC" );
+    $auth_error_sites = $wpdb->get_results( "SELECT * FROM $sites_table WHERE backfill_status = \"auth_error\" ORDER BY site_id DESC" );
+
+    $bite_logs = array();
+    $log_file = ini_get( "error_log" );
+    if ( ! empty( $log_file ) && file_exists( $log_file ) && is_readable( $log_file ) ) {
+        $log_lines = file( $log_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES );
+        if ( $log_lines ) {
+            $log_lines = array_reverse( $log_lines );
+            $count = 0;
+            foreach ( $log_lines as $line ) {
+                if ( stripos( $line, "BITE" ) !== false ) {
+                    $bite_logs[] = $line;
+                    $count++;
+                    if ( $count >= 100 ) break;
+                }
+            }
+        }
+    }
+
+    if ( isset( $_GET["bite_notice"] ) ) {
+        $notices = array(
+            "backfill_triggered" => array( "success", "Backfill triggered. It will start within a few seconds." ),
+            "site_reset"         => array( "success", "Site has been reset to pending status." ),
+            "site_resumed"       => array( "success", "Site auth error cleared and set to resume." ),
+            "transient_cleared"  => array( "success", "The backfill running transient has been cleared." ),
+        );
+        $notice_key = sanitize_text_field( $_GET["bite_notice"] );
+        if ( isset( $notices[ $notice_key ] ) ) {
+            echo "<div class=\"notice notice-" . esc_attr( $notices[ $notice_key ][0] ) . " is-dismissible\"><p>" . esc_html( $notices[ $notice_key ][1] ) . "</p></div>";
+        }
+    }
+    ?>
+    <div class="wrap">
+        <h1>BITE System Status</h1>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0;">
+            <div style="background: #f0f0f1; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid #2271b1;">
+                <div style="font-size: 2em; font-weight: bold; color: #2271b1;"><?php echo $total_sites; ?></div>
+                <div style="color: #555; font-size: 0.9em;">Total Sites</div>
+            </div>
+            <div style="background: #f0f0f1; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid #f0c33c;">
+                <div style="font-size: 2em; font-weight: bold; color: #b38f00;"><?php echo $pending; ?></div>
+                <div style="color: #555; font-size: 0.9em;">Pending</div>
+            </div>
+            <div style="background: #f0f0f1; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid #72aee6;">
+                <div style="font-size: 2em; font-weight: bold; color: #2271b1;"><?php echo $in_progress; ?></div>
+                <div style="color: #555; font-size: 0.9em;">In Progress</div>
+            </div>
+            <div style="background: #f0f0f1; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid #00a32a;">
+                <div style="font-size: 2em; font-weight: bold; color: #00a32a;"><?php echo $complete; ?></div>
+                <div style="color: #555; font-size: 0.9em;">Complete</div>
+            </div>
+            <div style="background: #f0f0f1; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid #d63638;">
+                <div style="font-size: 2em; font-weight: bold; color: #d63638;"><?php echo $auth_errors; ?></div>
+                <div style="color: #555; font-size: 0.9em;">Auth Errors</div>
+            </div>
+        </div>
+
+        <h2>System Status</h2>
+        <table class="widefat" style="margin-bottom: 20px;">
+            <tbody>
+                <tr><th style="width: 200px;">Backfill Scheduled</th><td><?php echo $backfill_scheduled ? "<span style=\"color:#00a32a\">Yes - next run: " . human_time_diff( $backfill_scheduled, time() ) . "</span>" : "<span style=\"color:#d63638\">Not scheduled</span>"; ?></td></tr>
+                <tr><th>Daily Update Scheduled</th><td><?php echo $daily_scheduled ? "<span style=\"color:#00a32a\">Yes - next run: " . human_time_diff( $daily_scheduled, time() ) . "</span>" : "<span style=\"color:#d63638\">Not scheduled</span>"; ?></td></tr>
+                <tr><th>Backfill Running Now</th><td><?php echo $backfill_running ? "<span style=\"color:#b38f00\">Yes - transient active</span>" : "<span style=\"color:#00a32a\">No - idle</span>"; ?></td></tr>
+            </tbody>
+        </table>
+
+        <h2>Manual Controls</h2>
+        <div style="margin-bottom: 25px;">
+            <form method="POST" action="" style="display:inline-block; margin-right:10px;">
+                <?php wp_nonce_field( "bite_system_status_nonce" ); ?>
+                <input type="hidden" name="bite_action" value="trigger_backfill">
+                <button type="submit" class="button button-primary">Trigger Backfill Now</button>
+            </form>
+            <form method="POST" action="" style="display:inline-block;">
+                <?php wp_nonce_field( "bite_system_status_nonce" ); ?>
+                <input type="hidden" name="bite_action" value="clear_transient">
+                <button type="submit" class="button button-secondary" onclick="return confirm(\"Clear the running transient? Only do this if you believe the backfill is stuck.\");">Clear Running Transient</button>
+            </form>
+        </div>
+
+        <h2>Sites Overview</h2>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th style="width:50px">ID</th>
+                    <th>Name</th>
+                    <th>Domain</th>
+                    <th style="width:120px">Status</th>
+                    <th style="width:140px">Next Date</th>
+                    <th style="width:200px">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ( empty( $sites ) ) : ?>
+                    <tr><td colspan="6" style="text-align:center; padding: 20px;">No sites found.</td></tr>
+                <?php else : ?>
+                    <?php foreach ( $sites as $site ) :
+                        $owner = $wpdb->get_var( $wpdb->prepare( "SELECT user_id FROM {$wpdb->prefix}bite_user_sites WHERE site_id = %d ORDER BY assigned_at ASC LIMIT 1", $site->site_id ) );
+                        $owner_name = $owner ? get_userdata( $owner )->display_name : "Unknown";
+                        $status_color = array( "pending" => "#f0c33c", "in_progress" => "#72aee6", "complete" => "#00a32a", "auth_error" => "#d63638" );
+                        $color = isset( $status_color[ $site->backfill_status ] ) ? $status_color[ $site->backfill_status ] : "#666";
+                    ?>
+                    <tr>
+                        <td><?php echo $site->site_id; ?></td>
+                        <td><strong><?php echo esc_html( $site->name ); ?></strong><br><small>Owner: <?php echo esc_html( $owner_name ); ?></small></td>
+                        <td><?php echo esc_html( $site->domain ); ?></td>
+                        <td><span style="display:inline-block; padding: 3px 8px; border-radius: 4px; background: <?php echo $color; ?>22; color: <?php echo $color; ?>; font-weight: 600; font-size: 0.85em;"><?php echo esc_html( $site->backfill_status ); ?></span></td>
+                        <td><?php echo $site->backfill_next_date ? esc_html( $site->backfill_next_date ) : "-"; ?></td>
+                        <td>
+                            <?php if ( $site->backfill_status === "auth_error" ) : ?>
+                                <form method="POST" action="" style="display:inline-block;">
+                                    <?php wp_nonce_field( "bite_system_status_nonce" ); ?>
+                                    <input type="hidden" name="bite_action" value="resume_site">
+                                    <input type="hidden" name="bite_site_id" value="<?php echo $site->site_id; ?>">
+                                    <button type="submit" class="button button-small" style="background:#00a32a; color:#fff; border-color:#00a32a;">Clear Auth</button>
+                                </form>
+                            <?php endif; ?>
+                            <form method="POST" action="" style="display:inline-block;">
+                                <?php wp_nonce_field( "bite_system_status_nonce" ); ?>
+                                <input type="hidden" name="bite_action" value="reset_site">
+                                <input type="hidden" name="bite_site_id" value="<?php echo $site->site_id; ?>">
+                                <button type="submit" class="button button-small" onclick="return confirm(\"Reset this site to pending? This will restart data collection from the beginning.\");">Reset</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+        <h2 style="margin-top: 30px;">Auth Error Details</h2>
+        <?php if ( empty( $auth_error_sites ) ) : ?>
+            <p style="color: #666;">No auth errors at this time.</p>
+        <?php else : ?>
+            <table class="wp-list-table widefat fixed striped" style="margin-bottom: 20px;">
+                <thead>
+                    <tr><th>Site</th><th>Property</th><th>Error Time</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $auth_error_sites as $site ) :
+                        $error_data = get_option( "bite_auth_error_" . $site->site_id );
+                        $error_time = $error_data ? $error_data["error_time"] : "Unknown";
+                    ?>
+                    <tr>
+                        <td><?php echo esc_html( $site->name ); ?></td>
+                        <td><code><?php echo esc_html( $site->gsc_property ); ?></code></td>
+                        <td><?php echo esc_html( $error_time ); ?></td>
+                        <td>
+                            <form method="POST" action="" style="display:inline-block;">
+                                <?php wp_nonce_field( "bite_system_status_nonce" ); ?>
+                                <input type="hidden" name="bite_action" value="resume_site">
+                                <input type="hidden" name="bite_site_id" value="<?php echo $site->site_id; ?>">
+                                <button type="submit" class="button button-small" style="background:#00a32a; color:#fff; border-color:#00a32a;">Clear & Resume</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+
+        <h2 style="margin-top: 30px;">Recent BITE Logs (last 100 lines)</h2>
+        <?php if ( empty( $bite_logs ) ) : ?>
+            <p style="color: #666;">No BITE logs found. Check your PHP error_log configuration.</p>
+        <?php else : ?>
+            <div style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 500px; overflow-y: auto;">
+                <?php foreach ( $bite_logs as $log_line ) : ?>
+                    <div style="border-bottom: 1px solid #333; padding: 4px 0;"><?php echo esc_html( $log_line ); ?></div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
     </div>
     <?php
 }
