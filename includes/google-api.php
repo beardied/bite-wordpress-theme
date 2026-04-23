@@ -13,6 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+// Load error handling
+require_once get_template_directory() . '/includes/error-handler.php';
+
 // === CRON A: THE BACKFILL QUEEN (Self-Spawning, 150-Second Loop) ===
 
 /**
@@ -93,17 +96,24 @@ function bite_run_backfill_chunk() {
 
                     // Handle Discovery API Error
                     if( is_wp_error($first_day) ) {
-                        $error_message = 'BITE Queue Error: Discovery call failed for site ID ' . $site_to_process->site_id . '. Error: ' . $first_day->get_error_message();
-                        error_log($error_message);
-                         // *** EMAIL NOTIFICATION ***
-                        $admin_email = get_option('admin_email');
-                        wp_mail(
-                            $admin_email,
-                            '[BITE System Alert] GSC Discovery API Call Failed',
-                            $error_message . "\n\nThe backfill queue might be stalled. Please check API credentials and logs."
-                        );
-                        $more_work_to_do = false; // Don't reschedule immediately after critical failure
-                        break; // Exit while loop
+                        $site_id = $site_to_process->site_id;
+                        $error_type = bite_handle_api_error( $first_day, 'Discovery', $site_id );
+                        
+                        if ( $error_type === BITE_ERROR_AUTH ) {
+                            // Auth error - stop processing this site, don't reschedule immediately
+                            $more_work_to_do = false;
+                            break;
+                        } else {
+                            // Retryable error - respect backoff
+                            if ( bite_should_respect_backoff( $site_id ) ) {
+                                $more_work_to_do = false;
+                                break;
+                            }
+                            // Continue to try other sites
+                            $more_work_to_do = true;
+                            $site_to_process = null;
+                            continue;
+                        }
                     }
 
                     // Handle Case: No data found in GSC at all
@@ -124,6 +134,9 @@ function bite_run_backfill_chunk() {
                     $site_to_process->backfill_status = 'in_progress';
                     $site_to_process->backfill_next_date = $first_day;
                     error_log( 'BITE Queue: Discovery successful for site ID ' . $site_to_process->site_id . '. First day of data is: ' . $first_day );
+                    
+                    // Clear any previous error flags since discovery succeeded
+                    bite_clear_retry_backoff( $site_to_process->site_id );
                 }
             }
         }
@@ -132,6 +145,25 @@ function bite_run_backfill_chunk() {
         if ( ! $site_to_process ) {
             $more_work_to_do = false; // No pending or in_progress sites found
             break; // Exit while loop
+        }
+        
+        // Check if this site is in backoff period (from previous retryable errors)
+        $site_id = $site_to_process->site_id;
+        if ( bite_should_respect_backoff( $site_id ) ) {
+            // Check if there are other sites to process instead
+            $other_sites = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT site_id FROM $sites_table WHERE backfill_status IN (%s, %s) AND site_id != %d LIMIT 1",
+                    'pending', 'in_progress', $site_id
+                )
+            );
+            if ( $other_sites ) {
+                $site_to_process = null;
+                continue; // Try next site
+            }
+            // No other sites, exit loop
+            $more_work_to_do = true; // We'll check again later
+            break;
         }
 
         // --- We have an "in_progress" site, process ONE day ---
@@ -167,17 +199,9 @@ function bite_run_backfill_chunk() {
             // 1. Get TOTALS for this device/day
             $totals_data = bite_fetch_gsc_totals( $gsc_property, $date_to_fetch, $date_to_fetch, $device, $site_id );
             if ( is_wp_error( $totals_data ) ) {
-                $error_message = 'BITE Queue Error: Failed to fetch TOTALS for site ID ' . $site_id . ' (Device: ' . $device . ') on date ' . $date_to_fetch . '. Error: ' . $totals_data->get_error_message();
-                error_log( $error_message );
-                // *** EMAIL NOTIFICATION ***
-                $admin_email = get_option('admin_email');
-                wp_mail(
-                   $admin_email,
-                   '[BITE System Alert] GSC Totals API Fetch Failed',
-                   $error_message . "\n\nThe backfill queue might be stalled. Please check API credentials and logs."
-                );
-                $api_error_occurred = true; // Set flag
-                break; // Exit foreach device loop
+                $error_type = bite_handle_api_error( $totals_data, "Totals ($device)", $site_id );
+                $api_error_occurred = true;
+                break;
             }
             // Store totals if found
             if( !empty($totals_data['rows']) ) {
@@ -193,17 +217,9 @@ function bite_run_backfill_chunk() {
             // 2. Get KEYWORDS for this device/day
             $data = bite_fetch_gsc_data( $gsc_property, $date_to_fetch, $date_to_fetch, $device, $site_id );
             if ( is_wp_error( $data ) ) {
-                $error_message = 'BITE Queue Error: Failed to fetch KEYWORDS for site ID ' . $site_id . ' (Device: ' . $device . ') on date ' . $date_to_fetch . '. Error: ' . $data->get_error_message();
-                error_log( $error_message );
-                // *** EMAIL NOTIFICATION ***
-                 $admin_email = get_option('admin_email');
-                 wp_mail(
-                    $admin_email,
-                    '[BITE System Alert] GSC Keywords API Fetch Failed',
-                    $error_message . "\n\nThe backfill queue might be stalled. Please check API credentials and logs."
-                 );
-                $api_error_occurred = true; // Set flag
-                break; // Exit foreach device loop
+                $error_type = bite_handle_api_error( $data, "Keywords ($device)", $site_id );
+                $api_error_occurred = true;
+                break;
             }
             // Store keyword rows if found, adding device info
             if ( ! empty( $data['rows'] ) ) {
@@ -227,14 +243,16 @@ function bite_run_backfill_chunk() {
              if( is_wp_error($summary_result) ) {
                  $error_message = 'BITE Queue Error: Failed to insert summary data for site ID ' . $site_id . ' on date ' . $date_to_fetch . '. Error: ' . $summary_result->get_error_message();
                  error_log($error_message);
-                 // *** EMAIL NOTIFICATION ***
-                 $admin_email = get_option('admin_email');
-                 wp_mail(
-                    $admin_email,
-                    '[BITE System Alert] Database Summary Insert Failed',
-                    $error_message . "\n\nThe backfill queue might be stalled. Please check database status and logs."
+                 
+                 // Use error handler but mark as fatal (DB issues are serious)
+                 bite_send_error_notification(
+                     'Database Insert Failed',
+                     $error_message,
+                     'db_error_' . $site_id,
+                     $site_id,
+                     BITE_ERROR_FATAL
                  );
-                 $db_insert_error = true; // Set flag
+                 $db_insert_error = true;
              }
         }
 
@@ -243,14 +261,15 @@ function bite_run_backfill_chunk() {
             if ( is_wp_error( $rows_inserted ) ) {
                  $error_message = 'BITE Queue Error: Failed to insert keyword data for site ID ' . $site_id . ' on date ' . $date_to_fetch . '. Error: ' . $rows_inserted->get_error_message();
                  error_log($error_message);
-                 // *** EMAIL NOTIFICATION ***
-                 $admin_email = get_option('admin_email');
-                 wp_mail(
-                    $admin_email,
-                    '[BITE System Alert] Database Keyword Insert Failed',
-                    $error_message . "\n\nThe backfill queue might be stalled. Please check database status and logs."
+                 
+                 bite_send_error_notification(
+                     'Database Insert Failed',
+                     $error_message,
+                     'db_error_' . $site_id,
+                     $site_id,
+                     BITE_ERROR_FATAL
                  );
-                 $db_insert_error = true; // Set flag
+                 $db_insert_error = true;
             } else {
                  error_log( "BITE Queue: Site ID $site_id, Date $date_to_fetch. Inserted $rows_inserted keyword rows (from 3 device queries)." );
             }
@@ -260,8 +279,8 @@ function bite_run_backfill_chunk() {
 
         // If a DB error occurred, stop processing for this run
         if( $db_insert_error ) {
-             $more_work_to_do = false; // Don't reschedule immediately
-             break; // Exit while loop
+             $more_work_to_do = false;
+             break;
         }
 
         // --- Success for this day! Move to the next day ---
@@ -271,6 +290,9 @@ function bite_run_backfill_chunk() {
         if($site_to_process) {
             $site_to_process->backfill_next_date = $next_start_date;
         }
+        
+        // Clear any retry backoff since we had success
+        bite_clear_retry_backoff( $site_id );
 
     } // --- End Processing Loop (while time() < $time_limit) ---
 
@@ -378,11 +400,12 @@ function bite_run_daily_update() {
             } else {
                 $error_message = "BITE Daily Update Error: Failed to flag Site ID $site_id for update. DB Error: " . $wpdb->last_error;
                 error_log( $error_message );
-                $admin_email = get_option('admin_email');
-                wp_mail(
-                    $admin_email,
-                    '[BITE System Alert] Failed to Queue Daily Update',
-                    $error_message . "\n\nPlease check the BITE system and server logs."
+                bite_send_error_notification(
+                    'Failed to Queue Daily Update',
+                    $error_message,
+                    'daily_update_db_' . $site_id,
+                    $site_id,
+                    BITE_ERROR_FATAL
                 );
             }
         } else {

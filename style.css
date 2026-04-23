@@ -1345,6 +1345,18 @@ th span[title] {
     gap: 6px;
 }
 
+.bite-site-status.bite-status-error {
+    background: rgba(231, 76, 60, 0.15);
+    color: #c0392b;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .bite-site-status .material-icons {
     font-size: 18px;
 }

@@ -139,6 +139,9 @@ function bite_handle_google_oauth_callback() {
     // Clear any pending OAuth errors
     delete_user_meta( $user_id, 'bite_oauth_state' );
     
+    // Fire action for connected hook (resumes backfill if there were auth errors)
+    do_action( 'bite_google_connected', $user_id );
+    
     // Redirect back to dashboard with success
     wp_redirect( home_url( '/dashboard/?oauth_success=1' ) );
     exit;

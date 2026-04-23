@@ -39,7 +39,7 @@ function bite_create_database_tables() {
         domain VARCHAR(255) NOT NULL,
         gsc_property VARCHAR(255) NOT NULL,
         gsc_credentials TEXT NULL,
-        backfill_status ENUM('pending', 'in_progress', 'complete') NOT NULL DEFAULT 'pending',
+        backfill_status ENUM('pending', 'in_progress', 'complete', 'auth_error') NOT NULL DEFAULT 'pending',
         backfill_next_date DATE NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (site_id),
@@ -197,6 +197,12 @@ function bite_create_missing_tables() {
             KEY idx_user_id (user_id)
         ) $charset_collate;";
         dbDelta( $sql_oauth );
+    }
+    
+    // Migration: Add 'auth_error' to backfill_status ENUM if not present
+    $enum_check = $wpdb->get_row( "SHOW COLUMNS FROM $sites_table LIKE 'backfill_status'" );
+    if ( $enum_check && strpos( $enum_check->Type, 'auth_error' ) === false ) {
+        $wpdb->query( "ALTER TABLE $sites_table MODIFY COLUMN backfill_status ENUM('pending', 'in_progress', 'complete', 'auth_error') NOT NULL DEFAULT 'pending'" );
     }
 }
 add_action( 'admin_init', 'bite_create_missing_tables' );

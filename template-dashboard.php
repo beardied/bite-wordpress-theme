@@ -176,6 +176,14 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                 </p>
             </div>
         </section>
+        
+        <?php 
+        // Show token renewal notice if needed
+        $token_notice = bite_get_user_token_notice();
+        if ( ! empty( $token_notice ) ) {
+            echo $token_notice;
+        }
+        ?>
 
         <section class="bite-dashboard-section bite-sites-section">
             <div class="bite-section-header">
@@ -198,7 +206,12 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                                     <?php if ( ! empty( $site->niche_name ) ) : ?>
                                         <span class="bite-site-niche"><?php echo esc_html( $site->niche_name ); ?></span>
                                     <?php endif; ?>
-                                    <?php if ( $site->backfill_status === 'pending' || $site->backfill_status === 'in_progress' ) : ?>
+                                    <?php if ( $site->backfill_status === 'auth_error' ) : ?>
+                                        <span class="bite-site-status bite-status-error">
+                                            <span class="material-icons">error</span>
+                                            Auth Expired
+                                        </span>
+                                    <?php elseif ( $site->backfill_status === 'pending' || $site->backfill_status === 'in_progress' ) : ?>
                                         <span class="bite-site-status bite-status-pending">
                                             <span class="material-icons">hourglass_empty</span>
                                             Data Importing...
