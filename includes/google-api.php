@@ -28,6 +28,8 @@ function bite_trigger_backfill_queue() {
         return;
     }
     $sites_table = $wpdb->prefix . 'bite_sites';
+    // Fix any sites with empty/null status (prevents deadlock)
+    $wpdb->query( "UPDATE $sites_table SET backfill_status = 'pending' WHERE backfill_status = '' OR backfill_status IS NULL" );
     // Check if any sites need initial backfill or catching up
     $needs_work = $wpdb->get_var(
         $wpdb->prepare(
@@ -345,6 +347,12 @@ function bite_run_daily_update() {
     }
 
     $sites_table = $wpdb->prefix . 'bite_sites';
+
+    // Fix any sites with empty/null status (prevents them being invisible to both processes)
+    $fixed = $wpdb->query( "UPDATE $sites_table SET backfill_status = 'pending' WHERE backfill_status = '' OR backfill_status IS NULL" );
+    if ( $fixed ) {
+        error_log( "BITE Daily Update: Fixed $fixed site(s) with empty backfill_status." );
+    }
 
     // Get all sites currently marked as 'complete'
     $complete_sites = $wpdb->get_results(
