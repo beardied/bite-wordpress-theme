@@ -35,6 +35,9 @@ require_once BITE_THEME_DIR . '/includes/google-api.php';
 // 6. Charting & Reporting Functions
 require_once BITE_THEME_DIR . '/includes/reporting.php';
 
+// 6.5. Domain Metrics API (Authority scores: OPR, SRT, Moz)
+require_once BITE_THEME_DIR . '/includes/domain-metrics-api.php';
+
 // 7. User Access Control (Client isolation)
 require_once BITE_THEME_DIR . '/includes/user-access.php';
 

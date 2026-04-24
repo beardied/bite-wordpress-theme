@@ -225,6 +225,9 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                                 </div>
                             </div>
                             
+                            <?php
+                            $dm = function_exists( 'bite_get_latest_domain_metrics' ) ? bite_get_latest_domain_metrics( $site->site_id ) : null;
+                            ?>
                             <?php if ( $site_stats['total_impressions'] > 0 ) : ?>
                                 <div class="bite-site-card-stats">
                                     <div class="bite-site-stat">
@@ -247,6 +250,13 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                                         <span class="bite-site-stat-value"><?php echo esc_html( number_format( $site_stats['avg_position'], 1 ) ); ?></span>
                                         <span class="bite-site-stat-label">Avg Position</span>
                                     </div>
+                                    <?php if ( $dm && $dm->authority_index ) : ?>
+                                    <div class="bite-site-stat" title="Authority Index: <?php echo esc_attr( $dm->authority_index ); ?><?php echo $dm->moz_da ? ' | Moz DA: ' . $dm->moz_da : ''; ?><?php echo $dm->srt_da ? ' | SRT DA: ' . $dm->srt_da : ''; ?><?php echo $dm->opr_rank ? ' | OPR: ' . $dm->opr_rank : ''; ?><?php echo $dm->srt_backlinks ? ' | Backlinks: ' . number_format( $dm->srt_backlinks ) : ''; ?>" style="cursor: help;">
+                                        <span class="bite-site-stat-icon">🏆</span>
+                                        <span class="bite-site-stat-value"><?php echo esc_html( number_format( $dm->authority_index, 1 ) ); ?></span>
+                                        <span class="bite-site-stat-label">Auth Index<?php echo $dm->recorded_at ? ' (' . esc_html( date( 'M j', strtotime( $dm->recorded_at ) ) ) . ')' : ''; ?></span>
+                                    </div>
+                                    <?php endif; ?>
                                     <div class="bite-site-stat bite-site-stat-action">
                                         <a href="<?php echo esc_url( $view_data_url ); ?>" class="bite-button bite-button-primary">
                                             View Data →

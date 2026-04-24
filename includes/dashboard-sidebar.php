@@ -83,6 +83,11 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
                     'icon'  => 'insert_chart',
                 ),
                 array(
+                    'slug'  => 'all-stats',
+                    'title' => 'All Stats',
+                    'icon'  => 'stacked_line_chart',
+                ),
+                array(
                     'slug'  => 'opportunity-finder',
                     'title' => 'Opportunity Finder',
                     'icon'  => 'search',

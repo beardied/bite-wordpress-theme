@@ -864,6 +864,10 @@ function bite_admin_page_settings() {
         update_option( 'bite_contact_email', $contact_email );
         update_option( 'bite_google_client_id', $client_id );
         update_option( 'bite_google_client_secret', $client_secret );
+        update_option( 'bite_opr_api_key', sanitize_text_field( $_POST['bite_opr_api_key'] ?? '' ) );
+        update_option( 'bite_srt_api_key', sanitize_text_field( $_POST['bite_srt_api_key'] ?? '' ) );
+        update_option( 'bite_moz_access_id', sanitize_text_field( $_POST['bite_moz_access_id'] ?? '' ) );
+        update_option( 'bite_moz_secret_key', sanitize_text_field( $_POST['bite_moz_secret_key'] ?? '' ) );
         
         echo '<div class="notice notice-success"><p>Settings saved successfully.</p></div>';
     }
@@ -964,6 +968,58 @@ function bite_admin_page_settings() {
                 <?php endif; ?>
             <?php endif; ?>
             
+            <hr style="margin: 30px 0;">
+
+            <h2>📊 Domain Authority API Keys</h2>
+            <p style="color: #666; margin-bottom: 15px;">These APIs power the B.I.T.E. Authority Index and backlink tracking. All keys are optional — missing keys simply disable that data source.</p>
+
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><label for="bite_opr_api_key">OpenPageRank API Key</label></th>
+                    <td>
+                        <input type="password" id="bite_opr_api_key" name="bite_opr_api_key"
+                               value="<?php echo esc_attr( get_option( 'bite_opr_api_key', '' ) ); ?>"
+                               class="regular-text" style="width: 100%; max-width: 600px;">
+                        <p class="description">
+                            Free key from <a href="https://www.domcop.com/openpagerank/" target="_blank">OpenPageRank</a>. Batch up to 100 domains per call. 10,000 requests/hour.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="bite_srt_api_key">SEO Review Tools API Key</label></th>
+                    <td>
+                        <input type="password" id="bite_srt_api_key" name="bite_srt_api_key"
+                               value="<?php echo esc_attr( get_option( 'bite_srt_api_key', '' ) ); ?>"
+                               class="regular-text" style="width: 100%; max-width: 600px;">
+                        <p class="description">
+                            Free tier: ~50 requests/day. <a href="https://www.seoreviewtools.com/" target="_blank">Get key here</a>. Covers the first 50 sites added to BITE as a bonus feature.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="bite_moz_access_id">Moz Access ID</label></th>
+                    <td>
+                        <input type="text" id="bite_moz_access_id" name="bite_moz_access_id"
+                               value="<?php echo esc_attr( get_option( 'bite_moz_access_id', '' ) ); ?>"
+                               class="regular-text" style="width: 100%; max-width: 600px;">
+                        <p class="description">
+                            From your <a href="https://moz.com/products/api" target="_blank">Mozscape API</a> credentials.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="bite_moz_secret_key">Moz Secret Key</label></th>
+                    <td>
+                        <input type="password" id="bite_moz_secret_key" name="bite_moz_secret_key"
+                               value="<?php echo esc_attr( get_option( 'bite_moz_secret_key', '' ) ); ?>"
+                               class="regular-text" style="width: 100%; max-width: 600px;">
+                        <p class="description">
+                            Free tier requires a 10-second delay between requests. BITE handles this automatically.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+
             <hr style="margin: 30px 0;">
             
             <h2>📧 Contact Form Settings</h2>

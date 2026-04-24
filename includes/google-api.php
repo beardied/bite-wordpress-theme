@@ -431,6 +431,13 @@ function bite_run_daily_update() {
     }
 
     error_log( 'BITE Daily Update: All completed sites checked.' );
+
+    // Fetch domain authority metrics from external APIs (OPR, SRT, Moz)
+    if ( function_exists( 'bite_fetch_all_domain_metrics' ) ) {
+        error_log( 'BITE Daily Update: Starting domain metrics fetch...' );
+        $dm_summary = bite_fetch_all_domain_metrics();
+        error_log( 'BITE Daily Update: Domain metrics fetch complete. ' . wp_json_encode( $dm_summary ) );
+    }
 }
 add_action( 'bite_daily_update_hook', 'bite_run_daily_update' );
 

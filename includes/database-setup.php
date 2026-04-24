@@ -120,6 +120,30 @@ function bite_create_database_tables() {
         KEY idx_user_id (user_id)
     ) $charset_collate;";
     dbDelta( $sql_oauth );
+
+    // 7. Domain Metrics Table (Authority scores from external APIs)
+    $table_name_domain_metrics = $wpdb->prefix . 'bite_domain_metrics';
+    $sql_domain_metrics = "CREATE TABLE $table_name_domain_metrics (
+        metric_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        site_id INT UNSIGNED NOT NULL,
+        recorded_at DATE NOT NULL,
+        moz_da INT UNSIGNED DEFAULT NULL,
+        moz_pa INT UNSIGNED DEFAULT NULL,
+        moz_ref_domains INT UNSIGNED DEFAULT NULL,
+        srt_da INT UNSIGNED DEFAULT NULL,
+        srt_pa INT UNSIGNED DEFAULT NULL,
+        srt_backlinks BIGINT UNSIGNED DEFAULT NULL,
+        opr_rank DECIMAL(4,2) DEFAULT NULL,
+        opr_global_rank BIGINT UNSIGNED DEFAULT NULL,
+        authority_index DECIMAL(5,2) DEFAULT NULL,
+        data_source_json LONGTEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (metric_id),
+        UNIQUE KEY uq_site_date (site_id, recorded_at),
+        KEY idx_recorded_at (recorded_at),
+        KEY idx_site_id (site_id)
+    ) $charset_collate;";
+    dbDelta( $sql_domain_metrics );
 }
 add_action( 'after_switch_theme', 'bite_create_database_tables' );
 
@@ -203,6 +227,33 @@ function bite_create_missing_tables() {
     $enum_check = $wpdb->get_row( "SHOW COLUMNS FROM $sites_table LIKE 'backfill_status'" );
     if ( $enum_check && strpos( $enum_check->Type, 'auth_error' ) === false ) {
         $wpdb->query( "ALTER TABLE $sites_table MODIFY COLUMN backfill_status ENUM('pending', 'in_progress', 'complete', 'auth_error') NOT NULL DEFAULT 'pending'" );
+    }
+
+    // Migration: Create domain_metrics table if not exists
+    $domain_metrics_table = $wpdb->prefix . 'bite_domain_metrics';
+    $dm_exists = $wpdb->get_var( "SHOW TABLES LIKE '$domain_metrics_table'" );
+    if ( ! $dm_exists ) {
+        $sql_domain_metrics = "CREATE TABLE $domain_metrics_table (
+            metric_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            site_id INT UNSIGNED NOT NULL,
+            recorded_at DATE NOT NULL,
+            moz_da INT UNSIGNED DEFAULT NULL,
+            moz_pa INT UNSIGNED DEFAULT NULL,
+            moz_ref_domains INT UNSIGNED DEFAULT NULL,
+            srt_da INT UNSIGNED DEFAULT NULL,
+            srt_pa INT UNSIGNED DEFAULT NULL,
+            srt_backlinks BIGINT UNSIGNED DEFAULT NULL,
+            opr_rank DECIMAL(4,2) DEFAULT NULL,
+            opr_global_rank BIGINT UNSIGNED DEFAULT NULL,
+            authority_index DECIMAL(5,2) DEFAULT NULL,
+            data_source_json LONGTEXT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (metric_id),
+            UNIQUE KEY uq_site_date (site_id, recorded_at),
+            KEY idx_recorded_at (recorded_at),
+            KEY idx_site_id (site_id)
+        ) $charset_collate;";
+        dbDelta( $sql_domain_metrics );
     }
 }
 add_action( 'init', 'bite_create_missing_tables' );
