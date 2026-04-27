@@ -158,7 +158,7 @@ add_action( 'template_redirect', 'bite_handle_dashboard_disconnect' );
  * Initialize datepicker for dashboard data view
  */
 function bite_dashboard_datepicker_init() {
-    if ( ! is_page_template( 'template-dashboard.php' ) ) {
+    if ( ! is_page_template( 'template-dashboard.php' ) && ! is_page_template( 'template-all-stats.php' ) ) {
         return;
     }
     ?>

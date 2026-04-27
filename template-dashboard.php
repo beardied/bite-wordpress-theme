@@ -185,6 +185,8 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
         }
         ?>
 
+        <?php if ( function_exists( 'bite_render_metrics_legend' ) ) echo bite_render_metrics_legend(); ?>
+
         <section class="bite-dashboard-section bite-sites-section">
             <div class="bite-section-header">
                 <h2>Your Sites</h2>
@@ -251,9 +253,9 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                                         <span class="bite-site-stat-label">Avg Position</span>
                                     </div>
                                     <?php if ( $dm && $dm->authority_index ) : ?>
-                                    <div class="bite-site-stat" title="Authority Index: <?php echo esc_attr( $dm->authority_index ); ?><?php echo $dm->opr_rank ? ' | OPR: ' . $dm->opr_rank : ''; ?><?php echo isset($dm->pagespeed_score) && $dm->pagespeed_score ? ' | PageSpeed: ' . $dm->pagespeed_score : ''; ?>" style="cursor: help;">
+                                    <div class="bite-site-stat" title="Authority Index: <?php echo esc_attr( $dm->authority_index ); ?> / 100<?php echo $dm->opr_rank ? ' | OPR: ' . $dm->opr_rank : ''; ?><?php echo isset($dm->pagespeed_score) && $dm->pagespeed_score ? ' | PageSpeed: ' . $dm->pagespeed_score : ''; ?>" style="cursor: help;">
                                         <span class="bite-site-stat-icon">🏆</span>
-                                        <span class="bite-site-stat-value"><?php echo esc_html( number_format( $dm->authority_index, 1 ) ); ?></span>
+                                        <span class="bite-site-stat-value"><?php echo esc_html( number_format( $dm->authority_index, 1 ) ); ?><small style="font-size:0.65em; opacity:0.6;">/100</small></span>
                                         <span class="bite-site-stat-label">Auth Index<?php echo $dm->recorded_at ? ' (' . esc_html( date( 'M j', strtotime( $dm->recorded_at ) ) ) . ')' : ''; ?></span>
                                     </div>
                                     <?php endif; ?>

@@ -125,7 +125,7 @@ function bite_fetch_pagespeed_single( $domain, $strategy = 'desktop' ) {
         $url = add_query_arg( 'key', $api_key, $url );
     }
 
-    $response = wp_remote_get( $url, array( 'timeout' => 45 ) );
+    $response = wp_remote_get( $url, array( 'timeout' => 90 ) );
 
     if ( is_wp_error( $response ) ) {
         return $response;
@@ -327,4 +327,64 @@ function bite_get_domain_metrics_history( $site_id, $start_date, $end_date ) {
          ORDER BY recorded_at ASC",
         $site_id, $start_date, $end_date
     ) );
+}
+
+/* ============================================================
+   9. METRICS LEGEND / EXPLANATION COMPONENT
+   ============================================================ */
+
+/**
+ * Render a collapsible explanation of BITE metrics.
+ * Shows what OPR, PageSpeed, and Authority Index mean.
+ *
+ * @return string HTML output.
+ */
+function bite_render_metrics_legend() {
+    ob_start();
+    ?>
+    <div class="bite-metrics-legend" style="margin-bottom: 20px;">
+        <button type="button" class="bite-legend-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'; this.querySelector('.bite-legend-arrow').style.transform = this.nextElementSibling.style.display === 'none' ? 'rotate(0deg)' : 'rotate(180deg)';" style="background: var(--card-bg); border: 1px solid var(--border-light); padding: 12px 16px; border-radius: var(--radius-md); cursor: pointer; width: 100%; text-align: left; font-size: 0.95em; font-weight: 600; color: var(--text-color); display: flex; align-items: center; justify-content: space-between;">
+            <span>📖 What do these scores mean?</span>
+            <span class="bite-legend-arrow" style="display: inline-block; transition: transform 0.2s; font-size: 0.8em;">▼</span>
+        </button>
+        <div class="bite-legend-content" style="display: none; background: var(--bg-color); border: 1px solid var(--border-light); border-top: none; padding: 20px; border-radius: 0 0 var(--radius-md) var(--radius-md);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div>
+                    <h4 style="margin: 0 0 8px; color: #e91e63; font-size: 1em;">🏆 Authority Index</h4>
+                    <p style="margin: 0; font-size: 0.9em; line-height: 1.5; color: #555;">
+                        A blended 0-100 score combining <strong>OpenPageRank</strong> and <strong>PageSpeed Performance</strong>.<br><br>
+                        <strong>How it's calculated:</strong><br>
+                        OPR (0-10) × 10 + PageSpeed (0-100) ÷ 2 = average<br><br>
+                        <strong>Max possible: 100</strong> (OPR 10.0 + PageSpeed 100)<br>
+                        <strong>Higher is better.</strong>
+                    </p>
+                </div>
+                <div>
+                    <h4 style="margin: 0 0 8px; color: #e91e63; font-size: 1em;">🔗 OpenPageRank (OPR)</h4>
+                    <p style="margin: 0; font-size: 0.9em; line-height: 1.5; color: #555;">
+                        A measure of domain authority based on Google's original PageRank algorithm.<br><br>
+                        <strong>Range: 0.00 – 10.00</strong><br>
+                        <strong>Higher is better.</strong><br><br>
+                        0-2 = New/low authority site<br>
+                        3-5 = Moderate authority<br>
+                        6-8 = Strong authority<br>
+                        9-10 = Top-tier authority (rare)
+                    </p>
+                </div>
+                <div>
+                    <h4 style="margin: 0 0 8px; color: #2196f3; font-size: 1em;">⚡ PageSpeed Score</h4>
+                    <p style="margin: 0; font-size: 0.9em; line-height: 1.5; color: #555;">
+                        Google's Lighthouse performance score for your site.<br><br>
+                        <strong>Range: 0 – 100</strong><br>
+                        <strong>Higher is better.</strong><br><br>
+                        0-49 = Poor (needs work)<br>
+                        50-89 = Needs Improvement<br>
+                        90-100 = Good (fast & well-optimized)
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php
+    return ob_get_clean();
 }

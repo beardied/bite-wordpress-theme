@@ -44,9 +44,13 @@ foreach ( $all_sites as $s ) {
     }
 }
 
-// Default date range: last 90 days
-$end_date   = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : date( 'Y-m-d' );
-$start_date = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : date( 'Y-m-d', strtotime( '-90 days' ) );
+// Default date range: last 90 days (displayed as dd-mm-yy for datepicker)
+$display_end_date   = isset( $_GET['end_date'] ) && ! empty( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : date( 'd-m-Y' );
+$display_start_date = isset( $_GET['start_date'] ) && ! empty( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : date( 'd-m-Y', strtotime( '-90 days' ) );
+
+// Convert to SQL format for queries
+$end_date   = date( 'Y-m-d', strtotime( $display_end_date ) );
+$start_date = date( 'Y-m-d', strtotime( $display_start_date ) );
 
 // Which stats to show
 $show_clicks        = isset( $_GET['show_clicks'] ) ? true : ( ! isset( $_GET['submit'] ) ? true : false );
@@ -107,6 +111,9 @@ if ( $selected_site ) {
         </section>
 
         <section class="bite-dashboard-section">
+
+            <?php if ( function_exists( 'bite_render_metrics_legend' ) ) echo bite_render_metrics_legend(); ?>
+
             <form method="GET" action="" class="bite-stats-filters" style="background: var(--card-bg); border: 1px solid var(--border-light); padding: 24px; border-radius: var(--radius-lg); margin-bottom: 25px;">
                 <div class="bite-filters-row" style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
                     <div class="bite-filter-group">
@@ -121,11 +128,11 @@ if ( $selected_site ) {
                     </div>
                     <div class="bite-filter-group">
                         <label for="allstats_start">Start Date</label>
-                        <input type="date" id="allstats_start" name="start_date" value="<?php echo esc_attr( $start_date ); ?>">
+                        <input type="text" id="allstats_start" name="start_date" class="bite-datepicker" value="<?php echo esc_attr( $display_start_date ); ?>">
                     </div>
                     <div class="bite-filter-group">
                         <label for="allstats_end">End Date</label>
-                        <input type="date" id="allstats_end" name="end_date" value="<?php echo esc_attr( $end_date ); ?>">
+                        <input type="text" id="allstats_end" name="end_date" class="bite-datepicker" value="<?php echo esc_attr( $display_end_date ); ?>">
                     </div>
                 </div>
 
