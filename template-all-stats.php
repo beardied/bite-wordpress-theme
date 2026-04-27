@@ -287,9 +287,7 @@ foreach ( $ds_config as $key => $cfg ) {
 
             <?php if ( ! empty( $chart_data ) ) : ?>
                 <div class="bite-widget-container">
-                    <div class="bite-chart-wrapper">
-                        <canvas id="all-stats-chart"></canvas>
-                    </div>
+                    <canvas id="all-stats-chart" style="max-height: 520px; width: 100%;"></canvas>
                 </div>
 
                 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
