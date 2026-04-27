@@ -476,7 +476,8 @@ h1, h2, h3, h4, h5, h6 {
     min-width: 0; /* Critical: allows flex child to shrink below content width */
 }
 #bite-line-chart,
-#bite-ctr-chart {
+#bite-ctr-chart,
+#all-stats-chart {
     max-height: 100%;
     width: 100% !important; /* Force canvas to fill container */
 }
