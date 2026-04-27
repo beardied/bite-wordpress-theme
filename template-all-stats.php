@@ -3,7 +3,6 @@
  * Template Name: BITE All Stats
  *
  * Overlay chart combining GSC data with domain authority metrics.
- * Users can toggle which stats to display and select date ranges.
  *
  * @package BITE-theme
  */
@@ -52,23 +51,43 @@ $display_start_date = isset( $_GET['start_date'] ) && ! empty( $_GET['start_date
 $end_date   = date( 'Y-m-d', strtotime( $display_end_date ) );
 $start_date = date( 'Y-m-d', strtotime( $display_start_date ) );
 
+// Device filter for GSC data
+$device_filter = isset( $_GET['device_filter'] ) ? sanitize_text_field( $_GET['device_filter'] ) : 'all';
+
 // Which stats to show
-$show_clicks        = isset( $_GET['show_clicks'] ) ? true : ( ! isset( $_GET['submit'] ) ? true : false );
-$show_impressions   = isset( $_GET['show_impressions'] ) ? true : false;
-$show_auth_index    = isset( $_GET['show_auth_index'] ) ? true : ( ! isset( $_GET['submit'] ) ? true : false );
-$show_opr_rank      = isset( $_GET['show_opr_rank'] ) ? true : false;
-$show_pagespeed     = isset( $_GET['show_pagespeed'] ) ? true : false;
+$show_clicks     = isset( $_GET['show_clicks'] ) ? true : ( ! isset( $_GET['submit'] ) ? true : false );
+$show_impressions= isset( $_GET['show_impressions'] ) ? true : false;
+$show_auth_index = isset( $_GET['show_auth_index'] ) ? true : ( ! isset( $_GET['submit'] ) ? true : false );
+$show_opr_rank   = isset( $_GET['show_opr_rank'] ) ? true : false;
+$show_d_perf     = isset( $_GET['show_d_perf'] ) ? true : false;
+$show_d_a11y     = isset( $_GET['show_d_a11y'] ) ? true : false;
+$show_d_bp       = isset( $_GET['show_d_bp'] ) ? true : false;
+$show_d_seo      = isset( $_GET['show_d_seo'] ) ? true : false;
+$show_m_perf     = isset( $_GET['show_m_perf'] ) ? true : false;
+$show_m_a11y     = isset( $_GET['show_m_a11y'] ) ? true : false;
+$show_m_bp       = isset( $_GET['show_m_bp'] ) ? true : false;
+$show_m_seo      = isset( $_GET['show_m_seo'] ) ? true : false;
 
 $chart_data = array();
 if ( $selected_site ) {
     // GSC daily summary data
-    $summary_rows = $wpdb->get_results( $wpdb->prepare(
-        "SELECT date, SUM(total_clicks) as clicks, SUM(total_impressions) as impressions, AVG(total_position) as position
-         FROM {$wpdb->prefix}bite_daily_summary
-         WHERE site_id = %d AND date >= %s AND date <= %s
-         GROUP BY date ORDER BY date ASC",
-        $selected_site_id, $start_date, $end_date
-    ) );
+    if ( $device_filter === 'all' ) {
+        $summary_rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT date, SUM(total_clicks) as clicks, SUM(total_impressions) as impressions
+             FROM {$wpdb->prefix}bite_daily_summary
+             WHERE site_id = %d AND date >= %s AND date <= %s
+             GROUP BY date ORDER BY date ASC",
+            $selected_site_id, $start_date, $end_date
+        ) );
+    } else {
+        $summary_rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT date, total_clicks as clicks, total_impressions as impressions
+             FROM {$wpdb->prefix}bite_daily_summary
+             WHERE site_id = %d AND date >= %s AND date <= %s AND device = %s
+             ORDER BY date ASC",
+            $selected_site_id, $start_date, $end_date, $device_filter
+        ) );
+    }
 
     // Domain metrics data
     $dm_rows = array();
@@ -82,20 +101,82 @@ if ( $selected_site ) {
         $dates[ $row->date ] = array(
             'clicks'      => intval( $row->clicks ),
             'impressions' => intval( $row->impressions ),
-            'position'    => round( floatval( $row->position ), 1 ),
         );
     }
     foreach ( $dm_rows as $row ) {
         if ( ! isset( $dates[ $row->recorded_at ] ) ) {
             $dates[ $row->recorded_at ] = array();
         }
-        $dates[ $row->recorded_at ]['auth_index'] = $row->authority_index ? round( floatval( $row->authority_index ), 2 ) : null;
-        $dates[ $row->recorded_at ]['opr_rank']      = $row->opr_rank ? round( floatval( $row->opr_rank ), 2 ) : null;
-        $dates[ $row->recorded_at ]['pagespeed']      = $row->pagespeed_score ? intval( $row->pagespeed_score ) : null;
+        $dates[ $row->recorded_at ]['auth_index']  = $row->authority_index ? round( floatval( $row->authority_index ), 2 ) : null;
+        $dates[ $row->recorded_at ]['opr_rank']    = $row->opr_rank ? round( floatval( $row->opr_rank ), 2 ) : null;
+        $dates[ $row->recorded_at ]['opr_display'] = $row->opr_rank ? round( floatval( $row->opr_rank ) * 10, 2 ) : null;
+        $dates[ $row->recorded_at ]['d_perf']      = $row->pagespeed_score ? intval( $row->pagespeed_score ) : null;
+        $dates[ $row->recorded_at ]['d_a11y']      = $row->pagespeed_accessibility ? intval( $row->pagespeed_accessibility ) : null;
+        $dates[ $row->recorded_at ]['d_bp']        = $row->pagespeed_best_practices ? intval( $row->pagespeed_best_practices ) : null;
+        $dates[ $row->recorded_at ]['d_seo']       = $row->pagespeed_seo ? intval( $row->pagespeed_seo ) : null;
+        $dates[ $row->recorded_at ]['m_perf']      = $row->mobile_score ? intval( $row->mobile_score ) : null;
+        $dates[ $row->recorded_at ]['m_a11y']      = $row->mobile_accessibility ? intval( $row->mobile_accessibility ) : null;
+        $dates[ $row->recorded_at ]['m_bp']        = $row->mobile_best_practices ? intval( $row->mobile_best_practices ) : null;
+        $dates[ $row->recorded_at ]['m_seo']       = $row->mobile_seo ? intval( $row->mobile_seo ) : null;
     }
 
     ksort( $dates );
     $chart_data = $dates;
+}
+
+// Build Chart.js datasets in PHP
+$chart_datasets = array();
+$has_left_axis  = $show_clicks || $show_impressions;
+$has_right_axis = $show_auth_index || $show_opr_rank || $show_d_perf || $show_d_a11y || $show_d_bp || $show_d_seo || $show_m_perf || $show_m_a11y || $show_m_bp || $show_m_seo;
+
+$show_vars = array(
+    'clicks'      => $show_clicks,
+    'impressions' => $show_impressions,
+    'auth_index'  => $show_auth_index,
+    'opr_rank'    => $show_opr_rank,
+    'd_perf'      => $show_d_perf,
+    'd_a11y'      => $show_d_a11y,
+    'd_bp'        => $show_d_bp,
+    'd_seo'       => $show_d_seo,
+    'm_perf'      => $show_m_perf,
+    'm_a11y'      => $show_m_a11y,
+    'm_bp'        => $show_m_bp,
+    'm_seo'       => $show_m_seo,
+);
+
+$ds_config = array(
+    'clicks'      => array( 'label' => 'Clicks',              'key' => 'clicks',      'color' => '#ff6b35', 'bg' => 'rgba(255,107,53,0.08)',  'axis' => 'y',  'fill' => true,  'point' => 2 ),
+    'impressions' => array( 'label' => 'Impressions',         'key' => 'impressions', 'color' => '#2271b1', 'bg' => 'rgba(34,113,177,0.08)',  'axis' => 'y',  'fill' => true,  'point' => 2 ),
+    'auth_index'  => array( 'label' => 'Authority Index',     'key' => 'auth_index',  'color' => '#00a32a', 'bg' => 'rgba(0,163,42,0.08)',    'axis' => 'y1', 'fill' => false, 'point' => 4 ),
+    'opr_rank'    => array( 'label' => 'OpenPageRank',        'key' => 'opr_display', 'color' => '#e91e63', 'bg' => 'rgba(233,30,99,0.08)',   'axis' => 'y1', 'fill' => false, 'point' => 4 ),
+    'd_perf'      => array( 'label' => 'Desktop Performance', 'key' => 'd_perf',      'color' => '#2196f3', 'bg' => 'rgba(33,150,243,0.08)',  'axis' => 'y1', 'fill' => false, 'point' => 4 ),
+    'd_a11y'      => array( 'label' => 'Desktop Accessibility','key'=> 'd_a11y',      'color' => '#9c27b0', 'bg' => 'rgba(156,39,176,0.08)',  'axis' => 'y1', 'fill' => false, 'point' => 4 ),
+    'd_bp'        => array( 'label' => 'Desktop Best Practices','key'=> 'd_bp',       'color' => '#795548', 'bg' => 'rgba(121,85,72,0.08)',   'axis' => 'y1', 'fill' => false, 'point' => 4 ),
+    'd_seo'       => array( 'label' => 'Desktop SEO',         'key' => 'd_seo',       'color' => '#ff5722', 'bg' => 'rgba(255,87,34,0.08)',   'axis' => 'y1', 'fill' => false, 'point' => 4 ),
+    'm_perf'      => array( 'label' => 'Mobile Performance',  'key' => 'm_perf',      'color' => '#4fc3f7', 'bg' => 'rgba(79,195,247,0.08)',  'axis' => 'y1', 'fill' => false, 'point' => 4 ),
+    'm_a11y'      => array( 'label' => 'Mobile Accessibility','key' => 'm_a11y',      'color' => '#ce93d8', 'bg' => 'rgba(206,147,216,0.08)', 'axis' => 'y1', 'fill' => false, 'point' => 4 ),
+    'm_bp'        => array( 'label' => 'Mobile Best Practices','key'=> 'm_bp',        'color' => '#bcaaa4', 'bg' => 'rgba(188,170,164,0.08)', 'axis' => 'y1', 'fill' => false, 'point' => 4 ),
+    'm_seo'       => array( 'label' => 'Mobile SEO',          'key' => 'm_seo',       'color' => '#ffab91', 'bg' => 'rgba(255,171,145,0.08)', 'axis' => 'y1', 'fill' => false, 'point' => 4 ),
+);
+
+foreach ( $ds_config as $key => $cfg ) {
+    if ( ! empty( $show_vars[ $key ] ) ) {
+        $data_values = array();
+        foreach ( $chart_data as $date => $d ) {
+            $data_values[] = isset( $d[ $cfg['key'] ] ) && $d[ $cfg['key'] ] !== null ? $d[ $cfg['key'] ] : null;
+        }
+        $chart_datasets[] = array(
+            'label'           => $cfg['label'],
+            'data'            => $data_values,
+            'borderColor'     => $cfg['color'],
+            'backgroundColor' => $cfg['bg'],
+            'yAxisID'         => $has_left_axis ? $cfg['axis'] : 'y',
+            'tension'         => 0,
+            'fill'            => $cfg['fill'],
+            'pointRadius'     => $cfg['point'],
+            'spanGaps'        => true,
+        );
+    }
 }
 ?>
 
@@ -127,6 +208,15 @@ if ( $selected_site ) {
                         </select>
                     </div>
                     <div class="bite-filter-group">
+                        <label for="device_filter">GSC Device</label>
+                        <select id="device_filter" name="device_filter">
+                            <option value="all" <?php selected( $device_filter, 'all' ); ?>>All Devices</option>
+                            <option value="desktop" <?php selected( $device_filter, 'desktop' ); ?>>Desktop</option>
+                            <option value="mobile" <?php selected( $device_filter, 'mobile' ); ?>>Mobile</option>
+                            <option value="tablet" <?php selected( $device_filter, 'tablet' ); ?>>Tablet</option>
+                        </select>
+                    </div>
+                    <div class="bite-filter-group">
                         <label for="allstats_start">Start Date</label>
                         <input type="text" id="allstats_start" name="start_date" class="bite-datepicker" value="<?php echo esc_attr( $display_start_date ); ?>">
                     </div>
@@ -136,22 +226,58 @@ if ( $selected_site ) {
                     </div>
                 </div>
 
-                <div class="bite-metric-toggles" style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
-                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
-                        <input type="checkbox" name="show_clicks" <?php checked( $show_clicks ); ?>> <span>Clicks</span>
-                    </label>
-                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
-                        <input type="checkbox" name="show_impressions" <?php checked( $show_impressions ); ?>> <span>Impressions</span>
-                    </label>
-                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
-                        <input type="checkbox" name="show_auth_index" <?php checked( $show_auth_index ); ?>> <span>Authority Index</span>
-                    </label>
-                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
-                        <input type="checkbox" name="show_opr_rank" <?php checked( $show_opr_rank ); ?>> <span>OpenPageRank</span>
-                    </label>
-                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
-                        <input type="checkbox" name="show_pagespeed" <?php checked( $show_pagespeed ); ?>> <span>PageSpeed Score</span>
-                    </label>
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 0.75em; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; min-width: 140px;">GSC Metrics</span>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_clicks" <?php checked( $show_clicks ); ?>> <span>Clicks</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_impressions" <?php checked( $show_impressions ); ?>> <span>Impressions</span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 0.75em; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; min-width: 140px;">Authority</span>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_auth_index" <?php checked( $show_auth_index ); ?>> <span>Authority Index</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_opr_rank" <?php checked( $show_opr_rank ); ?>> <span>OpenPageRank</span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 0.75em; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; min-width: 140px;">Desktop PageSpeed</span>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_d_perf" <?php checked( $show_d_perf ); ?>> <span>Performance</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_d_a11y" <?php checked( $show_d_a11y ); ?>> <span>Accessibility</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_d_bp" <?php checked( $show_d_bp ); ?>> <span>Best Practices</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_d_seo" <?php checked( $show_d_seo ); ?>> <span>SEO</span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px;">
+                        <span style="font-size: 0.75em; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; min-width: 140px;">Mobile PageSpeed</span>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_m_perf" <?php checked( $show_m_perf ); ?>> <span>Performance</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_m_a11y" <?php checked( $show_m_a11y ); ?>> <span>Accessibility</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_m_bp" <?php checked( $show_m_bp ); ?>> <span>Best Practices</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_m_seo" <?php checked( $show_m_seo ); ?>> <span>SEO</span>
+                        </label>
+                    </div>
                 </div>
 
                 <button type="submit" name="submit" class="bite-button bite-button-primary">
@@ -169,85 +295,9 @@ if ( $selected_site ) {
                 <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     const labels = <?php echo wp_json_encode( array_keys( $chart_data ) ); ?>;
-                    const datasets = [];
-                    const hasLeftAxis = <?php echo json_encode( $show_clicks || $show_impressions ); ?>;
-                    const hasRightAxis = <?php echo json_encode( $show_auth_index || $show_opr_rank || $show_pagespeed ); ?>;
-
-                    const colors = {
-                        clicks:     { border: '#ff6b35', bg: 'rgba(255,107,53,0.1)' },
-                        impressions:{ border: '#2271b1', bg: 'rgba(34,113,177,0.1)' },
-                        auth_index: { border: '#00a32a', bg: 'rgba(0,163,42,0.1)' },
-                        opr_rank:   { border: '#e91e63', bg: 'rgba(233,30,99,0.1)' },
-                        pagespeed:  { border: '#2196f3', bg: 'rgba(33,150,243,0.1)' },
-                    };
-
-                    <?php if ( $show_clicks ) : ?>
-                    datasets.push({
-                        label: 'Clicks',
-                        data: <?php echo wp_json_encode( array_map( function($d){return $d['clicks'] ?? 0;}, $chart_data ) ); ?>,
-                        borderColor: colors.clicks.border,
-                        backgroundColor: colors.clicks.bg,
-                        yAxisID: 'y',
-                        tension: 0,
-                        fill: true,
-                        pointRadius: 2,
-                    });
-                    <?php endif; ?>
-
-                    <?php if ( $show_impressions ) : ?>
-                    datasets.push({
-                        label: 'Impressions',
-                        data: <?php echo wp_json_encode( array_map( function($d){return $d['impressions'] ?? 0;}, $chart_data ) ); ?>,
-                        borderColor: colors.impressions.border,
-                        backgroundColor: colors.impressions.bg,
-                        yAxisID: 'y',
-                        tension: 0.3,
-                        fill: true,
-                        pointRadius: 2,
-                    });
-                    <?php endif; ?>
-
-                    <?php if ( $show_auth_index ) : ?>
-                    datasets.push({
-                        label: 'Authority Index',
-                        data: <?php echo wp_json_encode( array_map( function($d){return $d['auth_index'] ?? null;}, $chart_data ) ); ?>,
-                        borderColor: colors.auth_index.border,
-                        backgroundColor: colors.auth_index.bg,
-                        yAxisID: hasLeftAxis ? 'y1' : 'y',
-                        tension: 0,
-                        fill: false,
-                        pointRadius: 4,
-                        spanGaps: true,
-                    });
-                    <?php endif; ?>
-
-                    <?php if ( $show_opr_rank ) : ?>
-                    datasets.push({
-                        label: 'OpenPageRank',
-                        data: <?php echo wp_json_encode( array_map( function($d){return $d['opr_rank'] ?? null;}, $chart_data ) ); ?>,
-                        borderColor: colors.opr_rank.border,
-                        backgroundColor: colors.opr_rank.bg,
-                        yAxisID: hasLeftAxis ? 'y1' : 'y',
-                        tension: 0,
-                        fill: false,
-                        pointRadius: 4,
-                        spanGaps: true,
-                    });
-                    <?php endif; ?>
-
-                    <?php if ( $show_pagespeed ) : ?>
-                    datasets.push({
-                        label: 'PageSpeed Score',
-                        data: <?php echo wp_json_encode( array_map( function($d){return $d['pagespeed'] ?? null;}, $chart_data ) ); ?>,
-                        borderColor: colors.pagespeed.border,
-                        backgroundColor: colors.pagespeed.bg,
-                        yAxisID: hasLeftAxis ? 'y1' : 'y',
-                        tension: 0,
-                        fill: false,
-                        pointRadius: 4,
-                        spanGaps: true,
-                    });
-                    <?php endif; ?>
+                    const datasets = <?php echo wp_json_encode( $chart_datasets ); ?>;
+                    const hasLeftAxis = <?php echo json_encode( $has_left_axis ); ?>;
+                    const hasRightAxis = <?php echo json_encode( $has_right_axis ); ?>;
 
                     new Chart(document.getElementById('all-stats-chart'), {
                         type: 'line',
@@ -263,7 +313,11 @@ if ( $selected_site ) {
                                             let label = context.dataset.label || '';
                                             if (label) label += ': ';
                                             if (context.parsed.y !== null) {
-                                                label += context.parsed.y.toLocaleString();
+                                                if (label.indexOf('OpenPageRank') !== -1) {
+                                                    label += (context.parsed.y / 10).toFixed(2);
+                                                } else {
+                                                    label += context.parsed.y.toLocaleString();
+                                                }
                                             } else {
                                                 label += 'No data';
                                             }
@@ -285,7 +339,7 @@ if ( $selected_site ) {
                                     type: 'linear',
                                     display: hasRightAxis && hasLeftAxis,
                                     position: 'right',
-                                    title: { display: true, text: 'Authority Scores' },
+                                    title: { display: true, text: 'Authority & PageSpeed Scores' },
                                     grid: { drawOnChartArea: false },
                                     min: 0,
                                     max: 100,
