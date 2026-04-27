@@ -66,12 +66,11 @@ function bite_fetch_opr_batch( $domains ) {
         $domains = array_slice( $domains, 0, 100 );
     }
 
-    $url = add_query_arg(
-        array(
-            'domains[]' => array_values( $domains ),
-        ),
-        'https://openpagerank.com/api/v1.0/getPageRank'
-    );
+    $url = 'https://openpagerank.com/api/v1.0/getPageRank?';
+    foreach ( array_values( $domains ) as $domain ) {
+        $url .= 'domains[]=' . urlencode( $domain ) . '&';
+    }
+    $url = rtrim( $url, '&' );
 
     $response = wp_remote_get(
         $url,

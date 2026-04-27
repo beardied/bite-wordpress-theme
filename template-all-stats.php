@@ -111,11 +111,11 @@ if ( $selected_site ) {
         </section>
 
         <section class="bite-dashboard-section">
-            <form method="GET" action="" class="bite-stats-filters" style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px;">
-                    <div>
-                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9em;">Site</label>
-                        <select name="site_id" class="bite-form-select" style="width: 100%;">
+            <form method="GET" action="" class="bite-stats-filters" style="background: var(--card-bg); border: 1px solid var(--border-light); padding: 24px; border-radius: var(--radius-lg); margin-bottom: 25px;">
+                <div class="bite-filters-row" style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
+                    <div class="bite-filter-group">
+                        <label for="allstats_site">Site</label>
+                        <select id="allstats_site" name="site_id">
                             <?php foreach ( $all_sites as $s ) : ?>
                                 <option value="<?php echo esc_attr( $s->site_id ); ?>" <?php selected( $selected_site_id, $s->site_id ); ?>>
                                     <?php echo esc_html( $s->name ); ?>
@@ -123,37 +123,37 @@ if ( $selected_site ) {
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div>
-                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9em;">Start Date</label>
-                        <input type="date" name="start_date" value="<?php echo esc_attr( $start_date ); ?>" class="bite-form-input" style="width: 100%;">
+                    <div class="bite-filter-group">
+                        <label for="allstats_start">Start Date</label>
+                        <input type="date" id="allstats_start" name="start_date" value="<?php echo esc_attr( $start_date ); ?>">
                     </div>
-                    <div>
-                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9em;">End Date</label>
-                        <input type="date" name="end_date" value="<?php echo esc_attr( $end_date ); ?>" class="bite-form-input" style="width: 100%;">
+                    <div class="bite-filter-group">
+                        <label for="allstats_end">End Date</label>
+                        <input type="date" id="allstats_end" name="end_date" value="<?php echo esc_attr( $end_date ); ?>">
                     </div>
                 </div>
 
-                <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 15px;">
-                    <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer;">
-                        <input type="checkbox" name="show_clicks" <?php checked( $show_clicks ); ?>> Clicks
+                <div class="bite-metric-toggles" style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
+                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                        <input type="checkbox" name="show_clicks" <?php checked( $show_clicks ); ?>> <span>Clicks</span>
                     </label>
-                    <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer;">
-                        <input type="checkbox" name="show_impressions" <?php checked( $show_impressions ); ?>> Impressions
+                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                        <input type="checkbox" name="show_impressions" <?php checked( $show_impressions ); ?>> <span>Impressions</span>
                     </label>
-                    <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer;">
-                        <input type="checkbox" name="show_auth_index" <?php checked( $show_auth_index ); ?>> Authority Index
+                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                        <input type="checkbox" name="show_auth_index" <?php checked( $show_auth_index ); ?>> <span>Authority Index</span>
                     </label>
-                    <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer;">
-                        <input type="checkbox" name="show_moz_da" <?php checked( $show_moz_da ); ?>> Moz DA
+                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                        <input type="checkbox" name="show_moz_da" <?php checked( $show_moz_da ); ?>> <span>Moz DA</span>
                     </label>
-                    <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer;">
-                        <input type="checkbox" name="show_srt_da" <?php checked( $show_srt_da ); ?>> SRT DA
+                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                        <input type="checkbox" name="show_srt_da" <?php checked( $show_srt_da ); ?>> <span>SRT DA</span>
                     </label>
-                    <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer;">
-                        <input type="checkbox" name="show_opr_rank" <?php checked( $show_opr_rank ); ?>> OpenPageRank
+                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                        <input type="checkbox" name="show_opr_rank" <?php checked( $show_opr_rank ); ?>> <span>OpenPageRank</span>
                     </label>
-                    <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer;">
-                        <input type="checkbox" name="show_backlinks" <?php checked( $show_backlinks ); ?>> Backlinks
+                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                        <input type="checkbox" name="show_backlinks" <?php checked( $show_backlinks ); ?>> <span>Backlinks</span>
                     </label>
                 </div>
 
@@ -193,7 +193,7 @@ if ( $selected_site ) {
                         borderColor: colors.clicks.border,
                         backgroundColor: colors.clicks.bg,
                         yAxisID: 'y',
-                        tension: 0.3,
+                        tension: 0,
                         fill: true,
                         pointRadius: 2,
                     });
@@ -219,7 +219,7 @@ if ( $selected_site ) {
                         borderColor: colors.auth_index.border,
                         backgroundColor: colors.auth_index.bg,
                         yAxisID: hasLeftAxis ? 'y1' : 'y',
-                        tension: 0.3,
+                        tension: 0,
                         fill: false,
                         pointRadius: 4,
                         spanGaps: true,

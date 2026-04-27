@@ -992,7 +992,7 @@ function bite_admin_page_settings() {
                                value="<?php echo esc_attr( get_option( 'bite_srt_api_key', '' ) ); ?>"
                                class="regular-text" style="width: 100%; max-width: 600px;">
                         <p class="description">
-                            Free tier: ~50 requests/day. <a href="https://www.seoreviewtools.com/" target="_blank">Get key here</a>. Covers the first 50 sites added to BITE as a bonus feature.
+                            <strong>Note:</strong> No free tier available. Paid plans start at $75/month (Lite). <a href="https://www.seoreviewtools.com/api-pricing/" target="_blank">View pricing</a>. If you subscribe, the first 50 sites in BITE will get SRT data as a bonus feature.
                         </p>
                     </td>
                 </tr>
