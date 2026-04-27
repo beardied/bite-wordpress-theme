@@ -102,27 +102,30 @@ function bite_fetch_opr_batch( $domains ) {
    ============================================================ */
 
 /**
- * Fetch PageSpeed Insights performance score for a single domain.
- * Free tier: 25,000 requests/day with API key, lower without.
- * Returns a 0-100 performance score.
+ * Fetch PageSpeed Insights scores for a single domain.
+ * Returns all 4 Lighthouse category scores (Performance, Accessibility,
+ * Best Practices, SEO).
  *
  * @param string $domain Clean domain (e.g. example.com).
  * @param string $strategy 'desktop' or 'mobile'.
- * @return array ['performance_score'=>int(0-100)] or WP_Error
+ * @return array All category scores or WP_Error
  */
 function bite_fetch_pagespeed_single( $domain, $strategy = 'desktop' ) {
     $api_key = bite_get_pagespeed_api_key();
 
-    $url = add_query_arg(
+    $base_url = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
+    $url = $base_url . '?' . http_build_query(
         array(
             'url'      => 'https://' . $domain,
             'strategy' => $strategy,
         ),
-        'https://www.googleapis.com/pagespeedonline/v5/runPagespeed'
+        '',
+        '&'
     );
+    $url .= '&category=PERFORMANCE&category=ACCESSIBILITY&category=BEST_PRACTICES&category=SEO';
 
     if ( ! empty( $api_key ) ) {
-        $url = add_query_arg( 'key', $api_key, $url );
+        $url .= '&key=' . urlencode( $api_key );
     }
 
     $response = wp_remote_get( $url, array( 'timeout' => 90 ) );
@@ -140,15 +143,20 @@ function bite_fetch_pagespeed_single( $domain, $strategy = 'desktop' ) {
         return new WP_Error( 'pagespeed_http_error', $msg, $data );
     }
 
-    $score = null;
-    if ( isset( $data['lighthouseResult']['categories']['performance']['score'] ) ) {
-        $raw = $data['lighthouseResult']['categories']['performance']['score'];
-        // Score comes as 0-1 decimal, convert to 0-100 integer
-        $score = intval( round( floatval( $raw ) * 100 ) );
-    }
+    $categories = $data['lighthouseResult']['categories'] ?? array();
+
+    $extract_score = function( $cat_data ) {
+        if ( isset( $cat_data['score'] ) ) {
+            return intval( round( floatval( $cat_data['score'] ) * 100 ) );
+        }
+        return null;
+    };
 
     return array(
-        'performance_score' => $score,
+        'performance_score' => $extract_score( $categories['performance'] ?? array() ),
+        'accessibility'     => $extract_score( $categories['accessibility'] ?? array() ),
+        'best_practices'    => $extract_score( $categories['best-practices'] ?? array() ),
+        'seo'               => $extract_score( $categories['seo'] ?? array() ),
     );
 }
 
@@ -252,15 +260,24 @@ function bite_fetch_all_domain_metrics() {
         }
 
         $wpdb->query( $wpdb->prepare(
-            "INSERT INTO $metrics_table (site_id, recorded_at, pagespeed_score)
-             VALUES (%d, %s, %d)
+            "INSERT INTO $metrics_table (site_id, recorded_at, pagespeed_score, pagespeed_accessibility, pagespeed_best_practices, pagespeed_seo)
+             VALUES (%d, %s, %d, %d, %d, %d)
              ON DUPLICATE KEY UPDATE
-             pagespeed_score = VALUES(pagespeed_score)",
+             pagespeed_score = VALUES(pagespeed_score),
+             pagespeed_accessibility = VALUES(pagespeed_accessibility),
+             pagespeed_best_practices = VALUES(pagespeed_best_practices),
+             pagespeed_seo = VALUES(pagespeed_seo)",
             $site->site_id,
             $today,
-            $ps_result['performance_score']
+            $ps_result['performance_score'],
+            $ps_result['accessibility'],
+            $ps_result['best_practices'],
+            $ps_result['seo']
         ) );
         $summary['pagespeed']++;
+
+        // Check for significant score drops vs previous record
+        bite_check_pagespeed_drops( $site, $ps_result );
     }
 
     // ---------- CALCULATE AUTHORITY INDEX ----------
@@ -330,7 +347,117 @@ function bite_get_domain_metrics_history( $site_id, $start_date, $end_date ) {
 }
 
 /* ============================================================
-   9. METRICS LEGEND / EXPLANATION COMPONENT
+   6. PAGESPEED SCORE DROP ALERTS
+   ============================================================ */
+
+/**
+ * Check if any PageSpeed category dropped by more than 10 points
+ * since the previous record, and send email alerts if so.
+ *
+ * @param object $site      Site row from bite_sites.
+ * @param array  $new_scores Current scores from PageSpeed API.
+ */
+function bite_check_pagespeed_drops( $site, $new_scores ) {
+    global $wpdb;
+
+    // Rate limit: one alert per site per day
+    $transient_key = 'bite_ps_alert_' . $site->site_id . '_' . date( 'Ymd' );
+    if ( get_transient( $transient_key ) ) {
+        return;
+    }
+
+    $metrics_table = $wpdb->prefix . 'bite_domain_metrics';
+
+    // Get the most recent previous record (before today)
+    $prev = $wpdb->get_row( $wpdb->prepare(
+        "SELECT * FROM $metrics_table
+         WHERE site_id = %d AND recorded_at < %s AND pagespeed_score IS NOT NULL
+         ORDER BY recorded_at DESC LIMIT 1",
+        $site->site_id,
+        date( 'Y-m-d' )
+    ) );
+
+    if ( ! $prev ) {
+        return; // No previous data to compare
+    }
+
+    $categories = array(
+        'Performance'    => array( 'prev' => $prev->pagespeed_score,           'new' => $new_scores['performance_score'] ),
+        'Accessibility'  => array( 'prev' => $prev->pagespeed_accessibility,   'new' => $new_scores['accessibility'] ),
+        'Best Practices' => array( 'prev' => $prev->pagespeed_best_practices,  'new' => $new_scores['best_practices'] ),
+        'SEO'            => array( 'prev' => $prev->pagespeed_seo,             'new' => $new_scores['seo'] ),
+    );
+
+    $drops = array();
+    foreach ( $categories as $name => $vals ) {
+        if ( $vals['prev'] !== null && $vals['new'] !== null ) {
+            $diff = $vals['prev'] - $vals['new'];
+            if ( $diff > 10 ) {
+                $drops[] = array(
+                    'name' => $name,
+                    'prev' => intval( $vals['prev'] ),
+                    'new'  => intval( $vals['new'] ),
+                    'diff' => intval( $diff ),
+                );
+            }
+        }
+    }
+
+    if ( empty( $drops ) ) {
+        return;
+    }
+
+    // Build the email
+    $subject = sprintf( '[BITE Alert] PageSpeed Score Drop: %s', $site->domain );
+
+    $body_lines = array(
+        sprintf( 'Hi,' ),
+        '',
+        sprintf( 'Your site %s has experienced significant PageSpeed score drops since the last check:', $site->domain ),
+        '',
+    );
+
+    foreach ( $drops as $drop ) {
+        $body_lines[] = sprintf( '%s: %d → %d  (-%d) ⚠️', $drop['name'], $drop['prev'], $drop['new'], $drop['diff'] );
+    }
+
+    $body_lines[] = '';
+    $body_lines[] = sprintf( 'View full stats: %s', home_url( '/all-stats/?site_id=' . $site->site_id ) );
+    $body_lines[] = '';
+    $body_lines[] = '---';
+    $body_lines[] = 'BITE Bulk Insight Tracking Engine';
+
+    $headers = array( 'Content-Type: text/plain; charset=UTF-8' );
+
+    // Email all users with access to this site
+    $user_ids = $wpdb->get_col( $wpdb->prepare(
+        "SELECT user_id FROM {$wpdb->prefix}bite_user_sites WHERE site_id = %d",
+        $site->site_id
+    ) );
+
+    $sent = false;
+    foreach ( $user_ids as $user_id ) {
+        $user = get_userdata( intval( $user_id ) );
+        if ( $user && ! empty( $user->user_email ) ) {
+            wp_mail( $user->user_email, $subject, implode( "\r\n", $body_lines ), $headers );
+            $sent = true;
+        }
+    }
+
+    // Also email admin contact if no users found
+    if ( ! $sent ) {
+        $admin_email = get_option( 'bite_contact_email', get_option( 'admin_email' ) );
+        wp_mail( $admin_email, $subject, implode( "\r\n", $body_lines ), $headers );
+    }
+
+    // Set rate limit transient (24 hours)
+    set_transient( $transient_key, 1, DAY_IN_SECONDS );
+
+    error_log( 'BITE PageSpeed Alert sent for site ' . $site->site_id . ': ' . wp_json_encode( $drops ) );
+}
+
+/* ============================================================
+   7. METRICS LEGEND / EXPLANATION COMPONENT
    ============================================================ */
 
 /**
@@ -372,14 +499,15 @@ function bite_render_metrics_legend() {
                     </p>
                 </div>
                 <div>
-                    <h4 style="margin: 0 0 8px; color: #2196f3; font-size: 1em;">⚡ PageSpeed Score</h4>
+                    <h4 style="margin: 0 0 8px; color: #2196f3; font-size: 1em;">⚡ PageSpeed Scores</h4>
                     <p style="margin: 0; font-size: 0.9em; line-height: 1.5; color: #555;">
-                        Google's Lighthouse performance score for your site.<br><br>
-                        <strong>Range: 0 – 100</strong><br>
-                        <strong>Higher is better.</strong><br><br>
-                        0-49 = Poor (needs work)<br>
-                        50-89 = Needs Improvement<br>
-                        90-100 = Good (fast & well-optimized)
+                        Google's Lighthouse audit scores for your site.<br><br>
+                        <strong>All scores: 0 – 100 (Higher is better)</strong><br><br>
+                        <strong>Performance</strong> — How fast your site loads<br>
+                        <strong>Accessibility</strong> — Usability for people with disabilities<br>
+                        <strong>Best Practices</strong> — Modern web standards & security<br>
+                        <strong>SEO</strong> — Search engine optimization basics<br><br>
+                        0-49 = Poor &nbsp;|&nbsp; 50-89 = Needs Improvement &nbsp;|&nbsp; 90-100 = Good
                     </p>
                 </div>
             </div>

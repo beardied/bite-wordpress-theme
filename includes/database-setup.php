@@ -136,6 +136,9 @@ function bite_create_database_tables() {
         opr_rank DECIMAL(4,2) DEFAULT NULL,
         opr_global_rank BIGINT UNSIGNED DEFAULT NULL,
         pagespeed_score INT UNSIGNED DEFAULT NULL,
+        pagespeed_accessibility INT UNSIGNED DEFAULT NULL,
+        pagespeed_best_practices INT UNSIGNED DEFAULT NULL,
+        pagespeed_seo INT UNSIGNED DEFAULT NULL,
         authority_index DECIMAL(5,2) DEFAULT NULL,
         data_source_json LONGTEXT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -262,6 +265,19 @@ function bite_create_missing_tables() {
     $column_exists = $wpdb->get_results( "SHOW COLUMNS FROM $domain_metrics_table LIKE 'pagespeed_score'" );
     if ( empty( $column_exists ) ) {
         $wpdb->query( "ALTER TABLE $domain_metrics_table ADD COLUMN pagespeed_score INT UNSIGNED DEFAULT NULL AFTER opr_global_rank" );
+    }
+
+    // Migration: Add PageSpeed category columns if missing
+    $columns_to_add = array(
+        'pagespeed_accessibility'    => 'INT UNSIGNED DEFAULT NULL AFTER pagespeed_score',
+        'pagespeed_best_practices'   => 'INT UNSIGNED DEFAULT NULL AFTER pagespeed_accessibility',
+        'pagespeed_seo'              => 'INT UNSIGNED DEFAULT NULL AFTER pagespeed_best_practices',
+    );
+    foreach ( $columns_to_add as $col_name => $col_def ) {
+        $col_exists = $wpdb->get_results( "SHOW COLUMNS FROM $domain_metrics_table LIKE '$col_name'" );
+        if ( empty( $col_exists ) ) {
+            $wpdb->query( "ALTER TABLE $domain_metrics_table ADD COLUMN $col_name $col_def" );
+        }
     }
 }
 add_action( 'init', 'bite_create_missing_tables' );
