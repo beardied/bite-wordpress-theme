@@ -178,9 +178,16 @@ function bite_calculate_authority_index( $metrics ) {
         $scores[] = floatval( $metrics['opr_rank'] ) * 10;
     }
 
-    // PageSpeed: already 0-100
+    // PageSpeed: average of desktop + mobile performance (if both available)
+    $ps_scores = array();
     if ( isset( $metrics['pagespeed_score'] ) && $metrics['pagespeed_score'] !== null ) {
-        $scores[] = floatval( $metrics['pagespeed_score'] );
+        $ps_scores[] = floatval( $metrics['pagespeed_score'] );
+    }
+    if ( isset( $metrics['mobile_score'] ) && $metrics['mobile_score'] !== null ) {
+        $ps_scores[] = floatval( $metrics['mobile_score'] );
+    }
+    if ( ! empty( $ps_scores ) ) {
+        $scores[] = round( array_sum( $ps_scores ) / count( $ps_scores ), 2 );
     }
 
     if ( empty( $scores ) ) {
@@ -249,40 +256,56 @@ function bite_fetch_all_domain_metrics() {
         }
     }
 
-    // ---------- PAGESPEED: ONE-BY-ONE ----------
+    // ---------- PAGESPEED: DESKTOP + MOBILE ----------
     foreach ( $sites as $site ) {
-        $ps_result = bite_fetch_pagespeed_single( $site->domain, 'desktop' );
+        $desktop = bite_fetch_pagespeed_single( $site->domain, 'desktop' );
+        $mobile  = bite_fetch_pagespeed_single( $site->domain, 'mobile' );
 
-        if ( is_wp_error( $ps_result ) ) {
-            $summary['errors'][] = 'PageSpeed site ' . $site->site_id . ': ' . $ps_result->get_error_message();
-            error_log( 'BITE Domain Metrics PageSpeed Error (site ' . $site->site_id . '): ' . $ps_result->get_error_message() );
+        $desktop_ok = ! is_wp_error( $desktop );
+        $mobile_ok  = ! is_wp_error( $mobile );
+
+        if ( ! $desktop_ok && ! $mobile_ok ) {
+            $err = is_wp_error( $desktop ) ? $desktop->get_error_message() : $mobile->get_error_message();
+            $summary['errors'][] = 'PageSpeed site ' . $site->site_id . ': ' . $err;
+            error_log( 'BITE Domain Metrics PageSpeed Error (site ' . $site->site_id . '): ' . $err );
             continue;
         }
 
         $wpdb->query( $wpdb->prepare(
-            "INSERT INTO $metrics_table (site_id, recorded_at, pagespeed_score, pagespeed_accessibility, pagespeed_best_practices, pagespeed_seo)
-             VALUES (%d, %s, %d, %d, %d, %d)
-             ON DUPLICATE KEY UPDATE
-             pagespeed_score = VALUES(pagespeed_score),
-             pagespeed_accessibility = VALUES(pagespeed_accessibility),
-             pagespeed_best_practices = VALUES(pagespeed_best_practices),
-             pagespeed_seo = VALUES(pagespeed_seo)",
+            "INSERT INTO $metrics_table (
+                site_id, recorded_at,
+                pagespeed_score, pagespeed_accessibility, pagespeed_best_practices, pagespeed_seo,
+                mobile_score, mobile_accessibility, mobile_best_practices, mobile_seo
+            ) VALUES (%d, %s, %d, %d, %d, %d, %d, %d, %d, %d)
+            ON DUPLICATE KEY UPDATE
+            pagespeed_score = VALUES(pagespeed_score),
+            pagespeed_accessibility = VALUES(pagespeed_accessibility),
+            pagespeed_best_practices = VALUES(pagespeed_best_practices),
+            pagespeed_seo = VALUES(pagespeed_seo),
+            mobile_score = VALUES(mobile_score),
+            mobile_accessibility = VALUES(mobile_accessibility),
+            mobile_best_practices = VALUES(mobile_best_practices),
+            mobile_seo = VALUES(mobile_seo)",
             $site->site_id,
             $today,
-            $ps_result['performance_score'],
-            $ps_result['accessibility'],
-            $ps_result['best_practices'],
-            $ps_result['seo']
+            $desktop_ok ? $desktop['performance_score'] : null,
+            $desktop_ok ? $desktop['accessibility'] : null,
+            $desktop_ok ? $desktop['best_practices'] : null,
+            $desktop_ok ? $desktop['seo'] : null,
+            $mobile_ok ? $mobile['performance_score'] : null,
+            $mobile_ok ? $mobile['accessibility'] : null,
+            $mobile_ok ? $mobile['best_practices'] : null,
+            $mobile_ok ? $mobile['seo'] : null
         ) );
         $summary['pagespeed']++;
 
-        // Check for significant score drops vs previous record
-        bite_check_pagespeed_drops( $site, $ps_result );
+        // Check for significant score drops vs previous record (all 8 metrics)
+        bite_check_pagespeed_drops( $site, $desktop_ok ? $desktop : array(), $mobile_ok ? $mobile : array() );
     }
 
     // ---------- CALCULATE AUTHORITY INDEX ----------
     $all_records = $wpdb->get_results( $wpdb->prepare(
-        "SELECT metric_id, opr_rank, pagespeed_score FROM $metrics_table WHERE recorded_at = %s",
+        "SELECT metric_id, opr_rank, pagespeed_score, mobile_score FROM $metrics_table WHERE recorded_at = %s",
         $today
     ) );
 
@@ -290,6 +313,7 @@ function bite_fetch_all_domain_metrics() {
         $index = bite_calculate_authority_index( array(
             'opr_rank'        => $record->opr_rank,
             'pagespeed_score' => $record->pagespeed_score,
+            'mobile_score'    => $record->mobile_score,
         ) );
 
         if ( $index !== null ) {
@@ -351,13 +375,14 @@ function bite_get_domain_metrics_history( $site_id, $start_date, $end_date ) {
    ============================================================ */
 
 /**
- * Check if any PageSpeed category dropped by more than 10 points
+ * Check if any PageSpeed category (desktop or mobile) dropped by more than 10 points
  * since the previous record, and send email alerts if so.
  *
- * @param object $site      Site row from bite_sites.
- * @param array  $new_scores Current scores from PageSpeed API.
+ * @param object $site           Site row from bite_sites.
+ * @param array  $desktop_scores Desktop scores from PageSpeed API.
+ * @param array  $mobile_scores  Mobile scores from PageSpeed API.
  */
-function bite_check_pagespeed_drops( $site, $new_scores ) {
+function bite_check_pagespeed_drops( $site, $desktop_scores, $mobile_scores ) {
     global $wpdb;
 
     // Rate limit: one alert per site per day
@@ -371,7 +396,7 @@ function bite_check_pagespeed_drops( $site, $new_scores ) {
     // Get the most recent previous record (before today)
     $prev = $wpdb->get_row( $wpdb->prepare(
         "SELECT * FROM $metrics_table
-         WHERE site_id = %d AND recorded_at < %s AND pagespeed_score IS NOT NULL
+         WHERE site_id = %d AND recorded_at < %s AND (pagespeed_score IS NOT NULL OR mobile_score IS NOT NULL)
          ORDER BY recorded_at DESC LIMIT 1",
         $site->site_id,
         date( 'Y-m-d' )
@@ -382,10 +407,14 @@ function bite_check_pagespeed_drops( $site, $new_scores ) {
     }
 
     $categories = array(
-        'Performance'    => array( 'prev' => $prev->pagespeed_score,           'new' => $new_scores['performance_score'] ),
-        'Accessibility'  => array( 'prev' => $prev->pagespeed_accessibility,   'new' => $new_scores['accessibility'] ),
-        'Best Practices' => array( 'prev' => $prev->pagespeed_best_practices,  'new' => $new_scores['best_practices'] ),
-        'SEO'            => array( 'prev' => $prev->pagespeed_seo,             'new' => $new_scores['seo'] ),
+        'Desktop Performance'    => array( 'prev' => $prev->pagespeed_score,           'new' => $desktop_scores['performance_score'] ?? null ),
+        'Desktop Accessibility'  => array( 'prev' => $prev->pagespeed_accessibility,   'new' => $desktop_scores['accessibility'] ?? null ),
+        'Desktop Best Practices' => array( 'prev' => $prev->pagespeed_best_practices,  'new' => $desktop_scores['best_practices'] ?? null ),
+        'Desktop SEO'            => array( 'prev' => $prev->pagespeed_seo,             'new' => $desktop_scores['seo'] ?? null ),
+        'Mobile Performance'     => array( 'prev' => $prev->mobile_score,              'new' => $mobile_scores['performance_score'] ?? null ),
+        'Mobile Accessibility'   => array( 'prev' => $prev->mobile_accessibility,      'new' => $mobile_scores['accessibility'] ?? null ),
+        'Mobile Best Practices'  => array( 'prev' => $prev->mobile_best_practices,     'new' => $mobile_scores['best_practices'] ?? null ),
+        'Mobile SEO'             => array( 'prev' => $prev->mobile_seo,                'new' => $mobile_scores['seo'] ?? null ),
     );
 
     $drops = array();
@@ -501,13 +530,14 @@ function bite_render_metrics_legend() {
                 <div>
                     <h4 style="margin: 0 0 8px; color: #2196f3; font-size: 1em;">⚡ PageSpeed Scores</h4>
                     <p style="margin: 0; font-size: 0.9em; line-height: 1.5; color: #555;">
-                        Google's Lighthouse audit scores for your site.<br><br>
+                        Google's Lighthouse audit scores for your site, tracked on both <strong>Desktop</strong> and <strong>Mobile</strong>.<br><br>
                         <strong>All scores: 0 – 100 (Higher is better)</strong><br><br>
                         <strong>Performance</strong> — How fast your site loads<br>
                         <strong>Accessibility</strong> — Usability for people with disabilities<br>
                         <strong>Best Practices</strong> — Modern web standards & security<br>
                         <strong>SEO</strong> — Search engine optimization basics<br><br>
-                        0-49 = Poor &nbsp;|&nbsp; 50-89 = Needs Improvement &nbsp;|&nbsp; 90-100 = Good
+                        0-49 = Poor &nbsp;|&nbsp; 50-89 = Needs Improvement &nbsp;|&nbsp; 90-100 = Good<br><br>
+                        <em>Mobile scores are especially important — Google uses mobile-first indexing for rankings.</em>
                     </p>
                 </div>
             </div>

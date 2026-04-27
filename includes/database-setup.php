@@ -272,6 +272,10 @@ function bite_create_missing_tables() {
         'pagespeed_accessibility'    => 'INT UNSIGNED DEFAULT NULL AFTER pagespeed_score',
         'pagespeed_best_practices'   => 'INT UNSIGNED DEFAULT NULL AFTER pagespeed_accessibility',
         'pagespeed_seo'              => 'INT UNSIGNED DEFAULT NULL AFTER pagespeed_best_practices',
+        'mobile_score'               => 'INT UNSIGNED DEFAULT NULL AFTER pagespeed_seo',
+        'mobile_accessibility'       => 'INT UNSIGNED DEFAULT NULL AFTER mobile_score',
+        'mobile_best_practices'      => 'INT UNSIGNED DEFAULT NULL AFTER mobile_accessibility',
+        'mobile_seo'                 => 'INT UNSIGNED DEFAULT NULL AFTER mobile_best_practices',
     );
     foreach ( $columns_to_add as $col_name => $col_def ) {
         $col_exists = $wpdb->get_results( "SHOW COLUMNS FROM $domain_metrics_table LIKE '$col_name'" );
