@@ -185,7 +185,8 @@ function bite_enqueue_scripts() {
              is_page_template( 'template-global-champions.php' ) ||
              is_page_template( 'template-emerging-trends.php' ) ||
              is_page_template( 'template-keyword-explorer.php' ) ||
-             is_page_template( 'template-ctr-efficiency.php' ) ) {
+             is_page_template( 'template-ctr-efficiency.php' ) ||
+             is_page_template( 'template-all-stats.php' ) ) {
             wp_enqueue_style(
                 'bite-dashboard-sidebar',
                 get_template_directory_uri() . '/dashboard-sidebar.css',
