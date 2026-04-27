@@ -865,9 +865,7 @@ function bite_admin_page_settings() {
         update_option( 'bite_google_client_id', $client_id );
         update_option( 'bite_google_client_secret', $client_secret );
         update_option( 'bite_opr_api_key', sanitize_text_field( $_POST['bite_opr_api_key'] ?? '' ) );
-        update_option( 'bite_srt_api_key', sanitize_text_field( $_POST['bite_srt_api_key'] ?? '' ) );
-        update_option( 'bite_moz_access_id', sanitize_text_field( $_POST['bite_moz_access_id'] ?? '' ) );
-        update_option( 'bite_moz_secret_key', sanitize_text_field( $_POST['bite_moz_secret_key'] ?? '' ) );
+        update_option( 'bite_pagespeed_api_key', sanitize_text_field( $_POST['bite_pagespeed_api_key'] ?? '' ) );
         
         echo '<div class="notice notice-success"><p>Settings saved successfully.</p></div>';
     }
@@ -970,8 +968,8 @@ function bite_admin_page_settings() {
             
             <hr style="margin: 30px 0;">
 
-            <h2>📊 Domain Authority API Keys</h2>
-            <p style="color: #666; margin-bottom: 15px;">These APIs power the B.I.T.E. Authority Index and backlink tracking. All keys are optional — missing keys simply disable that data source.</p>
+            <h2>📊 Domain Authority & Performance APIs</h2>
+            <p style="color: #666; margin-bottom: 15px;">BITE uses two <strong>completely free</strong> data sources for the Authority Index. No paid subscriptions required.</p>
 
             <table class="form-table">
                 <tr>
@@ -986,35 +984,13 @@ function bite_admin_page_settings() {
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row"><label for="bite_srt_api_key">SEO Review Tools API Key</label></th>
+                    <th scope="row"><label for="bite_pagespeed_api_key">PageSpeed Insights API Key <span style="font-weight:normal;color:#666;">(Optional)</span></label></th>
                     <td>
-                        <input type="password" id="bite_srt_api_key" name="bite_srt_api_key"
-                               value="<?php echo esc_attr( get_option( 'bite_srt_api_key', '' ) ); ?>"
+                        <input type="password" id="bite_pagespeed_api_key" name="bite_pagespeed_api_key"
+                               value="<?php echo esc_attr( get_option( 'bite_pagespeed_api_key', '' ) ); ?>"
                                class="regular-text" style="width: 100%; max-width: 600px;">
                         <p class="description">
-                            <strong>Note:</strong> No free tier available. Paid plans start at $75/month (Lite). <a href="https://www.seoreviewtools.com/api-pricing/" target="_blank">View pricing</a>. If you subscribe, the first 50 sites in BITE will get SRT data as a bonus feature.
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="bite_moz_access_id">Moz Access ID</label></th>
-                    <td>
-                        <input type="text" id="bite_moz_access_id" name="bite_moz_access_id"
-                               value="<?php echo esc_attr( get_option( 'bite_moz_access_id', '' ) ); ?>"
-                               class="regular-text" style="width: 100%; max-width: 600px;">
-                        <p class="description">
-                            From your <a href="https://moz.com/products/api" target="_blank">Mozscape API</a> credentials.
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="bite_moz_secret_key">Moz Secret Key</label></th>
-                    <td>
-                        <input type="password" id="bite_moz_secret_key" name="bite_moz_secret_key"
-                               value="<?php echo esc_attr( get_option( 'bite_moz_secret_key', '' ) ); ?>"
-                               class="regular-text" style="width: 100%; max-width: 600px;">
-                        <p class="description">
-                            Free tier requires a 10-second delay between requests. BITE handles this automatically.
+                            Optional — PageSpeed Insights works without a key (lower daily quota). For 25,000 requests/day, get a free key from the same <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud project</a> used for GSC OAuth.
                         </p>
                     </td>
                 </tr>

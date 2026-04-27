@@ -52,10 +52,8 @@ $start_date = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_d
 $show_clicks        = isset( $_GET['show_clicks'] ) ? true : ( ! isset( $_GET['submit'] ) ? true : false );
 $show_impressions   = isset( $_GET['show_impressions'] ) ? true : false;
 $show_auth_index    = isset( $_GET['show_auth_index'] ) ? true : ( ! isset( $_GET['submit'] ) ? true : false );
-$show_moz_da        = isset( $_GET['show_moz_da'] ) ? true : false;
-$show_srt_da        = isset( $_GET['show_srt_da'] ) ? true : false;
 $show_opr_rank      = isset( $_GET['show_opr_rank'] ) ? true : false;
-$show_backlinks     = isset( $_GET['show_backlinks'] ) ? true : false;
+$show_pagespeed     = isset( $_GET['show_pagespeed'] ) ? true : false;
 
 $chart_data = array();
 if ( $selected_site ) {
@@ -88,10 +86,8 @@ if ( $selected_site ) {
             $dates[ $row->recorded_at ] = array();
         }
         $dates[ $row->recorded_at ]['auth_index'] = $row->authority_index ? round( floatval( $row->authority_index ), 2 ) : null;
-        $dates[ $row->recorded_at ]['moz_da']     = $row->moz_da ? intval( $row->moz_da ) : null;
-        $dates[ $row->recorded_at ]['srt_da']     = $row->srt_da ? intval( $row->srt_da ) : null;
-        $dates[ $row->recorded_at ]['opr_rank']   = $row->opr_rank ? round( floatval( $row->opr_rank ), 2 ) : null;
-        $dates[ $row->recorded_at ]['backlinks']  = $row->srt_backlinks ? intval( $row->srt_backlinks ) : null;
+        $dates[ $row->recorded_at ]['opr_rank']      = $row->opr_rank ? round( floatval( $row->opr_rank ), 2 ) : null;
+        $dates[ $row->recorded_at ]['pagespeed']      = $row->pagespeed_score ? intval( $row->pagespeed_score ) : null;
     }
 
     ksort( $dates );
@@ -144,16 +140,10 @@ if ( $selected_site ) {
                         <input type="checkbox" name="show_auth_index" <?php checked( $show_auth_index ); ?>> <span>Authority Index</span>
                     </label>
                     <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
-                        <input type="checkbox" name="show_moz_da" <?php checked( $show_moz_da ); ?>> <span>Moz DA</span>
-                    </label>
-                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
-                        <input type="checkbox" name="show_srt_da" <?php checked( $show_srt_da ); ?>> <span>SRT DA</span>
-                    </label>
-                    <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
                         <input type="checkbox" name="show_opr_rank" <?php checked( $show_opr_rank ); ?>> <span>OpenPageRank</span>
                     </label>
                     <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer; padding: 6px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
-                        <input type="checkbox" name="show_backlinks" <?php checked( $show_backlinks ); ?>> <span>Backlinks</span>
+                        <input type="checkbox" name="show_pagespeed" <?php checked( $show_pagespeed ); ?>> <span>PageSpeed Score</span>
                     </label>
                 </div>
 
@@ -174,16 +164,14 @@ if ( $selected_site ) {
                     const labels = <?php echo wp_json_encode( array_keys( $chart_data ) ); ?>;
                     const datasets = [];
                     const hasLeftAxis = <?php echo json_encode( $show_clicks || $show_impressions ); ?>;
-                    const hasRightAxis = <?php echo json_encode( $show_auth_index || $show_moz_da || $show_srt_da || $show_opr_rank || $show_backlinks ); ?>;
+                    const hasRightAxis = <?php echo json_encode( $show_auth_index || $show_opr_rank || $show_pagespeed ); ?>;
 
                     const colors = {
                         clicks:     { border: '#ff6b35', bg: 'rgba(255,107,53,0.1)' },
                         impressions:{ border: '#2271b1', bg: 'rgba(34,113,177,0.1)' },
                         auth_index: { border: '#00a32a', bg: 'rgba(0,163,42,0.1)' },
-                        moz_da:     { border: '#9b51e0', bg: 'rgba(155,81,224,0.1)' },
-                        srt_da:     { border: '#f0c33c', bg: 'rgba(240,195,60,0.1)' },
                         opr_rank:   { border: '#e91e63', bg: 'rgba(233,30,99,0.1)' },
-                        backlinks:  { border: '#607d8b', bg: 'rgba(96,125,139,0.1)' },
+                        pagespeed:  { border: '#2196f3', bg: 'rgba(33,150,243,0.1)' },
                     };
 
                     <?php if ( $show_clicks ) : ?>
@@ -226,34 +214,6 @@ if ( $selected_site ) {
                     });
                     <?php endif; ?>
 
-                    <?php if ( $show_moz_da ) : ?>
-                    datasets.push({
-                        label: 'Moz DA',
-                        data: <?php echo wp_json_encode( array_map( function($d){return $d['moz_da'] ?? null;}, $chart_data ) ); ?>,
-                        borderColor: colors.moz_da.border,
-                        backgroundColor: colors.moz_da.bg,
-                        yAxisID: hasLeftAxis ? 'y1' : 'y',
-                        tension: 0.3,
-                        fill: false,
-                        pointRadius: 4,
-                        spanGaps: true,
-                    });
-                    <?php endif; ?>
-
-                    <?php if ( $show_srt_da ) : ?>
-                    datasets.push({
-                        label: 'SRT DA',
-                        data: <?php echo wp_json_encode( array_map( function($d){return $d['srt_da'] ?? null;}, $chart_data ) ); ?>,
-                        borderColor: colors.srt_da.border,
-                        backgroundColor: colors.srt_da.bg,
-                        yAxisID: hasLeftAxis ? 'y1' : 'y',
-                        tension: 0.3,
-                        fill: false,
-                        pointRadius: 4,
-                        spanGaps: true,
-                    });
-                    <?php endif; ?>
-
                     <?php if ( $show_opr_rank ) : ?>
                     datasets.push({
                         label: 'OpenPageRank',
@@ -261,21 +221,21 @@ if ( $selected_site ) {
                         borderColor: colors.opr_rank.border,
                         backgroundColor: colors.opr_rank.bg,
                         yAxisID: hasLeftAxis ? 'y1' : 'y',
-                        tension: 0.3,
+                        tension: 0,
                         fill: false,
                         pointRadius: 4,
                         spanGaps: true,
                     });
                     <?php endif; ?>
 
-                    <?php if ( $show_backlinks ) : ?>
+                    <?php if ( $show_pagespeed ) : ?>
                     datasets.push({
-                        label: 'Backlinks',
-                        data: <?php echo wp_json_encode( array_map( function($d){return $d['backlinks'] ?? null;}, $chart_data ) ); ?>,
-                        borderColor: colors.backlinks.border,
-                        backgroundColor: colors.backlinks.bg,
-                        yAxisID: 'y',
-                        tension: 0.3,
+                        label: 'PageSpeed Score',
+                        data: <?php echo wp_json_encode( array_map( function($d){return $d['pagespeed'] ?? null;}, $chart_data ) ); ?>,
+                        borderColor: colors.pagespeed.border,
+                        backgroundColor: colors.pagespeed.bg,
+                        yAxisID: hasLeftAxis ? 'y1' : 'y',
+                        tension: 0,
                         fill: false,
                         pointRadius: 4,
                         spanGaps: true,

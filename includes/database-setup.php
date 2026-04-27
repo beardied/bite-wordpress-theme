@@ -135,6 +135,7 @@ function bite_create_database_tables() {
         srt_backlinks BIGINT UNSIGNED DEFAULT NULL,
         opr_rank DECIMAL(4,2) DEFAULT NULL,
         opr_global_rank BIGINT UNSIGNED DEFAULT NULL,
+        pagespeed_score INT UNSIGNED DEFAULT NULL,
         authority_index DECIMAL(5,2) DEFAULT NULL,
         data_source_json LONGTEXT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -245,6 +246,7 @@ function bite_create_missing_tables() {
             srt_backlinks BIGINT UNSIGNED DEFAULT NULL,
             opr_rank DECIMAL(4,2) DEFAULT NULL,
             opr_global_rank BIGINT UNSIGNED DEFAULT NULL,
+            pagespeed_score INT UNSIGNED DEFAULT NULL,
             authority_index DECIMAL(5,2) DEFAULT NULL,
             data_source_json LONGTEXT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -254,6 +256,12 @@ function bite_create_missing_tables() {
             KEY idx_site_id (site_id)
         ) $charset_collate;";
         dbDelta( $sql_domain_metrics );
+    }
+
+    // Migration: Add pagespeed_score column if missing
+    $column_exists = $wpdb->get_results( "SHOW COLUMNS FROM $domain_metrics_table LIKE 'pagespeed_score'" );
+    if ( empty( $column_exists ) ) {
+        $wpdb->query( "ALTER TABLE $domain_metrics_table ADD COLUMN pagespeed_score INT UNSIGNED DEFAULT NULL AFTER opr_global_rank" );
     }
 }
 add_action( 'init', 'bite_create_missing_tables' );

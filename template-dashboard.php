@@ -251,7 +251,7 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                                         <span class="bite-site-stat-label">Avg Position</span>
                                     </div>
                                     <?php if ( $dm && $dm->authority_index ) : ?>
-                                    <div class="bite-site-stat" title="Authority Index: <?php echo esc_attr( $dm->authority_index ); ?><?php echo $dm->moz_da ? ' | Moz DA: ' . $dm->moz_da : ''; ?><?php echo $dm->srt_da ? ' | SRT DA: ' . $dm->srt_da : ''; ?><?php echo $dm->opr_rank ? ' | OPR: ' . $dm->opr_rank : ''; ?><?php echo $dm->srt_backlinks ? ' | Backlinks: ' . number_format( $dm->srt_backlinks ) : ''; ?>" style="cursor: help;">
+                                    <div class="bite-site-stat" title="Authority Index: <?php echo esc_attr( $dm->authority_index ); ?><?php echo $dm->opr_rank ? ' | OPR: ' . $dm->opr_rank : ''; ?><?php echo isset($dm->pagespeed_score) && $dm->pagespeed_score ? ' | PageSpeed: ' . $dm->pagespeed_score : ''; ?>" style="cursor: help;">
                                         <span class="bite-site-stat-icon">🏆</span>
                                         <span class="bite-site-stat-value"><?php echo esc_html( number_format( $dm->authority_index, 1 ) ); ?></span>
                                         <span class="bite-site-stat-label">Auth Index<?php echo $dm->recorded_at ? ' (' . esc_html( date( 'M j', strtotime( $dm->recorded_at ) ) ) . ')' : ''; ?></span>

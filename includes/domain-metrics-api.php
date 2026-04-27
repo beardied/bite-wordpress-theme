@@ -2,10 +2,9 @@
 /**
  * Domain Metrics API Integration
  *
- * Fetches authority scores from 3 external APIs:
- * - OpenPageRank (OPR)     : 0-10 scale, batch up to 100 domains
- * - SEO Review Tools (SRT) : 0-100 scale, DA/PA/backlinks, 50/day free
- * - Mozscape (Moz)         : 0-100 scale, DA/PA/ref domains, 10s delay
+ * Fetches authority scores from 2 FREE external APIs:
+ * - OpenPageRank (OPR)          : 0-10 scale, batch up to 100 domains
+ * - Google PageSpeed Insights   : 0-100 performance score (free, no key needed)
  *
  * Stores results in wp_bite_domain_metrics table daily.
  *
@@ -23,23 +22,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 function bite_get_opr_api_key() {
     return get_option( 'bite_opr_api_key', '' );
 }
-function bite_get_srt_api_key() {
-    return get_option( 'bite_srt_api_key', '' );
-}
-function bite_get_moz_access_id() {
-    return get_option( 'bite_moz_access_id', '' );
-}
-function bite_get_moz_secret_key() {
-    return get_option( 'bite_moz_secret_key', '' );
+function bite_get_pagespeed_api_key() {
+    return get_option( 'bite_pagespeed_api_key', '' );
 }
 function bite_is_opr_configured() {
     return ! empty( bite_get_opr_api_key() );
 }
-function bite_is_srt_configured() {
-    return ! empty( bite_get_srt_api_key() );
-}
-function bite_is_moz_configured() {
-    return ! empty( bite_get_moz_access_id() ) && ! empty( bite_get_moz_secret_key() );
+function bite_is_pagespeed_configured() {
+    return true; // PageSpeed works without a key (lower quota) or with key (25k/day)
 }
 
 /* ============================================================
@@ -108,91 +98,34 @@ function bite_fetch_opr_batch( $domains ) {
 }
 
 /* ============================================================
-   3. SEO REVIEW TOOLS (SRT) — SINGLE DOMAIN
+   3. GOOGLE PAGESPEED INSIGHTS — SINGLE DOMAIN
    ============================================================ */
 
 /**
- * Fetch SRT authority score for a single domain.
+ * Fetch PageSpeed Insights performance score for a single domain.
+ * Free tier: 25,000 requests/day with API key, lower without.
+ * Returns a 0-100 performance score.
  *
  * @param string $domain Clean domain (e.g. example.com).
- * @return array ['da'=>int,'pa'=>int,'backlinks'=>int] or WP_Error
+ * @param string $strategy 'desktop' or 'mobile'.
+ * @return array ['performance_score'=>int(0-100)] or WP_Error
  */
-function bite_fetch_srt_single( $domain ) {
-    $api_key = bite_get_srt_api_key();
-    if ( empty( $api_key ) ) {
-        return new WP_Error( 'srt_not_configured', 'SRT API key not set.' );
-    }
+function bite_fetch_pagespeed_single( $domain, $strategy = 'desktop' ) {
+    $api_key = bite_get_pagespeed_api_key();
 
     $url = add_query_arg(
         array(
-            'url'     => $domain,
-            'metrics' => 'pa|da|total_backlinks',
-            'key'     => $api_key,
+            'url'      => 'https://' . $domain,
+            'strategy' => $strategy,
         ),
-        'https://api.seoreviewtools.com/authority-score/'
+        'https://www.googleapis.com/pagespeedonline/v5/runPagespeed'
     );
 
-    $response = wp_remote_get( $url, array( 'timeout' => 30 ) );
-
-    if ( is_wp_error( $response ) ) {
-        return $response;
+    if ( ! empty( $api_key ) ) {
+        $url = add_query_arg( 'key', $api_key, $url );
     }
 
-    $body = wp_remote_retrieve_body( $response );
-    $data = json_decode( $body, true );
-
-    if ( ! empty( $data['error'] ) ) {
-        return new WP_Error( 'srt_api_error', $data['error'], $data );
-    }
-
-    return array(
-        'da'        => isset( $data['data']['da'] ) ? intval( $data['data']['da'] ) : null,
-        'pa'        => isset( $data['data']['pa'] ) ? intval( $data['data']['pa'] ) : null,
-        'backlinks' => isset( $data['data']['total_backlinks'] ) ? intval( $data['data']['total_backlinks'] ) : null,
-    );
-}
-
-/* ============================================================
-   4. MOZSCAPE (MOZ) — SINGLE DOMAIN
-   ============================================================ */
-
-/**
- * Fetch Moz metrics for a single domain.
- * Free tier requires 10-second delay between calls.
- *
- * @param string $domain Clean domain.
- * @return array ['da'=>int,'pa'=>int,'ref_domains'=>int] or WP_Error
- */
-function bite_fetch_moz_single( $domain ) {
-    $access_id  = bite_get_moz_access_id();
-    $secret_key = bite_get_moz_secret_key();
-
-    if ( empty( $access_id ) || empty( $secret_key ) ) {
-        return new WP_Error( 'moz_not_configured', 'Moz credentials not set.' );
-    }
-
-    $expires = time() + 300;
-    $string_to_sign = $access_id . "\n" . $expires;
-    $signature = base64_encode( hash_hmac( 'sha1', $string_to_sign, $secret_key, true ) );
-
-    $url = add_query_arg(
-        array(
-            'Cols'         => '103079215108', // Bit flags for DA + PA + Ref Domains
-            'AccessID'     => $access_id,
-            'Expires'      => $expires,
-            'Signature'    => $signature,
-        ),
-        'https://lsapi.seomoz.com/v2/url_metrics'
-    );
-
-    $response = wp_remote_post(
-        $url,
-        array(
-            'headers' => array( 'Content-Type' => 'application/json' ),
-            'body'    => wp_json_encode( array( 'targets' => array( $domain ) ) ),
-            'timeout' => 30,
-        )
-    );
+    $response = wp_remote_get( $url, array( 'timeout' => 45 ) );
 
     if ( is_wp_error( $response ) ) {
         return $response;
@@ -203,47 +136,24 @@ function bite_fetch_moz_single( $domain ) {
     $data = json_decode( $body, true );
 
     if ( $code !== 200 ) {
-        return new WP_Error( 'moz_http_error', "HTTP $code: " . ( $data['message'] ?? $body ), $data );
+        $msg = $data['error']['message'] ?? "HTTP $code";
+        return new WP_Error( 'pagespeed_http_error', $msg, $data );
     }
 
-    $result = $data['results'][0] ?? array();
+    $score = null;
+    if ( isset( $data['lighthouseResult']['categories']['performance']['score'] ) ) {
+        $raw = $data['lighthouseResult']['categories']['performance']['score'];
+        // Score comes as 0-1 decimal, convert to 0-100 integer
+        $score = intval( round( floatval( $raw ) * 100 ) );
+    }
 
     return array(
-        'da'          => isset( $result['domain_authority'] ) ? intval( $result['domain_authority'] ) : null,
-        'pa'          => isset( $result['page_authority'] ) ? intval( $result['page_authority'] ) : null,
-        'ref_domains' => isset( $result['root_domains_to_root_domain'] ) ? intval( $result['root_domains_to_root_domain'] ) : null,
+        'performance_score' => $score,
     );
 }
 
 /* ============================================================
-   5. SRT SITE PRIORITY (First 50 sites)
-   ============================================================ */
-
-/**
- * Get the ordered list of sites eligible for SRT data.
- * First 50 sites by site_id (chronological add order).
- *
- * @return array Site IDs eligible for SRT.
- */
-function bite_get_srt_eligible_sites() {
-    global $wpdb;
-    $sites = $wpdb->get_col( "SELECT site_id FROM {$wpdb->prefix}bite_sites ORDER BY site_id ASC LIMIT 50" );
-    return $sites ? array_map( 'intval', $sites ) : array();
-}
-
-/**
- * Check if a specific site is eligible for SRT data.
- *
- * @param int $site_id
- * @return bool
- */
-function bite_is_srt_eligible( $site_id ) {
-    $eligible = bite_get_srt_eligible_sites();
-    return in_array( intval( $site_id ), $eligible, true );
-}
-
-/* ============================================================
-   6. AUTHORITY INDEX CALCULATION
+   4. AUTHORITY INDEX CALCULATION
    ============================================================ */
 
 /**
@@ -260,14 +170,9 @@ function bite_calculate_authority_index( $metrics ) {
         $scores[] = floatval( $metrics['opr_rank'] ) * 10;
     }
 
-    // Moz DA: already 0-100
-    if ( isset( $metrics['moz_da'] ) && $metrics['moz_da'] !== null ) {
-        $scores[] = floatval( $metrics['moz_da'] );
-    }
-
-    // SRT DA: already 0-100
-    if ( isset( $metrics['srt_da'] ) && $metrics['srt_da'] !== null ) {
-        $scores[] = floatval( $metrics['srt_da'] );
+    // PageSpeed: already 0-100
+    if ( isset( $metrics['pagespeed_score'] ) && $metrics['pagespeed_score'] !== null ) {
+        $scores[] = floatval( $metrics['pagespeed_score'] );
     }
 
     if ( empty( $scores ) ) {
@@ -278,7 +183,7 @@ function bite_calculate_authority_index( $metrics ) {
 }
 
 /* ============================================================
-   7. MAIN ORCHESTRATOR — DAILY FETCH
+   5. MAIN ORCHESTRATOR — DAILY FETCH
    ============================================================ */
 
 /**
@@ -299,12 +204,10 @@ function bite_fetch_all_domain_metrics() {
         return array( 'status' => 'no_sites', 'message' => 'No sites found.' );
     }
 
-    $srt_eligible = bite_get_srt_eligible_sites();
     $summary = array(
         'total'     => count( $sites ),
         'opr'       => 0,
-        'srt'       => 0,
-        'moz'       => 0,
+        'pagespeed' => 0,
         'errors'    => array(),
         'timestamp' => $today,
     );
@@ -338,82 +241,38 @@ function bite_fetch_all_domain_metrics() {
         }
     }
 
-    // ---------- SRT: ONE-BY-ONE (50 sites max) ----------
-    if ( bite_is_srt_configured() ) {
-        foreach ( $sites as $site ) {
-            if ( ! in_array( intval( $site->site_id ), $srt_eligible, true ) ) {
-                continue;
-            }
+    // ---------- PAGESPEED: ONE-BY-ONE ----------
+    foreach ( $sites as $site ) {
+        $ps_result = bite_fetch_pagespeed_single( $site->domain, 'desktop' );
 
-            $srt_result = bite_fetch_srt_single( $site->domain );
-
-            if ( is_wp_error( $srt_result ) ) {
-                $summary['errors'][] = 'SRT site ' . $site->site_id . ': ' . $srt_result->get_error_message();
-                error_log( 'BITE Domain Metrics SRT Error (site ' . $site->site_id . '): ' . $srt_result->get_error_message() );
-                continue;
-            }
-
-            $wpdb->query( $wpdb->prepare(
-                "INSERT INTO $metrics_table (site_id, recorded_at, srt_da, srt_pa, srt_backlinks)
-                 VALUES (%d, %s, %d, %d, %d)
-                 ON DUPLICATE KEY UPDATE
-                 srt_da = VALUES(srt_da),
-                 srt_pa = VALUES(srt_pa),
-                 srt_backlinks = VALUES(srt_backlinks)",
-                $site->site_id,
-                $today,
-                $srt_result['da'],
-                $srt_result['pa'],
-                $srt_result['backlinks']
-            ) );
-            $summary['srt']++;
+        if ( is_wp_error( $ps_result ) ) {
+            $summary['errors'][] = 'PageSpeed site ' . $site->site_id . ': ' . $ps_result->get_error_message();
+            error_log( 'BITE Domain Metrics PageSpeed Error (site ' . $site->site_id . '): ' . $ps_result->get_error_message() );
+            continue;
         }
-    }
 
-    // ---------- MOZ: ONE-BY-ONE WITH 10s DELAY ----------
-    if ( bite_is_moz_configured() ) {
-        foreach ( $sites as $site ) {
-            $moz_result = bite_fetch_moz_single( $site->domain );
-
-            if ( is_wp_error( $moz_result ) ) {
-                $summary['errors'][] = 'Moz site ' . $site->site_id . ': ' . $moz_result->get_error_message();
-                error_log( 'BITE Domain Metrics Moz Error (site ' . $site->site_id . '): ' . $moz_result->get_error_message() );
-                continue;
-            }
-
-            $wpdb->query( $wpdb->prepare(
-                "INSERT INTO $metrics_table (site_id, recorded_at, moz_da, moz_pa, moz_ref_domains)
-                 VALUES (%d, %s, %d, %d, %d)
-                 ON DUPLICATE KEY UPDATE
-                 moz_da = VALUES(moz_da),
-                 moz_pa = VALUES(moz_pa),
-                 moz_ref_domains = VALUES(moz_ref_domains)",
-                $site->site_id,
-                $today,
-                $moz_result['da'],
-                $moz_result['pa'],
-                $moz_result['ref_domains']
-            ) );
-            $summary['moz']++;
-
-            // Free tier rate limit: 10 seconds between requests
-            if ( count( $sites ) > 1 ) {
-                sleep( 10 );
-            }
-        }
+        $wpdb->query( $wpdb->prepare(
+            "INSERT INTO $metrics_table (site_id, recorded_at, pagespeed_score)
+             VALUES (%d, %s, %d)
+             ON DUPLICATE KEY UPDATE
+             pagespeed_score = VALUES(pagespeed_score)",
+            $site->site_id,
+            $today,
+            $ps_result['performance_score']
+        ) );
+        $summary['pagespeed']++;
     }
 
     // ---------- CALCULATE AUTHORITY INDEX ----------
     $all_records = $wpdb->get_results( $wpdb->prepare(
-        "SELECT metric_id, opr_rank, moz_da, srt_da FROM $metrics_table WHERE recorded_at = %s",
+        "SELECT metric_id, opr_rank, pagespeed_score FROM $metrics_table WHERE recorded_at = %s",
         $today
     ) );
 
     foreach ( $all_records as $record ) {
         $index = bite_calculate_authority_index( array(
-            'opr_rank' => $record->opr_rank,
-            'moz_da'   => $record->moz_da,
-            'srt_da'   => $record->srt_da,
+            'opr_rank'        => $record->opr_rank,
+            'pagespeed_score' => $record->pagespeed_score,
         ) );
 
         if ( $index !== null ) {
