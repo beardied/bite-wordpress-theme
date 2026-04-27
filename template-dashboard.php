@@ -185,8 +185,6 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
         }
         ?>
 
-        <?php if ( function_exists( 'bite_render_metrics_legend' ) ) echo bite_render_metrics_legend(); ?>
-
         <section class="bite-dashboard-section bite-sites-section">
             <div class="bite-section-header">
                 <h2>Your Sites</h2>
