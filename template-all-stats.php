@@ -126,8 +126,7 @@ if ( $selected_site ) {
 
 // Build Chart.js datasets in PHP
 $chart_datasets = array();
-$has_left_axis  = $show_clicks || $show_impressions;
-$has_right_axis = $show_auth_index || $show_opr_rank || $show_d_perf || $show_d_a11y || $show_d_bp || $show_d_seo || $show_m_perf || $show_m_a11y || $show_m_bp || $show_m_seo;
+$has_scores = $show_auth_index || $show_opr_rank || $show_d_perf || $show_d_a11y || $show_d_bp || $show_d_seo || $show_m_perf || $show_m_a11y || $show_m_bp || $show_m_seo;
 
 $show_vars = array(
     'clicks'      => $show_clicks,
@@ -146,17 +145,17 @@ $show_vars = array(
 
 $ds_config = array(
     'clicks'      => array( 'label' => 'Clicks',              'key' => 'clicks',      'color' => '#ff6b35', 'bg' => 'rgba(255,107,53,0.08)',  'axis' => 'y',  'fill' => true,  'point' => 2 ),
-    'impressions' => array( 'label' => 'Impressions',         'key' => 'impressions', 'color' => '#2271b1', 'bg' => 'rgba(34,113,177,0.08)',  'axis' => 'y',  'fill' => true,  'point' => 2 ),
-    'auth_index'  => array( 'label' => 'Authority Index',     'key' => 'auth_index',  'color' => '#00a32a', 'bg' => 'rgba(0,163,42,0.08)',    'axis' => 'y1', 'fill' => false, 'point' => 4 ),
-    'opr_rank'    => array( 'label' => 'OpenPageRank',        'key' => 'opr_display', 'color' => '#e91e63', 'bg' => 'rgba(233,30,99,0.08)',   'axis' => 'y1', 'fill' => false, 'point' => 4 ),
-    'd_perf'      => array( 'label' => 'Desktop Performance', 'key' => 'd_perf',      'color' => '#2196f3', 'bg' => 'rgba(33,150,243,0.08)',  'axis' => 'y1', 'fill' => false, 'point' => 4 ),
-    'd_a11y'      => array( 'label' => 'Desktop Accessibility','key'=> 'd_a11y',      'color' => '#9c27b0', 'bg' => 'rgba(156,39,176,0.08)',  'axis' => 'y1', 'fill' => false, 'point' => 4 ),
-    'd_bp'        => array( 'label' => 'Desktop Best Practices','key'=> 'd_bp',       'color' => '#795548', 'bg' => 'rgba(121,85,72,0.08)',   'axis' => 'y1', 'fill' => false, 'point' => 4 ),
-    'd_seo'       => array( 'label' => 'Desktop SEO',         'key' => 'd_seo',       'color' => '#ff5722', 'bg' => 'rgba(255,87,34,0.08)',   'axis' => 'y1', 'fill' => false, 'point' => 4 ),
-    'm_perf'      => array( 'label' => 'Mobile Performance',  'key' => 'm_perf',      'color' => '#4fc3f7', 'bg' => 'rgba(79,195,247,0.08)',  'axis' => 'y1', 'fill' => false, 'point' => 4 ),
-    'm_a11y'      => array( 'label' => 'Mobile Accessibility','key' => 'm_a11y',      'color' => '#ce93d8', 'bg' => 'rgba(206,147,216,0.08)', 'axis' => 'y1', 'fill' => false, 'point' => 4 ),
-    'm_bp'        => array( 'label' => 'Mobile Best Practices','key'=> 'm_bp',        'color' => '#bcaaa4', 'bg' => 'rgba(188,170,164,0.08)', 'axis' => 'y1', 'fill' => false, 'point' => 4 ),
-    'm_seo'       => array( 'label' => 'Mobile SEO',          'key' => 'm_seo',       'color' => '#ffab91', 'bg' => 'rgba(255,171,145,0.08)', 'axis' => 'y1', 'fill' => false, 'point' => 4 ),
+    'impressions' => array( 'label' => 'Impressions',         'key' => 'impressions', 'color' => '#2271b1', 'bg' => 'rgba(34,113,177,0.08)',  'axis' => 'y1', 'fill' => true,  'point' => 2 ),
+    'auth_index'  => array( 'label' => 'Authority Index',     'key' => 'auth_index',  'color' => '#00a32a', 'bg' => 'rgba(0,163,42,0.08)',    'axis' => 'y2', 'fill' => false, 'point' => 4 ),
+    'opr_rank'    => array( 'label' => 'OpenPageRank',        'key' => 'opr_display', 'color' => '#e91e63', 'bg' => 'rgba(233,30,99,0.08)',   'axis' => 'y2', 'fill' => false, 'point' => 4 ),
+    'd_perf'      => array( 'label' => 'Desktop Performance', 'key' => 'd_perf',      'color' => '#2196f3', 'bg' => 'rgba(33,150,243,0.08)',  'axis' => 'y2', 'fill' => false, 'point' => 4 ),
+    'd_a11y'      => array( 'label' => 'Desktop Accessibility','key'=> 'd_a11y',      'color' => '#9c27b0', 'bg' => 'rgba(156,39,176,0.08)',  'axis' => 'y2', 'fill' => false, 'point' => 4 ),
+    'd_bp'        => array( 'label' => 'Desktop Best Practices','key'=> 'd_bp',       'color' => '#795548', 'bg' => 'rgba(121,85,72,0.08)',   'axis' => 'y2', 'fill' => false, 'point' => 4 ),
+    'd_seo'       => array( 'label' => 'Desktop SEO',         'key' => 'd_seo',       'color' => '#ff5722', 'bg' => 'rgba(255,87,34,0.08)',   'axis' => 'y2', 'fill' => false, 'point' => 4 ),
+    'm_perf'      => array( 'label' => 'Mobile Performance',  'key' => 'm_perf',      'color' => '#4fc3f7', 'bg' => 'rgba(79,195,247,0.08)',  'axis' => 'y2', 'fill' => false, 'point' => 4 ),
+    'm_a11y'      => array( 'label' => 'Mobile Accessibility','key' => 'm_a11y',      'color' => '#ce93d8', 'bg' => 'rgba(206,147,216,0.08)', 'axis' => 'y2', 'fill' => false, 'point' => 4 ),
+    'm_bp'        => array( 'label' => 'Mobile Best Practices','key'=> 'm_bp',        'color' => '#bcaaa4', 'bg' => 'rgba(188,170,164,0.08)', 'axis' => 'y2', 'fill' => false, 'point' => 4 ),
+    'm_seo'       => array( 'label' => 'Mobile SEO',          'key' => 'm_seo',       'color' => '#ffab91', 'bg' => 'rgba(255,171,145,0.08)', 'axis' => 'y2', 'fill' => false, 'point' => 4 ),
 );
 
 foreach ( $ds_config as $key => $cfg ) {
@@ -170,7 +169,7 @@ foreach ( $ds_config as $key => $cfg ) {
             'data'            => $data_values,
             'borderColor'     => $cfg['color'],
             'backgroundColor' => $cfg['bg'],
-            'yAxisID'         => $has_left_axis ? $cfg['axis'] : 'y',
+            'yAxisID'         => $cfg['axis'],
             'tension'         => 0,
             'fill'            => $cfg['fill'],
             'pointRadius'     => $cfg['point'],
@@ -296,9 +295,6 @@ foreach ( $ds_config as $key => $cfg ) {
                 document.addEventListener('DOMContentLoaded', function() {
                     const labels = <?php echo wp_json_encode( array_keys( $chart_data ) ); ?>;
                     const datasets = <?php echo wp_json_encode( $chart_datasets ); ?>;
-                    const hasLeftAxis = <?php echo json_encode( $has_left_axis ); ?>;
-                    const hasRightAxis = <?php echo json_encode( $has_right_axis ); ?>;
-
                     new Chart(document.getElementById('all-stats-chart'), {
                         type: 'line',
                         data: { labels: labels, datasets: datasets },
@@ -330,14 +326,22 @@ foreach ( $ds_config as $key => $cfg ) {
                                 x: { grid: { display: false } },
                                 y: {
                                     type: 'linear',
-                                    display: true,
+                                    display: <?php echo json_encode( $show_clicks ); ?>,
                                     position: 'left',
-                                    title: { display: true, text: 'GSC Metrics' },
+                                    title: { display: true, text: 'Clicks' },
                                     beginAtZero: true,
                                 },
                                 y1: {
                                     type: 'linear',
-                                    display: hasRightAxis && hasLeftAxis,
+                                    display: <?php echo json_encode( $show_impressions ); ?>,
+                                    position: 'left',
+                                    title: { display: true, text: 'Impressions' },
+                                    grid: { drawOnChartArea: false },
+                                    beginAtZero: true,
+                                },
+                                y2: {
+                                    type: 'linear',
+                                    display: <?php echo json_encode( $has_scores ); ?>,
                                     position: 'right',
                                     title: { display: true, text: 'Authority & PageSpeed Scores' },
                                     grid: { drawOnChartArea: false },
