@@ -453,6 +453,21 @@ function bite_run_daily_update() {
         $ga4_summary = bite_fetch_all_ga4_metrics();
         error_log( 'BITE Daily Update: GA4 daily metrics fetch complete. Processed: ' . $ga4_summary['processed'] . ', Errors: ' . $ga4_summary['errors'] );
     }
+
+    // Fetch Bing Webmaster Tools data (backfill first, then daily)
+    if ( function_exists( 'bite_trigger_bing_backfill_queue' ) ) {
+        error_log( 'BITE Daily Update: Checking for Bing backfill jobs...' );
+        $bing_backfill = bite_trigger_bing_backfill_queue();
+        if ( $bing_backfill['processed'] > 0 || $bing_backfill['errors'] > 0 ) {
+            error_log( 'BITE Daily Update: Bing backfill complete. Processed: ' . $bing_backfill['processed'] . ', Errors: ' . $bing_backfill['errors'] );
+        }
+    }
+
+    if ( function_exists( 'bite_fetch_all_bing_metrics' ) ) {
+        error_log( 'BITE Daily Update: Starting Bing daily metrics fetch...' );
+        $bing_summary = bite_fetch_all_bing_metrics();
+        error_log( 'BITE Daily Update: Bing daily metrics fetch complete. Processed: ' . $bing_summary['processed'] . ', Errors: ' . $bing_summary['errors'] );
+    }
 }
 add_action( 'bite_daily_update_hook', 'bite_run_daily_update' );
 

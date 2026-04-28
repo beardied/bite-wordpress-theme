@@ -318,5 +318,30 @@ function bite_create_missing_tables() {
     if ( empty( $ga4_status_col ) ) {
         $wpdb->query( "ALTER TABLE $sites_table ADD COLUMN ga4_backfill_status ENUM('pending', 'in_progress', 'complete', 'auth_error') NULL AFTER ga4_property_id" );
     }
+
+    // Migration: Add bing_backfill_status column to sites table if missing
+    $bing_status_col = $wpdb->get_results( "SHOW COLUMNS FROM $sites_table LIKE 'bing_backfill_status'" );
+    if ( empty( $bing_status_col ) ) {
+        $wpdb->query( "ALTER TABLE $sites_table ADD COLUMN bing_backfill_status ENUM('pending', 'in_progress', 'complete', 'auth_error') NULL AFTER ga4_backfill_status" );
+    }
+
+    // Migration: Create Bing daily summary table if not exists
+    $bing_table = $wpdb->prefix . 'bite_bing_daily_summary';
+    $bing_exists = $wpdb->get_var( "SHOW TABLES LIKE '$bing_table'" );
+    if ( ! $bing_exists ) {
+        $sql_bing = "CREATE TABLE $bing_table (
+            bing_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            site_id INT UNSIGNED NOT NULL,
+            date DATE NOT NULL,
+            clicks INT UNSIGNED DEFAULT 0,
+            impressions INT UNSIGNED DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (bing_id),
+            UNIQUE KEY uq_site_date_bing (site_id, date),
+            KEY idx_date (date),
+            KEY idx_site_id (site_id)
+        ) $charset_collate;";
+        dbDelta( $sql_bing );
+    }
 }
 add_action( 'init', 'bite_create_missing_tables' );

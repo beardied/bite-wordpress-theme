@@ -22,6 +22,8 @@ $current_user_id = get_current_user_id();
 $user_connected   = bite_user_has_google_connection( $current_user_id );
 $user_has_ga4_scope = bite_user_has_ga4_scope( $current_user_id );
 $has_auth_errors  = ! empty( bite_get_user_auth_error_sites( $current_user_id ) ) || (bool) get_user_meta( $current_user_id, 'bite_google_auth_failed', true );
+$user_has_bing    = bite_user_has_bing_connection( $current_user_id );
+$bing_api_key     = bite_get_bing_api_key( $current_user_id );
 
 // Get user's sites
 $user_site_ids = bite_get_user_sites( $current_user_id );
@@ -30,7 +32,7 @@ if ( ! empty( $user_site_ids ) ) {
     $sites_table = $wpdb->prefix . 'bite_sites';
     $placeholders = implode( ',', array_fill( 0, count( $user_site_ids ), '%d' ) );
     $user_sites = $wpdb->get_results( $wpdb->prepare(
-        "SELECT site_id, name, domain, gsc_property, ga4_property_id FROM $sites_table WHERE site_id IN ($placeholders) ORDER BY name ASC",
+        "SELECT site_id, name, domain, gsc_property, ga4_property_id, ga4_backfill_status, bing_backfill_status FROM $sites_table WHERE site_id IN ($placeholders) ORDER BY name ASC",
         $user_site_ids
     ) );
 }
@@ -279,7 +281,7 @@ if ( $user_connected && $user_has_ga4_scope ) {
             </div>
         </section>
 
-        <!-- Bing Webmaster Tools (Coming Soon) -->
+        <!-- Bing Webmaster Tools -->
         <section class="bite-dashboard-section">
             <div class="bite-section-header">
                 <h2>
@@ -288,21 +290,111 @@ if ( $user_connected && $user_has_ga4_scope ) {
                 </h2>
             </div>
 
-            <div class="bite-setup-card" style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 24px; opacity: 0.7;">
-                <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+            <div class="bite-setup-card" style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 24px;">
+                <div style="display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 280px;">
-                        <h3 style="margin: 0 0 8px 0; font-size: 1.15em;">Coming in Phase 2</h3>
-                        <p style="margin: 0; color: #666; font-size: 0.9em;">
-                            Bing Webmaster Tools integration will allow you to track Bing search performance alongside Google data. This will use API key authentication (no OAuth required).
-                        </p>
+                        <h3 style="margin: 0 0 8px 0; font-size: 1.15em;">Status</h3>
+                        <?php if ( $user_has_bing ) : ?>
+                            <div style="display: flex; align-items: center; gap: 8px; color: #00a32a; font-weight: 500; margin-bottom: 12px;">
+                                <span class="material-icons">check_circle</span>
+                                Connected
+                            </div>
+                            <p style="margin: 0; color: #666; font-size: 0.9em;">
+                                Your Bing API key is saved. Historical data will be imported for each site automatically.
+                            </p>
+                        <?php else : ?>
+                            <div style="display: flex; align-items: center; gap: 8px; color: #888; font-weight: 500; margin-bottom: 12px;">
+                                <span class="material-icons">link_off</span>
+                                Not Connected
+                            </div>
+                            <p style="margin: 0; color: #666; font-size: 0.9em;">
+                                Add your Bing Webmaster Tools API key to track Bing search performance.
+                            </p>
+                        <?php endif; ?>
+
+                        <div style="margin-top: 14px; padding: 12px 14px; background: #e0f2f1; border-radius: var(--radius-sm); border-left: 3px solid #008373;">
+                            <p style="margin: 0; font-size: 0.85em; color: #444; line-height: 1.5;">
+                                <strong style="color: #008373;">What you get:</strong> Track Bing clicks and impressions alongside Google Search Console data. See how your sites perform across both search engines in one unified dashboard — including full historical data from Bing.
+                            </p>
+                        </div>
+
+                        <div style="margin-top: 10px; font-size: 0.8em; color: #888;">
+                            <span class="material-icons" style="font-size: 14px; vertical-align: middle;">info</span>
+                            Get your API key from <a href="https://www.bing.com/webmasters/Home#/ApiAccess" target="_blank" style="text-decoration: underline;">Bing Webmaster Tools → API Access</a>
+                        </div>
                     </div>
-                    <div style="min-width: 120px;">
-                        <span class="bite-button bite-button-secondary" style="cursor: default; opacity: 0.6;">
-                            <span class="material-icons" style="vertical-align: middle; margin-right: 6px; font-size: 18px;">schedule</span>
-                            Coming Soon
-                        </span>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px; min-width: 260px;">
+                        <?php if ( $user_has_bing ) : ?>
+                            <div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                                <span class="material-icons" style="color: #888; font-size: 18px;">vpn_key</span>
+                                <code style="font-size: 0.85em; color: #555;"><?php echo esc_html( substr( $bing_api_key, 0, 4 ) . '...' . substr( $bing_api_key, -4 ) ); ?></code>
+                            </div>
+                            <button type="button" class="bite-button bite-button-secondary" id="bite-disconnect-bing">
+                                <span class="material-icons" style="vertical-align: middle; margin-right: 6px; font-size: 18px;">link_off</span>
+                                Disconnect Bing
+                            </button>
+                        <?php else : ?>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <input type="text" id="bite-bing-api-key" placeholder="Paste your Bing API key here" style="padding: 10px 12px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.9em; width: 100%;">
+                                <button type="button" class="bite-button bite-button-primary" id="bite-save-bing-key">
+                                    <span class="material-icons" style="vertical-align: middle; margin-right: 6px; font-size: 18px;">save</span>
+                                    Save API Key
+                                </button>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
+
+                <?php if ( $user_has_bing && ! empty( $user_sites ) ) : ?>
+                    <div style="margin-top: 24px; border-top: 1px solid var(--border-light); padding-top: 20px;">
+                        <h4 style="margin: 0 0 16px 0; font-size: 1em; color: #555;">Bing Import Status per Site</h4>
+                        <div style="display: grid; gap: 12px;">
+                            <?php foreach ( $user_sites as $site ) :
+                                $bing_status = $site->bing_backfill_status;
+                                $bing_badge = '';
+                                $bing_class = '';
+                                switch ( $bing_status ) {
+                                    case 'pending':
+                                        $bing_badge = '⏳ Waiting to import';
+                                        $bing_class = 'bing-status-pending';
+                                        break;
+                                    case 'in_progress':
+                                        $bing_badge = '🔄 Importing history...';
+                                        $bing_class = 'bing-status-progress';
+                                        break;
+                                    case 'complete':
+                                        $bing_badge = '✅ Up to date';
+                                        $bing_class = 'bing-status-complete';
+                                        break;
+                                    case 'auth_error':
+                                        $bing_badge = '⚠️ Auth error';
+                                        $bing_class = 'bing-status-error';
+                                        break;
+                                    default:
+                                        $bing_badge = '⏳ Waiting to import';
+                                        $bing_class = 'bing-status-pending';
+                                }
+                            ?>
+                                <div class="bite-bing-site-row" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px; background: var(--bg-color); border-radius: var(--radius-sm);" data-site-id="<?php echo esc_attr( $site->site_id ); ?>" data-status="<?php echo esc_attr( $bing_status ?: 'none' ); ?>">
+                                    <div style="flex: 1; min-width: 200px;">
+                                        <strong><?php echo esc_html( $site->name ); ?></strong>
+                                        <span style="color: #888; font-size: 0.85em; margin-left: 8px;"><?php echo esc_html( $site->domain ); ?></span>
+                                        <span class="bite-bing-status-badge <?php echo esc_attr( $bing_class ); ?>" style="display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500; background: #f0f0f0; color: #666;">
+                                            <?php echo esc_html( $bing_badge ); ?>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="bite-button bite-button-secondary bite-trigger-bing-backfill" data-site-id="<?php echo esc_attr( $site->site_id ); ?>" style="font-size: 0.8em; padding: 5px 12px; <?php echo in_array( $bing_status, array( 'in_progress', 'pending' ) ) ? 'opacity:0.5;cursor:not-allowed;' : ''; ?>" <?php echo in_array( $bing_status, array( 'in_progress', 'pending' ) ) ? 'disabled' : ''; ?>>
+                                            <span class="material-icons" style="vertical-align: middle; margin-right: 4px; font-size: 14px;">refresh</span>
+                                            Re-import
+                                        </button>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         </section>
 
@@ -421,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (nameDiv) nameDiv.appendChild(badge);
                         }
                         badge.textContent = '⏳ Waiting to import';
-                        startStatusPolling();
+                        startAllStatusPolling();
                     }
                     setTimeout(function() {
                         btn.textContent = originalText;
@@ -515,8 +607,180 @@ document.addEventListener('DOMContentLoaded', function() {
         statusPollInterval = setInterval(checkBackfillStatuses, 8000);
     }
 
+    // Bing: Save API key
+    var saveBingBtn = document.getElementById('bite-save-bing-key');
+    if (saveBingBtn) {
+        saveBingBtn.addEventListener('click', function() {
+            var keyInput = document.getElementById('bite-bing-api-key');
+            var key = keyInput ? keyInput.value.trim() : '';
+            if (!key) {
+                alert('Please enter your Bing API key');
+                return;
+            }
+            saveBingBtn.disabled = true;
+            saveBingBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:6px;font-size:18px;">hourglass_empty</span> Validating...';
+
+            var formData = new FormData();
+            formData.append('action', 'bite_save_bing_api_key');
+            formData.append('nonce', '<?php echo wp_create_nonce( 'bite_bing_nonce' ); ?>');
+            formData.append('api_key', key);
+
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (data.data || 'Invalid API key'));
+                    saveBingBtn.disabled = false;
+                    saveBingBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:6px;font-size:18px;">save</span> Save API Key';
+                }
+            })
+            .catch(function() {
+                alert('Network error. Please try again.');
+                saveBingBtn.disabled = false;
+                saveBingBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:6px;font-size:18px;">save</span> Save API Key';
+            });
+        });
+    }
+
+    // Bing: Disconnect
+    var disconnectBingBtn = document.getElementById('bite-disconnect-bing');
+    if (disconnectBingBtn) {
+        disconnectBingBtn.addEventListener('click', function() {
+            if (!confirm('Disconnect Bing Webmaster Tools? All Bing data will stop syncing.')) return;
+            disconnectBingBtn.disabled = true;
+            disconnectBingBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:4px;font-size:16px;">hourglass_empty</span> Disconnecting...';
+
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=bite_disconnect_bing&nonce=<?php echo wp_create_nonce( 'bite_bing_nonce' ); ?>'
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (data.data || 'Failed'));
+                    disconnectBingBtn.disabled = false;
+                    disconnectBingBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:6px;font-size:18px;">link_off</span> Disconnect Bing';
+                }
+            })
+            .catch(function() {
+                alert('Network error. Please try again.');
+                disconnectBingBtn.disabled = false;
+                disconnectBingBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:6px;font-size:18px;">link_off</span> Disconnect Bing';
+            });
+        });
+    }
+
+    // Bing: Trigger backfill / re-import
+    document.querySelectorAll('.bite-trigger-bing-backfill').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var siteId = this.dataset.siteId;
+            if (btn.disabled) return;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:4px;font-size:14px;">hourglass_empty</span> Starting...';
+
+            var formData = new FormData();
+            formData.append('action', 'bite_trigger_bing_backfill');
+            formData.append('nonce', '<?php echo wp_create_nonce( 'bite_bing_nonce' ); ?>');
+            formData.append('site_id', siteId);
+
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (data.data || 'Failed'));
+                    btn.disabled = false;
+                    btn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:4px;font-size:14px;">refresh</span> Re-import';
+                }
+            })
+            .catch(function() {
+                alert('Network error. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:4px;font-size:14px;">refresh</span> Re-import';
+            });
+        });
+    });
+
+    // Combined status polling for both GA4 and Bing
+    function checkAllBackfillStatuses() {
+        // GA4
+        var ga4Rows = document.querySelectorAll('.bite-ga4-site-row[data-status="pending"], .bite-ga4-site-row[data-status="in_progress"]');
+        ga4Rows.forEach(function(row) {
+            var siteId = row.dataset.siteId;
+            var formData = new FormData();
+            formData.append('action', 'bite_get_ga4_backfill_status');
+            formData.append('nonce', nonce);
+            formData.append('site_id', siteId);
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', { method: 'POST', body: formData })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var newStatus = data.data.status;
+                    var daysStored = data.data.days_stored;
+                    row.dataset.status = newStatus;
+                    updateStatusBadge(row, newStatus, daysStored);
+                    if (newStatus === 'complete') {
+                        setTimeout(function() { window.location.reload(); }, 2000);
+                    }
+                }
+            });
+        });
+
+        // Bing
+        var bingRows = document.querySelectorAll('.bite-bing-site-row[data-status="pending"], .bite-bing-site-row[data-status="in_progress"]');
+        bingRows.forEach(function(row) {
+            var siteId = row.dataset.siteId;
+            var formData = new FormData();
+            formData.append('action', 'bite_get_bing_backfill_status');
+            formData.append('nonce', '<?php echo wp_create_nonce( 'bite_bing_nonce' ); ?>');
+            formData.append('site_id', siteId);
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', { method: 'POST', body: formData })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var newStatus = data.data.status;
+                    var daysStored = data.data.days_stored;
+                    row.dataset.status = newStatus;
+                    var badge = row.querySelector('.bite-bing-status-badge');
+                    if (badge) {
+                        var label = '';
+                        switch (newStatus) {
+                            case 'pending': label = '⏳ Waiting to import'; break;
+                            case 'in_progress': label = '🔄 Importing history...'; break;
+                            case 'complete': label = '✅ Up to date (' + (daysStored || 0) + ' days)'; break;
+                            case 'auth_error': label = '⚠️ Auth error'; break;
+                            default: label = '';
+                        }
+                        badge.textContent = label;
+                    }
+                    if (newStatus === 'complete') {
+                        setTimeout(function() { window.location.reload(); }, 2000);
+                    }
+                }
+            });
+        });
+    }
+
+    function startAllStatusPolling() {
+        if (statusPollInterval) return;
+        checkAllBackfillStatuses();
+        statusPollInterval = setInterval(checkAllBackfillStatuses, 8000);
+    }
+
     // Start polling on page load if there are active imports
-    startStatusPolling();
+    startAllStatusPolling();
 });
 </script>
 

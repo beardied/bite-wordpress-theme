@@ -70,6 +70,8 @@ $show_m_seo      = isset( $_GET['show_m_seo'] ) ? true : false;
 $show_ga4_sessions = isset( $_GET['show_ga4_sessions'] ) ? true : false;
 $show_ga4_users    = isset( $_GET['show_ga4_users'] ) ? true : false;
 $show_ga4_pv       = isset( $_GET['show_ga4_pv'] ) ? true : false;
+$show_bing_clicks  = isset( $_GET['show_bing_clicks'] ) ? true : false;
+$show_bing_impressions = isset( $_GET['show_bing_impressions'] ) ? true : false;
 
 $chart_data = array();
 if ( $selected_site ) {
@@ -137,6 +139,19 @@ if ( $selected_site ) {
         $dates[ $row->date ]['ga4_pv']        = intval( $row->pageviews );
     }
 
+    // Bing data
+    $bing_rows = array();
+    if ( function_exists( 'bite_get_bing_metrics_history' ) ) {
+        $bing_rows = bite_get_bing_metrics_history( $selected_site_id, $start_date, $end_date );
+    }
+    foreach ( $bing_rows as $row ) {
+        if ( ! isset( $dates[ $row->date ] ) ) {
+            $dates[ $row->date ] = array();
+        }
+        $dates[ $row->date ]['bing_clicks']      = intval( $row->clicks );
+        $dates[ $row->date ]['bing_impressions'] = intval( $row->impressions );
+    }
+
     ksort( $dates );
     $chart_data = $dates;
 }
@@ -162,6 +177,8 @@ $show_vars = array(
     'ga4_sessions' => $show_ga4_sessions,
     'ga4_users'    => $show_ga4_users,
     'ga4_pv'       => $show_ga4_pv,
+    'bing_clicks'  => $show_bing_clicks,
+    'bing_impressions' => $show_bing_impressions,
 );
 
 $ds_config = array(
@@ -180,6 +197,8 @@ $ds_config = array(
     'ga4_sessions'=> array( 'label' => 'GA4 Sessions',        'key' => 'ga4_sessions', 'color' => '#f9ab00', 'bg' => 'rgba(249,171,0,0.08)',   'axis' => 'y',  'fill' => true,  'point' => 3 ),
     'ga4_users'   => array( 'label' => 'GA4 Users',           'key' => 'ga4_users',    'color' => '#34a853', 'bg' => 'rgba(52,168,83,0.08)',   'axis' => 'y',  'fill' => true,  'point' => 3 ),
     'ga4_pv'      => array( 'label' => 'GA4 Pageviews',       'key' => 'ga4_pv',       'color' => '#ea4335', 'bg' => 'rgba(234,67,53,0.08)',   'axis' => 'y1', 'fill' => true,  'point' => 3 ),
+    'bing_clicks' => array( 'label' => 'Bing Clicks',         'key' => 'bing_clicks',  'color' => '#008373', 'bg' => 'rgba(0,131,115,0.08)',   'axis' => 'y',  'fill' => true,  'point' => 3 ),
+    'bing_impressions' => array( 'label' => 'Bing Impressions', 'key' => 'bing_impressions', 'color' => '#00bfa5', 'bg' => 'rgba(0,191,165,0.08)', 'axis' => 'y1', 'fill' => true, 'point' => 3 ),
 );
 
 foreach ( $ds_config as $key => $cfg ) {
@@ -302,7 +321,7 @@ foreach ( $ds_config as $key => $cfg ) {
                         </label>
                     </div>
 
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px;">
                         <span style="font-size: 0.75em; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; min-width: 140px;">GA4 Analytics</span>
                         <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
                             <input type="checkbox" name="show_ga4_sessions" <?php checked( $show_ga4_sessions ); ?>> <span>Sessions</span>
@@ -312,6 +331,16 @@ foreach ( $ds_config as $key => $cfg ) {
                         </label>
                         <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
                             <input type="checkbox" name="show_ga4_pv" <?php checked( $show_ga4_pv ); ?>> <span>Pageviews</span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px;">
+                        <span style="font-size: 0.75em; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; min-width: 140px;">Bing WMT</span>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_bing_clicks" <?php checked( $show_bing_clicks ); ?>> <span>Clicks</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_bing_impressions" <?php checked( $show_bing_impressions ); ?>> <span>Impressions</span>
                         </label>
                     </div>
                 </div>
@@ -363,16 +392,16 @@ foreach ( $ds_config as $key => $cfg ) {
                                 x: { grid: { display: false } },
                                 y: {
                                     type: 'linear',
-                                    display: <?php echo json_encode( $show_clicks || $show_ga4_sessions || $show_ga4_users ); ?>,
+                                    display: <?php echo json_encode( $show_clicks || $show_ga4_sessions || $show_ga4_users || $show_bing_clicks ); ?>,
                                     position: 'left',
-                                    title: { display: true, text: 'Clicks / Sessions / Users' },
+                                    title: { display: true, text: 'Clicks / Sessions / Users / Bing' },
                                     beginAtZero: true,
                                 },
                                 y1: {
                                     type: 'linear',
-                                    display: <?php echo json_encode( $show_impressions || $show_ga4_pv ); ?>,
+                                    display: <?php echo json_encode( $show_impressions || $show_ga4_pv || $show_bing_impressions ); ?>,
                                     position: 'left',
-                                    title: { display: true, text: 'Impressions / Pageviews' },
+                                    title: { display: true, text: 'Impressions / Pageviews / Bing' },
                                     grid: { drawOnChartArea: false },
                                     beginAtZero: true,
                                 },
