@@ -17,7 +17,6 @@ get_header();
 
 global $wpdb;
 $current_user_id = get_current_user_id();
-$is_admin        = current_user_can( 'manage_options' );
 
 // User connection states
 $user_connected   = bite_user_has_google_connection( $current_user_id );
@@ -53,10 +52,6 @@ if ( $user_connected && $user_has_ga4_scope ) {
     }
 }
 
-// API key status
-$opr_key = get_option( 'bite_opr_api_key', '' );
-$pagespeed_key = get_option( 'bite_pagespeed_api_key', '' );
-
 ?>
 
 <div class="bite-dashboard-wrapper">
@@ -67,7 +62,7 @@ $pagespeed_key = get_option( 'bite_pagespeed_api_key', '' );
         <section class="bite-dashboard-welcome">
             <div class="bite-welcome-content">
                 <h1 class="bite-welcome-title">Account Setup</h1>
-                <p class="bite-welcome-subtitle">Manage your external connections and API integrations</p>
+                <p class="bite-welcome-subtitle">Connect your accounts to unlock powerful insights</p>
             </div>
         </section>
 
@@ -90,7 +85,7 @@ $pagespeed_key = get_option( 'bite_pagespeed_api_key', '' );
                                 Connected
                             </div>
                             <p style="margin: 0; color: #666; font-size: 0.9em;">
-                                Your Google account is connected. You can add sites from your Search Console properties.
+                                Your Google account is connected. You can add and monitor sites from your Search Console.
                             </p>
                         <?php elseif ( $has_auth_errors ) : ?>
                             <div style="display: flex; align-items: center; gap: 8px; color: #c0392b; font-weight: 500; margin-bottom: 12px;">
@@ -98,7 +93,7 @@ $pagespeed_key = get_option( 'bite_pagespeed_api_key', '' );
                                 Authorization Expired
                             </div>
                             <p style="margin: 0; color: #666; font-size: 0.9em;">
-                                Your Google access token has expired or been revoked. Please reconnect to resume data syncing.
+                                Your Google access token has expired. Please reconnect to resume data syncing.
                             </p>
                         <?php else : ?>
                             <div style="display: flex; align-items: center; gap: 8px; color: #888; font-weight: 500; margin-bottom: 12px;">
@@ -109,6 +104,12 @@ $pagespeed_key = get_option( 'bite_pagespeed_api_key', '' );
                                 Connect your Google account to import Search Console data.
                             </p>
                         <?php endif; ?>
+
+                        <div style="margin-top: 14px; padding: 12px 14px; background: #e8f4fd; border-radius: var(--radius-sm); border-left: 3px solid #4285f4;">
+                            <p style="margin: 0; font-size: 0.85em; color: #444; line-height: 1.5;">
+                                <strong style="color: #4285f4;">What you get:</strong> Track clicks, impressions, CTR, and average position for all your sites. BITE automatically imports 16 months of historical data and keeps everything up to date daily.
+                            </p>
+                        </div>
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 10px; min-width: 220px;">
@@ -116,7 +117,7 @@ $pagespeed_key = get_option( 'bite_pagespeed_api_key', '' );
                             <?php if ( $gsc_auth_url_valid ) : ?>
                                 <a href="<?php echo esc_url( $gsc_auth_url ); ?>" class="bite-button bite-button-primary">
                                     <span class="material-icons" style="vertical-align: middle; margin-right: 6px; font-size: 18px;">refresh</span>
-                                    Reconnect GSC
+                                    Reconnect
                                 </a>
                             <?php endif; ?>
                             <?php if ( $user_connected ) : ?>
@@ -128,13 +129,13 @@ $pagespeed_key = get_option( 'bite_pagespeed_api_key', '' );
                         <?php elseif ( $user_connected ) : ?>
                             <button type="button" class="bite-button bite-button-secondary" id="bite-disconnect-gsc">
                                 <span class="material-icons" style="vertical-align: middle; margin-right: 6px; font-size: 18px;">link_off</span>
-                                Disconnect GSC
+                                Disconnect
                             </button>
                         <?php else : ?>
                             <?php if ( $gsc_auth_url_valid ) : ?>
                                 <a href="<?php echo esc_url( $gsc_auth_url ); ?>" class="bite-button bite-button-primary">
                                     <span class="material-icons" style="vertical-align: middle; margin-right: 6px; font-size: 18px;">login</span>
-                                    Connect GSC
+                                    Connect Google
                                 </a>
                             <?php endif; ?>
                         <?php endif; ?>
@@ -162,15 +163,15 @@ $pagespeed_key = get_option( 'bite_pagespeed_api_key', '' );
                                 Connected
                             </div>
                             <p style="margin: 0 0 12px 0; color: #666; font-size: 0.9em;">
-                                GA4 access is granted. Select a property for each site below to start tracking analytics data.
+                                GA4 access is granted. Select a property for each site below to overlay traffic data on your charts.
                             </p>
                         <?php elseif ( $user_connected && ! $user_has_ga4_scope ) : ?>
                             <div style="display: flex; align-items: center; gap: 8px; color: #f9ab00; font-weight: 500; margin-bottom: 12px;">
                                 <span class="material-icons">lock</span>
-                                GSC Connected — GA4 Access Needed
+                                Available — One More Step
                             </div>
                             <p style="margin: 0 0 12px 0; color: #666; font-size: 0.9em;">
-                                Your Google account is connected for Search Console, but we need additional permission to access your GA4 data.
+                                Your Google account is connected. Grant GA4 access to unlock traffic insights.
                             </p>
                         <?php else : ?>
                             <div style="display: flex; align-items: center; gap: 8px; color: #888; font-weight: 500; margin-bottom: 12px;">
@@ -178,9 +179,15 @@ $pagespeed_key = get_option( 'bite_pagespeed_api_key', '' );
                                 Not Connected
                             </div>
                             <p style="margin: 0 0 12px 0; color: #666; font-size: 0.9em;">
-                                Connect your Google account with GA4 permissions to track traffic alongside Search Console data.
+                                Connect your Google account to enable GA4 tracking alongside Search Console data.
                             </p>
                         <?php endif; ?>
+
+                        <div style="margin-top: 14px; padding: 12px 14px; background: #fff8e1; border-radius: var(--radius-sm); border-left: 3px solid #f9ab00;">
+                            <p style="margin: 0; font-size: 0.85em; color: #444; line-height: 1.5;">
+                                <strong style="color: #f9ab00;">What you get:</strong> Overlay real traffic data (sessions, users, pageviews) on the same charts as your Search Console metrics. See how search performance actually translates into website visits — all in one view.
+                            </p>
+                        </div>
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 10px; min-width: 220px;">
@@ -270,76 +277,7 @@ $pagespeed_key = get_option( 'bite_pagespeed_api_key', '' );
             </div>
         </section>
 
-        <!-- API Keys Section -->
-        <section class="bite-dashboard-section">
-            <div class="bite-section-header">
-                <h2>
-                    <span class="material-icons" style="vertical-align: middle; margin-right: 8px; color: #666;">vpn_key</span>
-                    External API Keys
-                </h2>
-            </div>
 
-            <div class="bite-setup-card" style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 24px;">
-                <div style="display: grid; gap: 16px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--bg-color); border-radius: var(--radius-sm);">
-                        <div>
-                            <strong>OpenPageRank API</strong>
-                            <span style="color: #888; font-size: 0.85em; margin-left: 8px;">Domain authority scores</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <?php if ( ! empty( $opr_key ) ) : ?>
-                                <span style="color: #00a32a; font-size: 0.85em; font-weight: 500;">
-                                    <span class="material-icons" style="font-size: 16px; vertical-align: middle;">check_circle</span>
-                                    Configured
-                                </span>
-                            <?php else : ?>
-                                <span style="color: #c0392b; font-size: 0.85em; font-weight: 500;">
-                                    <span class="material-icons" style="font-size: 16px; vertical-align: middle;">warning</span>
-                                    Not Set
-                                </span>
-                            <?php endif; ?>
-                            <?php if ( $is_admin ) : ?>
-                                <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-settings' ) ); ?>" class="bite-button bite-button-secondary" style="font-size: 0.8em; padding: 4px 12px;">
-                                    Configure
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--bg-color); border-radius: var(--radius-sm);">
-                        <div>
-                            <strong>PageSpeed Insights API</strong>
-                            <span style="color: #888; font-size: 0.85em; margin-left: 8px;">Performance scores (optional)</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <?php if ( ! empty( $pagespeed_key ) ) : ?>
-                                <span style="color: #00a32a; font-size: 0.85em; font-weight: 500;">
-                                    <span class="material-icons" style="font-size: 16px; vertical-align: middle;">check_circle</span>
-                                    Configured
-                                </span>
-                            <?php else : ?>
-                                <span style="color: #f9ab00; font-size: 0.85em; font-weight: 500;">
-                                    <span class="material-icons" style="font-size: 16px; vertical-align: middle;">info</span>
-                                    Optional
-                                </span>
-                            <?php endif; ?>
-                            <?php if ( $is_admin ) : ?>
-                                <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-settings' ) ); ?>" class="bite-button bite-button-secondary" style="font-size: 0.8em; padding: 4px 12px;">
-                                    Configure
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-
-                <?php if ( ! $is_admin ) : ?>
-                    <p style="margin: 12px 0 0 0; color: #888; font-size: 0.8em;">
-                        <span class="material-icons" style="font-size: 14px; vertical-align: middle;">info</span>
-                        API key management is only available to administrators. Contact your admin if keys need to be updated.
-                    </p>
-                <?php endif; ?>
-            </div>
-        </section>
 
     </main>
 </div>

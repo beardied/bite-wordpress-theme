@@ -136,23 +136,23 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
             </ul>
         <?php endif; ?>
         
-        <?php if ( $is_admin ) : ?>
-            <div class="bite-sidebar-divider"></div>
-            <ul class="bite-sidebar-menu bite-sidebar-hardcoded">
-                <li class="bite-menu-item <?php echo ( $current_slug === 'account-setup' ) ? 'active' : ''; ?>">
-                    <a href="<?php echo esc_url( get_permalink( get_page_by_path( 'account-setup' ) ) ?: home_url( '/account-setup/' ) ); ?>">
-                        <span class="bite-menu-icon material-icons">account_circle</span>
-                        <span class="bite-menu-text">Account Setup</span>
-                    </a>
-                </li>
+        <div class="bite-sidebar-divider"></div>
+        <ul class="bite-sidebar-menu bite-sidebar-hardcoded">
+            <li class="bite-menu-item <?php echo ( $current_slug === 'account-setup' ) ? 'active' : ''; ?>">
+                <a href="<?php echo esc_url( get_permalink( get_page_by_path( 'account-setup' ) ) ?: home_url( '/account-setup/' ) ); ?>">
+                    <span class="bite-menu-icon material-icons">account_circle</span>
+                    <span class="bite-menu-text">Account Setup</span>
+                </a>
+            </li>
+            <?php if ( $is_admin ) : ?>
                 <li class="bite-menu-item">
                     <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ); ?>">
                         <span class="bite-menu-icon material-icons">settings</span>
                         <span class="bite-menu-text">Manage System</span>
                     </a>
                 </li>
-            </ul>
-        <?php endif; ?>
+            <?php endif; ?>
+        </ul>
     </nav>
     
     <div class="bite-sidebar-footer">
