@@ -192,11 +192,10 @@ function bite_run_all_security_header_scans() {
             $url = 'https://' . $site->domain . '/';
         }
         // Normalize URL
-        if ( ! preg_match( '/^https?:\/\//', $url ) ) {
-            $url = 'https://' . $url;
-        }
         if ( strpos( $url, 'sc-domain:' ) === 0 ) {
             $url = 'https://' . substr( $url, 10 ) . '/';
+        } elseif ( ! preg_match( '/^https?:\/\//', $url ) ) {
+            $url = 'https://' . $url;
         }
 
         $scan = bite_scan_security_headers( $url );
@@ -259,19 +258,19 @@ function bite_call_ssllabs_api( $endpoint, $params = array() ) {
 }
 
 /**
- * Run SSL Labs assessment for a host
+ * Run SSL Labs assessment for a host (synchronous — for manual use)
  * First tries cache, then starts new assessment if needed.
  *
  * @param string $hostname Hostname (e.g. example.com)
  * @return array|WP_Error Assessment results or error
  */
 function bite_run_ssllabs_assessment( $hostname ) {
-    // Step 1: Try cache first
+    // Step 1: Try cache first (48h window)
     $cache_result = bite_call_ssllabs_api( 'analyze', array(
         'host'      => $hostname,
         'fromCache' => 'on',
         'all'       => 'done',
-        'maxAge'    => 23,
+        'maxAge'    => 48,
     ) );
 
     if ( ! is_wp_error( $cache_result ) && isset( $cache_result['status'] ) && $cache_result['status'] === 'READY' ) {
@@ -289,10 +288,10 @@ function bite_run_ssllabs_assessment( $hostname ) {
         return $start_result;
     }
 
-    // Step 3: Poll for completion (max 90 seconds)
-    $max_wait = 90;
+    // Step 3: Poll for completion (max 120 seconds, 15s intervals)
+    $max_wait = 120;
     $elapsed = 0;
-    $poll_interval = 10;
+    $poll_interval = 15;
 
     while ( $elapsed < $max_wait ) {
         sleep( $poll_interval );
@@ -412,7 +411,8 @@ function bite_store_ssl_labs_scan( $site_id, $data ) {
 }
 
 /**
- * Run SSL Labs scans for all sites
+ * Run SSL Labs scans for all sites.
+ * Uses async polling via WP Cron to avoid blocking the daily update.
  *
  * @return array Summary
  */
@@ -428,6 +428,8 @@ function bite_run_all_ssl_labs_scans() {
         'details'   => array(),
     );
 
+    $pending = array();
+
     foreach ( $sites as $site ) {
         $hostname = $site->domain;
         // Strip www. and any protocol
@@ -435,30 +437,120 @@ function bite_run_all_ssl_labs_scans() {
         $hostname = preg_replace( '/^www\./', '', $hostname );
         $hostname = rtrim( $hostname, '/' );
 
-        $assessment = bite_run_ssllabs_assessment( $hostname );
+        // Try cache first — if we have recent results, use them immediately
+        $cache_result = bite_call_ssllabs_api( 'analyze', array(
+            'host'      => $hostname,
+            'fromCache' => 'on',
+            'all'       => 'done',
+            'maxAge'    => 48,
+        ) );
 
-        if ( is_wp_error( $assessment ) ) {
-            $results['errors']++;
-            $results['details'][] = 'Site ' . $site->site_id . ' (' . $hostname . '): ' . $assessment->get_error_message();
+        if ( ! is_wp_error( $cache_result ) && isset( $cache_result['status'] ) && $cache_result['status'] === 'READY' ) {
+            // Cached result available — store immediately
+            $data = bite_extract_ssllabs_data( $cache_result );
+            bite_store_ssl_labs_scan( $site->site_id, $data );
+
+            $grade_numeric = bite_grade_to_numeric( $data['grade'] );
+            bite_check_security_alert( $site->site_id, $grade_numeric, 'ssl' );
+
+            $results['processed']++;
+            $results['details'][] = 'Site ' . $site->site_id . ' (' . $hostname . '): grade ' . ( $data['grade'] ?? 'N/A' ) . ' (cached)';
             continue;
         }
 
-        $data = bite_extract_ssllabs_data( $assessment );
-        bite_store_ssl_labs_scan( $site->site_id, $data );
+        // No cache — start a new assessment
+        $start_result = bite_call_ssllabs_api( 'analyze', array(
+            'host'      => $hostname,
+            'startNew'  => 'on',
+            'all'       => 'done',
+        ) );
 
-        // Convert grade to numeric for alert checking
-        $grade_numeric = bite_grade_to_numeric( $data['grade'] );
-        bite_check_security_alert( $site->site_id, $grade_numeric, 'ssl' );
+        if ( is_wp_error( $start_result ) ) {
+            $results['errors']++;
+            $results['details'][] = 'Site ' . $site->site_id . ' (' . $hostname . '): ' . $start_result->get_error_message();
+            continue;
+        }
 
-        $results['processed']++;
-        $results['details'][] = 'Site ' . $site->site_id . ' (' . $hostname . '): grade ' . ( $data['grade'] ?? 'N/A' );
+        // Assessment started — add to pending list for async polling
+        $pending[] = array(
+            'site_id'  => $site->site_id,
+            'hostname' => $hostname,
+        );
+        $results['details'][] = 'Site ' . $site->site_id . ' (' . $hostname . '): assessment started, polling scheduled';
 
-        // SSL Labs cool-off (avoid rate limits)
+        // Cool-off between starting new assessments
         sleep( 5 );
+    }
+
+    // If we have pending assessments, schedule the async poller
+    if ( ! empty( $pending ) ) {
+        set_transient( 'bite_ssllabs_pending', $pending, HOUR_IN_SECONDS );
+        if ( ! wp_next_scheduled( 'bite_ssllabs_poll_hook' ) ) {
+            wp_schedule_single_event( time() + 60, 'bite_ssllabs_poll_hook' );
+        }
+        error_log( 'BITE SSL Labs: ' . count( $pending ) . ' assessment(s) pending async polling' );
     }
 
     return $results;
 }
+
+/**
+ * Async poller for SSL Labs assessments.
+ * Scheduled via WP single event to avoid blocking the daily cron.
+ */
+function bite_ssllabs_poll() {
+    $pending = get_transient( 'bite_ssllabs_pending' );
+    if ( empty( $pending ) || ! is_array( $pending ) ) {
+        return;
+    }
+
+    $still_pending = array();
+
+    foreach ( $pending as $job ) {
+        $site_id  = $job['site_id'];
+        $hostname = $job['hostname'];
+
+        $result = bite_call_ssllabs_api( 'analyze', array(
+            'host' => $hostname,
+            'all'  => 'done',
+        ) );
+
+        if ( is_wp_error( $result ) ) {
+            error_log( 'BITE SSL Labs Poll: Error for ' . $hostname . ' — ' . $result->get_error_message() );
+            continue;
+        }
+
+        if ( isset( $result['status'] ) && $result['status'] === 'READY' ) {
+            $data = bite_extract_ssllabs_data( $result );
+            bite_store_ssl_labs_scan( $site_id, $data );
+
+            $grade_numeric = bite_grade_to_numeric( $data['grade'] );
+            bite_check_security_alert( $site_id, $grade_numeric, 'ssl' );
+
+            error_log( 'BITE SSL Labs Poll: Site ' . $site_id . ' (' . $hostname . ') completed — grade ' . ( $data['grade'] ?? 'N/A' ) );
+            continue; // Done — don't add back to pending
+        }
+
+        if ( isset( $result['status'] ) && $result['status'] === 'ERROR' ) {
+            error_log( 'BITE SSL Labs Poll: Site ' . $site_id . ' (' . $hostname . ') assessment error' );
+            continue; // Done with error — don't retry
+        }
+
+        // Still in progress — keep in pending list
+        $still_pending[] = $job;
+    }
+
+    if ( ! empty( $still_pending ) ) {
+        set_transient( 'bite_ssllabs_pending', $still_pending, HOUR_IN_SECONDS );
+        // Schedule next poll in 30 seconds
+        wp_schedule_single_event( time() + 30, 'bite_ssllabs_poll_hook' );
+        error_log( 'BITE SSL Labs Poll: ' . count( $still_pending ) . ' assessment(s) still pending, next poll in 30s' );
+    } else {
+        delete_transient( 'bite_ssllabs_pending' );
+        error_log( 'BITE SSL Labs Poll: All assessments complete' );
+    }
+}
+add_action( 'bite_ssllabs_poll_hook', 'bite_ssllabs_poll' );
 
 /**
  * Convert SSL grade to numeric for comparison
@@ -506,8 +598,9 @@ function bite_check_security_alert( $site_id, $new_score, $type ) {
 
     // Get previous day's score
     $table = ( $type === 'headers' ) ? $wpdb->prefix . 'bite_security_headers' : $wpdb->prefix . 'bite_ssl_labs';
+    $select_col = ( $type === 'headers' ) ? 'overall_score' : 'grade';
     $prev = $wpdb->get_row( $wpdb->prepare(
-        "SELECT overall_score, grade FROM $table WHERE site_id = %d AND scanned_at < CURDATE() ORDER BY scanned_at DESC LIMIT 1",
+        "SELECT $select_col FROM $table WHERE site_id = %d AND scanned_at < CURDATE() ORDER BY scanned_at DESC LIMIT 1",
         $site_id
     ) );
 
@@ -515,7 +608,11 @@ function bite_check_security_alert( $site_id, $new_score, $type ) {
         return false; // No previous data to compare
     }
 
-    $prev_score = ( $type === 'headers' ) ? intval( $prev->overall_score ) : bite_grade_to_numeric( $prev->grade );
+    if ( $type === 'headers' ) {
+        $prev_score = intval( $prev->overall_score );
+    } else {
+        $prev_score = bite_grade_to_numeric( $prev->grade );
+    }
 
     // No drop or improvement
     if ( $new_score >= $prev_score ) {
