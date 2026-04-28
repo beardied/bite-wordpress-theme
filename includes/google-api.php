@@ -468,6 +468,24 @@ function bite_run_daily_update() {
         $bing_summary = bite_fetch_all_bing_metrics();
         error_log( 'BITE Daily Update: Bing daily metrics fetch complete. Processed: ' . $bing_summary['processed'] . ', Errors: ' . $bing_summary['errors'] );
     }
+
+    // Parse sitemaps for all sites
+    if ( function_exists( 'bite_parse_all_sitemaps' ) ) {
+        error_log( 'BITE Daily Update: Starting sitemap parsing...' );
+        $sitemap_summary = bite_parse_all_sitemaps();
+        error_log( 'BITE Daily Update: Sitemap parsing complete. Processed: ' . $sitemap_summary['processed'] . ', Errors: ' . $sitemap_summary['errors'] );
+    }
+
+    // Run URL Inspection batch (respects 2,000/day limit)
+    if ( function_exists( 'bite_run_all_url_inspections' ) ) {
+        error_log( 'BITE Daily Update: Starting URL inspection batch...' );
+        $inspection_summary = bite_run_all_url_inspections();
+        if ( ! empty( $inspection_summary['skipped'] ) ) {
+            error_log( 'BITE Daily Update: URL inspection skipped — already ran today' );
+        } else {
+            error_log( 'BITE Daily Update: URL inspection complete. Inspected: ' . $inspection_summary['total_inspected'] . ' URLs across ' . $inspection_summary['sites_processed'] . ' sites' );
+        }
+    }
 }
 add_action( 'bite_daily_update_hook', 'bite_run_daily_update' );
 

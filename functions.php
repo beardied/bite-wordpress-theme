@@ -44,6 +44,12 @@ require_once BITE_THEME_DIR . '/includes/ga4-api.php';
 // 6.7. Bing Webmaster Tools API Integration
 require_once BITE_THEME_DIR . '/includes/bing-api.php';
 
+// 6.8. Sitemap Monitor
+require_once BITE_THEME_DIR . '/includes/sitemap-monitor.php';
+
+// 6.9. URL Inspection API
+require_once BITE_THEME_DIR . '/includes/url-inspection-api.php';
+
 // 7. User Access Control (Client isolation)
 require_once BITE_THEME_DIR . '/includes/user-access.php';
 

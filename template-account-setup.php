@@ -398,7 +398,59 @@ if ( $user_connected && $user_has_ga4_scope ) {
             </div>
         </section>
 
+        <!-- Sitemap Monitor -->
+        <section class="bite-dashboard-section">
+            <div class="bite-section-header">
+                <h2>
+                    <span class="material-icons" style="vertical-align: middle; margin-right: 8px; color: #2271b1;">account_tree</span>
+                    Sitemap Monitor
+                </h2>
+            </div>
 
+            <div class="bite-setup-card" style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 24px;">
+                <div style="display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+                    <div style="flex: 1; min-width: 280px;">
+                        <p style="margin: 0; color: #666; font-size: 0.9em; line-height: 1.5;">
+                            BITE automatically detects your sitemap from <code>robots.txt</code> and monitors which URLs are indexed by Google.
+                            If auto-detection fails, you can enter the sitemap URL manually for each site.
+                        </p>
+                    </div>
+                </div>
+
+                <?php if ( ! empty( $user_sites ) ) : ?>
+                    <div style="display: grid; gap: 12px;">
+                        <?php foreach ( $user_sites as $site ) :
+                            $has_sitemap = ! empty( $site->sitemap_url );
+                        ?>
+                            <div class="bite-sitemap-site-row" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px; background: var(--bg-color); border-radius: var(--radius-sm);" data-site-id="<?php echo esc_attr( $site->site_id ); ?>">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <strong><?php echo esc_html( $site->name ); ?></strong>
+                                    <span style="color: #888; font-size: 0.85em; margin-left: 8px;"><?php echo esc_html( $site->domain ); ?></span>
+                                    <?php if ( $has_sitemap ) : ?>
+                                        <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500; background: #e8f5e9; color: #2e7d32;">
+                                            <span class="material-icons" style="font-size: 14px;">check_circle</span>
+                                            Detected
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <div style="flex: 2; min-width: 300px;">
+                                    <input type="text" class="bite-sitemap-url-input" data-site-id="<?php echo esc_attr( $site->site_id ); ?>" value="<?php echo esc_attr( $site->sitemap_url ?? '' ); ?>" placeholder="Sitemap URL (e.g. https://example.com/sitemap.xml)" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.9em;">
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="button" class="bite-button bite-button-secondary bite-detect-sitemap-btn" data-site-id="<?php echo esc_attr( $site->site_id ); ?>" style="font-size: 0.8em; padding: 6px 12px;">
+                                        <span class="material-icons" style="vertical-align: middle; margin-right: 4px; font-size: 14px;">travel_explore</span>
+                                        Auto-detect
+                                    </button>
+                                    <button type="button" class="bite-button bite-button-primary bite-save-sitemap-btn" data-site-id="<?php echo esc_attr( $site->site_id ); ?>" style="font-size: 0.8em; padding: 6px 12px;">
+                                        Save
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </section>
 
     </main>
 </div>
@@ -406,6 +458,7 @@ if ( $user_connected && $user_has_ga4_scope ) {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const nonce = '<?php echo wp_create_nonce( 'bite_ga4_nonce' ); ?>';
+    const sitemapNonce = '<?php echo wp_create_nonce( 'bite_sitemap_nonce' ); ?>';
 
     // Disconnect GSC
     var disconnectGscBtn = document.getElementById('bite-disconnect-gsc');
@@ -778,6 +831,84 @@ document.addEventListener('DOMContentLoaded', function() {
         checkAllBackfillStatuses();
         statusPollInterval = setInterval(checkAllBackfillStatuses, 8000);
     }
+
+    // Sitemap: Auto-detect
+    document.querySelectorAll('.bite-detect-sitemap-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var siteId = this.dataset.siteId;
+            btn.disabled = true;
+            var originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:4px;font-size:14px;">hourglass_empty</span> Detecting...';
+
+            var formData = new FormData();
+            formData.append('action', 'bite_detect_sitemap');
+            formData.append('nonce', sitemapNonce);
+            formData.append('site_id', siteId);
+
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var input = document.querySelector('.bite-sitemap-url-input[data-site-id="' + siteId + '"]');
+                    if (input && data.data.sitemap_url) {
+                        input.value = data.data.sitemap_url;
+                    }
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (data.data || 'Failed to detect sitemap'));
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            })
+            .catch(function() {
+                alert('Network error. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        });
+    });
+
+    // Sitemap: Save manual URL
+    document.querySelectorAll('.bite-save-sitemap-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var siteId = this.dataset.siteId;
+            var input = document.querySelector('.bite-sitemap-url-input[data-site-id="' + siteId + '"]');
+            var url = input ? input.value.trim() : '';
+
+            btn.disabled = true;
+            var originalText = btn.innerHTML;
+            btn.innerHTML = 'Saving...';
+
+            var formData = new FormData();
+            formData.append('action', 'bite_save_sitemap_url');
+            formData.append('nonce', sitemapNonce);
+            formData.append('site_id', siteId);
+            formData.append('sitemap_url', url);
+
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (data.data || 'Failed to save'));
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            })
+            .catch(function() {
+                alert('Network error. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        });
+    });
 
     // Start polling on page load if there are active imports
     startAllStatusPolling();

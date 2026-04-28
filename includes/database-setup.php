@@ -343,5 +343,57 @@ function bite_create_missing_tables() {
         ) $charset_collate;";
         dbDelta( $sql_bing );
     }
+
+    // Migration: Add sitemap_url column to sites table if missing
+    $sitemap_col = $wpdb->get_results( "SHOW COLUMNS FROM $sites_table LIKE 'sitemap_url'" );
+    if ( empty( $sitemap_col ) ) {
+        $wpdb->query( "ALTER TABLE $sites_table ADD COLUMN sitemap_url TEXT NULL AFTER bing_backfill_status" );
+    }
+
+    // Migration: Create URL Inspection results table
+    $inspection_table = $wpdb->prefix . 'bite_url_inspection';
+    $inspection_exists = $wpdb->get_var( "SHOW TABLES LIKE '$inspection_table'" );
+    if ( ! $inspection_exists ) {
+        $sql_inspection = "CREATE TABLE $inspection_table (
+            inspection_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            site_id INT UNSIGNED NOT NULL,
+            url TEXT NOT NULL,
+            inspected_at DATE NOT NULL,
+            verdict VARCHAR(50) DEFAULT NULL,
+            coverage_state VARCHAR(100) DEFAULT NULL,
+            mobile_usability VARCHAR(50) DEFAULT NULL,
+            last_crawled DATETIME DEFAULT NULL,
+            page_fetch_state VARCHAR(50) DEFAULT NULL,
+            robots_txt_state VARCHAR(50) DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (inspection_id),
+            UNIQUE KEY uq_site_url_inspected (site_id, url(255), inspected_at),
+            KEY idx_site_id (site_id),
+            KEY idx_inspected_at (inspected_at),
+            KEY idx_verdict (verdict)
+        ) $charset_collate;";
+        dbDelta( $sql_inspection );
+    }
+
+    // Migration: Create Sitemap URLs tracking table
+    $sitemap_urls_table = $wpdb->prefix . 'bite_sitemap_urls';
+    $sitemap_urls_exists = $wpdb->get_var( "SHOW TABLES LIKE '$sitemap_urls_table'" );
+    if ( ! $sitemap_urls_exists ) {
+        $sql_sitemap_urls = "CREATE TABLE $sitemap_urls_table (
+            url_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            site_id INT UNSIGNED NOT NULL,
+            url TEXT NOT NULL,
+            first_seen DATE NOT NULL,
+            last_seen DATE NOT NULL,
+            is_indexed TINYINT(1) DEFAULT NULL,
+            last_inspected DATE DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (url_id),
+            UNIQUE KEY uq_site_url (site_id, url(255)),
+            KEY idx_site_id (site_id),
+            KEY idx_last_seen (last_seen)
+        ) $charset_collate;";
+        dbDelta( $sql_sitemap_urls );
+    }
 }
 add_action( 'init', 'bite_create_missing_tables' );

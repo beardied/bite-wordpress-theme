@@ -138,6 +138,12 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
         
         <div class="bite-sidebar-divider"></div>
         <ul class="bite-sidebar-menu bite-sidebar-hardcoded">
+            <li class="bite-menu-item <?php echo ( $current_slug === 'site-health' ) ? 'active' : ''; ?>">
+                <a href="<?php echo esc_url( get_permalink( get_page_by_path( 'site-health' ) ) ?: home_url( '/site-health/' ) ); ?>">
+                    <span class="bite-menu-icon material-icons">health_and_safety</span>
+                    <span class="bite-menu-text">Site Health</span>
+                </a>
+            </li>
             <li class="bite-menu-item <?php echo ( $current_slug === 'account-setup' ) ? 'active' : ''; ?>">
                 <a href="<?php echo esc_url( get_permalink( get_page_by_path( 'account-setup' ) ) ?: home_url( '/account-setup/' ) ); ?>">
                     <span class="bite-menu-icon material-icons">account_circle</span>

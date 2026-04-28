@@ -187,7 +187,8 @@ function bite_enqueue_scripts() {
              is_page_template( 'template-keyword-explorer.php' ) ||
              is_page_template( 'template-ctr-efficiency.php' ) ||
              is_page_template( 'template-all-stats.php' ) ||
-             is_page_template( 'template-account-setup.php' ) ) {
+             is_page_template( 'template-account-setup.php' ) ||
+             is_page_template( 'template-site-health.php' ) ) {
             wp_enqueue_style(
                 'bite-dashboard-sidebar',
                 get_template_directory_uri() . '/dashboard-sidebar.css',
