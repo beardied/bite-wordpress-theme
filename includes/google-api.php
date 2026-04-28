@@ -439,11 +439,19 @@ function bite_run_daily_update() {
         error_log( 'BITE Daily Update: Domain metrics fetch complete. ' . wp_json_encode( $dm_summary ) );
     }
 
-    // Fetch GA4 analytics data
+    // Fetch GA4 analytics data (backfill first, then daily)
+    if ( function_exists( 'bite_trigger_ga4_backfill_queue' ) ) {
+        error_log( 'BITE Daily Update: Checking for GA4 backfill jobs...' );
+        $ga4_backfill = bite_trigger_ga4_backfill_queue();
+        if ( $ga4_backfill['processed'] > 0 || $ga4_backfill['errors'] > 0 ) {
+            error_log( 'BITE Daily Update: GA4 backfill complete. Processed: ' . $ga4_backfill['processed'] . ', Errors: ' . $ga4_backfill['errors'] );
+        }
+    }
+
     if ( function_exists( 'bite_fetch_all_ga4_metrics' ) ) {
-        error_log( 'BITE Daily Update: Starting GA4 metrics fetch...' );
+        error_log( 'BITE Daily Update: Starting GA4 daily metrics fetch...' );
         $ga4_summary = bite_fetch_all_ga4_metrics();
-        error_log( 'BITE Daily Update: GA4 metrics fetch complete. Processed: ' . $ga4_summary['processed'] . ', Errors: ' . $ga4_summary['errors'] );
+        error_log( 'BITE Daily Update: GA4 daily metrics fetch complete. Processed: ' . $ga4_summary['processed'] . ', Errors: ' . $ga4_summary['errors'] );
     }
 }
 add_action( 'bite_daily_update_hook', 'bite_run_daily_update' );

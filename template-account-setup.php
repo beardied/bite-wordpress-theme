@@ -218,16 +218,45 @@ if ( $user_connected && $user_has_ga4_scope ) {
                     <div style="margin-top: 24px; border-top: 1px solid var(--border-light); padding-top: 20px;">
                         <h4 style="margin: 0 0 16px 0; font-size: 1em; color: #555;">GA4 Property per Site</h4>
                         <div style="display: grid; gap: 12px;">
-                            <?php foreach ( $user_sites as $site ) : ?>
-                                <div class="bite-ga4-site-row" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px; background: var(--bg-color); border-radius: var(--radius-sm);" data-site-id="<?php echo esc_attr( $site->site_id ); ?>">
+                            <?php foreach ( $user_sites as $site ) :
+                                $status_badge = '';
+                                $status_class = '';
+                                switch ( $site->ga4_backfill_status ) {
+                                    case 'pending':
+                                        $status_badge = '⏳ Waiting to import';
+                                        $status_class = 'ga4-status-pending';
+                                        break;
+                                    case 'in_progress':
+                                        $status_badge = '🔄 Importing history...';
+                                        $status_class = 'ga4-status-progress';
+                                        break;
+                                    case 'complete':
+                                        $status_badge = '✅ Up to date';
+                                        $status_class = 'ga4-status-complete';
+                                        break;
+                                    case 'auth_error':
+                                        $status_badge = '⚠️ Auth error';
+                                        $status_class = 'ga4-status-error';
+                                        break;
+                                    default:
+                                        $status_badge = '';
+                                        $status_class = 'ga4-status-none';
+                                }
+                            ?>
+                                <div class="bite-ga4-site-row" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px; background: var(--bg-color); border-radius: var(--radius-sm);" data-site-id="<?php echo esc_attr( $site->site_id ); ?>" data-status="<?php echo esc_attr( $site->ga4_backfill_status ?: 'none' ); ?>">
                                     <div style="flex: 1; min-width: 200px;">
                                         <strong><?php echo esc_html( $site->name ); ?></strong>
                                         <span style="color: #888; font-size: 0.85em; margin-left: 8px;"><?php echo esc_html( $site->domain ); ?></span>
+                                        <?php if ( ! empty( $status_badge ) ) : ?>
+                                            <span class="bite-ga4-status-badge <?php echo esc_attr( $status_class ); ?>" style="display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 500; background: #f0f0f0; color: #666;">
+                                                <?php echo esc_html( $status_badge ); ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
                                     <div style="min-width: 280px;">
                                         <select class="bite-ga4-property-select" data-site-id="<?php echo esc_attr( $site->site_id ); ?>" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--card-bg); font-size: 0.9em;">
                                             <option value="">-- No GA4 property --</option>
-                                            <?php foreach ( $ga4_properties as $prop ) : 
+                                            <?php foreach ( $ga4_properties as $prop ) :
                                                 $prop_id = bite_extract_ga4_property_id( $prop['property'] );
                                                 $selected = ( $site->ga4_property_id === $prop_id );
                                             ?>
@@ -358,6 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var siteId = this.dataset.siteId;
             var select = document.querySelector('.bite-ga4-property-select[data-site-id="' + siteId + '"]');
             var propertyId = select ? select.value : '';
+            var row = document.querySelector('.bite-ga4-site-row[data-site-id="' + siteId + '"]');
 
             btn.disabled = true;
             var originalText = btn.textContent;
@@ -379,6 +409,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     btn.textContent = 'Saved!';
                     btn.style.backgroundColor = '#00a32a';
+                    // Update badge to show pending status
+                    if (row && propertyId) {
+                        row.dataset.status = 'pending';
+                        var badge = row.querySelector('.bite-ga4-status-badge');
+                        if (!badge) {
+                            badge = document.createElement('span');
+                            badge.className = 'bite-ga4-status-badge ga4-status-pending';
+                            badge.style.cssText = 'display:inline-block;margin-left:8px;padding:2px 8px;border-radius:12px;font-size:0.75em;font-weight:500;background:#f0f0f0;color:#666;';
+                            var nameDiv = row.querySelector('div:first-child');
+                            if (nameDiv) nameDiv.appendChild(badge);
+                        }
+                        badge.textContent = '⏳ Waiting to import';
+                        startStatusPolling();
+                    }
                     setTimeout(function() {
                         btn.textContent = originalText;
                         btn.style.backgroundColor = '';
@@ -401,6 +445,78 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+    // Poll GA4 backfill status for pending/in_progress sites
+    var statusPollInterval = null;
+
+    function updateStatusBadge(row, status, daysStored) {
+        var badge = row.querySelector('.bite-ga4-status-badge');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'bite-ga4-status-badge';
+            badge.style.cssText = 'display:inline-block;margin-left:8px;padding:2px 8px;border-radius:12px;font-size:0.75em;font-weight:500;background:#f0f0f0;color:#666;';
+            var nameDiv = row.querySelector('div:first-child');
+            if (nameDiv) nameDiv.appendChild(badge);
+        }
+        var label = '';
+        switch (status) {
+            case 'pending': label = '⏳ Waiting to import'; break;
+            case 'in_progress': label = '🔄 Importing history...'; break;
+            case 'complete': label = '✅ Up to date (' + (daysStored || 0) + ' days)'; break;
+            case 'auth_error': label = '⚠️ Auth error'; break;
+            default: label = '';
+        }
+        badge.textContent = label;
+        if (!label) badge.style.display = 'none';
+        else badge.style.display = 'inline-block';
+    }
+
+    function checkBackfillStatuses() {
+        var rows = document.querySelectorAll('.bite-ga4-site-row[data-status="pending"], .bite-ga4-site-row[data-status="in_progress"]');
+        if (rows.length === 0) {
+            if (statusPollInterval) {
+                clearInterval(statusPollInterval);
+                statusPollInterval = null;
+            }
+            return;
+        }
+
+        rows.forEach(function(row) {
+            var siteId = row.dataset.siteId;
+            var formData = new FormData();
+            formData.append('action', 'bite_get_ga4_backfill_status');
+            formData.append('nonce', nonce);
+            formData.append('site_id', siteId);
+
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var newStatus = data.data.status;
+                    var daysStored = data.data.days_stored;
+                    row.dataset.status = newStatus;
+                    updateStatusBadge(row, newStatus, daysStored);
+
+                    if (newStatus === 'complete') {
+                        // Refresh page after a short delay so user sees updated data
+                        setTimeout(function() { window.location.reload(); }, 2000);
+                    }
+                }
+            });
+        });
+    }
+
+    function startStatusPolling() {
+        if (statusPollInterval) return;
+        checkBackfillStatuses();
+        statusPollInterval = setInterval(checkBackfillStatuses, 8000);
+    }
+
+    // Start polling on page load if there are active imports
+    startStatusPolling();
 });
 </script>
 

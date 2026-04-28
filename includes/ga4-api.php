@@ -364,7 +364,8 @@ function bite_fetch_all_ga4_metrics() {
     global $wpdb;
 
     $sites_table = $wpdb->prefix . 'bite_sites';
-    $sites = $wpdb->get_results( "SELECT site_id, ga4_property_id FROM $sites_table WHERE ga4_property_id IS NOT NULL AND ga4_property_id != ''" );
+    // Only process sites that have completed backfill (or have data but no status set yet for backward compat)
+    $sites = $wpdb->get_results( "SELECT site_id, ga4_property_id FROM $sites_table WHERE ga4_property_id IS NOT NULL AND ga4_property_id != '' AND (ga4_backfill_status = 'complete' OR ga4_backfill_status IS NULL)" );
 
     $results = array(
         'processed' => 0,
@@ -455,9 +456,12 @@ function bite_ajax_save_ga4_property() {
         // Clear property
         $wpdb->update(
             $sites_table,
-            array( 'ga4_property_id' => null ),
+            array(
+                'ga4_property_id'     => null,
+                'ga4_backfill_status' => null,
+            ),
             array( 'site_id' => $site_id ),
-            array( '%s' ),
+            array( '%s', '%s' ),
             array( '%d' )
         );
     } else {
@@ -465,14 +469,22 @@ function bite_ajax_save_ga4_property() {
         $numeric_id = bite_extract_ga4_property_id( $property_id );
         $wpdb->update(
             $sites_table,
-            array( 'ga4_property_id' => $numeric_id ),
+            array(
+                'ga4_property_id'     => $numeric_id,
+                'ga4_backfill_status' => 'pending',
+            ),
             array( 'site_id' => $site_id ),
-            array( '%s' ),
+            array( '%s', '%s' ),
             array( '%d' )
         );
     }
 
-    wp_send_json_success( array( 'message' => 'GA4 property updated' ) );
+    wp_send_json_success( array( 'message' => 'GA4 property updated. Historical data will be imported automatically.' ) );
+
+    // Trigger backfill immediately in the background (non-blocking)
+    if ( ! empty( $property_id ) ) {
+        wp_schedule_single_event( time() + 3, 'bite_ga4_backfill_hook', array( $site_id ) );
+    }
 }
 add_action( 'wp_ajax_bite_save_ga4_property', 'bite_ajax_save_ga4_property' );
 
@@ -502,12 +514,199 @@ function bite_ajax_disconnect_ga4() {
     $sites_table = $wpdb->prefix . 'bite_sites';
     $wpdb->update(
         $sites_table,
-        array( 'ga4_property_id' => null ),
+        array(
+            'ga4_property_id'      => null,
+            'ga4_backfill_status'  => null,
+        ),
         array( 'site_id' => $site_id ),
-        array( '%s' ),
+        array( '%s', '%s' ),
         array( '%d' )
     );
 
     wp_send_json_success( array( 'message' => 'GA4 disconnected for this site' ) );
 }
 add_action( 'wp_ajax_bite_disconnect_ga4', 'bite_ajax_disconnect_ga4' );
+
+/**
+ * Run GA4 historical backfill for a single site
+ * Pulls up to 14 months of data in 30-day chunks to avoid sampling/timeouts.
+ *
+ * @param int $site_id The site ID
+ * @return array|WP_Error Summary of results or error
+ */
+function bite_run_ga4_backfill_for_site( $site_id ) {
+    global $wpdb;
+
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    $site = $wpdb->get_row( $wpdb->prepare(
+        "SELECT site_id, ga4_property_id, ga4_backfill_status FROM $sites_table WHERE site_id = %d",
+        $site_id
+    ) );
+
+    if ( ! $site || empty( $site->ga4_property_id ) ) {
+        return new WP_Error( 'no_ga4_property', 'No GA4 property configured for this site' );
+    }
+
+    // Find a user with access to this site who has Google OAuth connected
+    $user_sites_table = $wpdb->prefix . 'bite_user_sites';
+    $user_id = $wpdb->get_var( $wpdb->prepare(
+        "SELECT user_id FROM $user_sites_table WHERE site_id = %d ORDER BY assigned_at ASC LIMIT 1",
+        $site_id
+    ) );
+
+    if ( ! $user_id || ! bite_user_has_google_connection( $user_id ) ) {
+        $wpdb->update( $sites_table, array( 'ga4_backfill_status' => 'auth_error' ), array( 'site_id' => $site_id ), array( '%s' ), array( '%d' ) );
+        return new WP_Error( 'no_oauth', 'No Google OAuth connection found' );
+    }
+
+    // Verify GA4 scope
+    if ( ! bite_user_has_ga4_scope( $user_id ) ) {
+        $wpdb->update( $sites_table, array( 'ga4_backfill_status' => 'auth_error' ), array( 'site_id' => $site_id ), array( '%s' ), array( '%d' ) );
+        return new WP_Error( 'no_ga4_scope', 'GA4 access not granted. Please reconnect with GA4 permissions.' );
+    }
+
+    // Mark as in_progress
+    $wpdb->update( $sites_table, array( 'ga4_backfill_status' => 'in_progress' ), array( 'site_id' => $site_id ), array( '%s' ), array( '%d' ) );
+
+    $end_date   = date( 'Y-m-d', strtotime( '-1 day' ) );
+    $start_date = date( 'Y-m-d', strtotime( '-14 months' ) );
+
+    $results = array(
+        'days_fetched' => 0,
+        'chunks'       => 0,
+        'errors'       => array(),
+    );
+
+    $current_start = $start_date;
+
+    while ( strtotime( $current_start ) <= strtotime( $end_date ) ) {
+        $current_end = min( $end_date, date( 'Y-m-d', strtotime( $current_start . ' +29 days' ) ) );
+
+        $metrics = bite_fetch_ga4_daily_metrics( $user_id, $site->ga4_property_id, $current_start, $current_end );
+
+        if ( is_wp_error( $metrics ) ) {
+            $error_msg = $metrics->get_error_message();
+            $results['errors'][] = "Chunk $current_start to $current_end: $error_msg";
+
+            // Check if auth error
+            $error_code = strtolower( $error_msg );
+            if ( strpos( $error_code, 'unauthenticated' ) !== false || strpos( $error_code, 'permission' ) !== false || strpos( $error_code, 'forbidden' ) !== false ) {
+                $wpdb->update( $sites_table, array( 'ga4_backfill_status' => 'auth_error' ), array( 'site_id' => $site_id ), array( '%s' ), array( '%d' ) );
+                return new WP_Error( 'backfill_auth_error', 'GA4 auth failed during backfill: ' . $error_msg );
+            }
+
+            // For other errors, continue to next chunk
+            $current_start = date( 'Y-m-d', strtotime( $current_end . ' +1 day' ) );
+            usleep( 500000 ); // 500ms
+            continue;
+        }
+
+        $ga4_table = $wpdb->prefix . 'bite_ga4_daily_summary';
+        foreach ( $metrics as $row ) {
+            $wpdb->replace(
+                $ga4_table,
+                array(
+                    'site_id'                => $site_id,
+                    'date'                   => $row['date'],
+                    'sessions'               => $row['sessions'],
+                    'users'                  => $row['users'],
+                    'pageviews'              => $row['pageviews'],
+                    'bounce_rate'            => $row['bounce_rate'],
+                    'avg_session_duration'   => $row['avg_session_duration'],
+                ),
+                array( '%d', '%s', '%d', '%d', '%d', '%s', '%s' )
+            );
+            $results['days_fetched']++;
+        }
+
+        $results['chunks']++;
+        $current_start = date( 'Y-m-d', strtotime( $current_end . ' +1 day' ) );
+
+        // Rate limit friendly delay between chunks
+        usleep( 500000 ); // 500ms
+    }
+
+    // Mark as complete
+    $wpdb->update( $sites_table, array( 'ga4_backfill_status' => 'complete' ), array( 'site_id' => $site_id ), array( '%s' ), array( '%d' ) );
+
+    error_log( "BITE GA4 Backfill: Site $site_id complete. Days fetched: {$results['days_fetched']}, Chunks: {$results['chunks']}" );
+
+    return $results;
+}
+
+/**
+ * Trigger GA4 backfill for any sites marked as pending
+ * This can be called by cron or manually.
+ *
+ * @return array Summary of processed sites
+ */
+function bite_trigger_ga4_backfill_queue() {
+    global $wpdb;
+
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    $pending_sites = $wpdb->get_results( "SELECT site_id FROM $sites_table WHERE ga4_backfill_status = 'pending' OR ga4_backfill_status = 'auth_error'" );
+
+    $results = array(
+        'processed' => 0,
+        'errors'    => 0,
+        'details'   => array(),
+    );
+
+    foreach ( $pending_sites as $site ) {
+        $backfill_result = bite_run_ga4_backfill_for_site( $site->site_id );
+        if ( is_wp_error( $backfill_result ) ) {
+            $results['errors']++;
+            $results['details'][] = 'Site ' . $site->site_id . ': ' . $backfill_result->get_error_message();
+        } else {
+            $results['processed']++;
+            $results['details'][] = 'Site ' . $site->site_id . ': fetched ' . $backfill_result['days_fetched'] . ' days in ' . $backfill_result['chunks'] . ' chunks';
+        }
+    }
+
+    return $results;
+}
+
+/**
+ * AJAX handler: Get GA4 backfill status for a site
+ */
+function bite_ajax_get_ga4_backfill_status() {
+    check_ajax_referer( 'bite_ga4_nonce', 'nonce' );
+
+    $site_id = isset( $_POST['site_id'] ) ? absint( $_POST['site_id'] ) : 0;
+    if ( ! $site_id ) {
+        wp_send_json_error( 'Invalid site' );
+    }
+
+    global $wpdb;
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    $status = $wpdb->get_var( $wpdb->prepare(
+        "SELECT ga4_backfill_status FROM $sites_table WHERE site_id = %d",
+        $site_id
+    ) );
+
+    // Count how many days we have
+    $ga4_table = $wpdb->prefix . 'bite_ga4_daily_summary';
+    $days_count = $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM $ga4_table WHERE site_id = %d",
+        $site_id
+    ) );
+
+    wp_send_json_success( array(
+        'status'      => $status ?: 'none',
+        'days_stored' => intval( $days_count ),
+    ) );
+}
+add_action( 'wp_ajax_bite_get_ga4_backfill_status', 'bite_ajax_get_ga4_backfill_status' );
+
+/**
+ * Cron hook: Run GA4 backfill for a specific site
+ */
+function bite_cron_run_ga4_backfill( $site_id ) {
+    $result = bite_run_ga4_backfill_for_site( $site_id );
+    if ( is_wp_error( $result ) ) {
+        error_log( 'BITE GA4 Backfill Cron Error (site ' . $site_id . '): ' . $result->get_error_message() );
+    } else {
+        error_log( 'BITE GA4 Backfill Cron Complete (site ' . $site_id . '): fetched ' . $result['days_fetched'] . ' days in ' . $result['chunks'] . ' chunks' );
+    }
+}
+add_action( 'bite_ga4_backfill_hook', 'bite_cron_run_ga4_backfill', 10, 1 );

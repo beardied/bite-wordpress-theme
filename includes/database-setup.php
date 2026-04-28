@@ -312,5 +312,11 @@ function bite_create_missing_tables() {
     if ( empty( $ga4_col_exists ) ) {
         $wpdb->query( "ALTER TABLE $sites_table ADD COLUMN ga4_property_id VARCHAR(50) NULL AFTER gsc_credentials" );
     }
+
+    // Migration: Add ga4_backfill_status column to sites table if missing
+    $ga4_status_col = $wpdb->get_results( "SHOW COLUMNS FROM $sites_table LIKE 'ga4_backfill_status'" );
+    if ( empty( $ga4_status_col ) ) {
+        $wpdb->query( "ALTER TABLE $sites_table ADD COLUMN ga4_backfill_status ENUM('pending', 'in_progress', 'complete', 'auth_error') NULL AFTER ga4_property_id" );
+    }
 }
 add_action( 'init', 'bite_create_missing_tables' );
