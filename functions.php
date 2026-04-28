@@ -50,6 +50,9 @@ require_once BITE_THEME_DIR . '/includes/sitemap-monitor.php';
 // 6.9. URL Inspection API
 require_once BITE_THEME_DIR . '/includes/url-inspection-api.php';
 
+// 6.10. Security Scan API (Headers + SSL Labs)
+require_once BITE_THEME_DIR . '/includes/security-scan-api.php';
+
 // 7. User Access Control (Client isolation)
 require_once BITE_THEME_DIR . '/includes/user-access.php';
 

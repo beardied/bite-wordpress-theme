@@ -395,5 +395,54 @@ function bite_create_missing_tables() {
         ) $charset_collate;";
         dbDelta( $sql_sitemap_urls );
     }
+
+    // Migration: Create Security Headers table
+    $sec_headers_table = $wpdb->prefix . 'bite_security_headers';
+    $sec_headers_exists = $wpdb->get_var( "SHOW TABLES LIKE '$sec_headers_table'" );
+    if ( ! $sec_headers_exists ) {
+        $sql_sec_headers = "CREATE TABLE $sec_headers_table (
+            scan_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            site_id INT UNSIGNED NOT NULL,
+            scanned_at DATE NOT NULL,
+            overall_score INT UNSIGNED DEFAULT 0,
+            hsts TINYINT(1) DEFAULT 0,
+            csp TINYINT(1) DEFAULT 0,
+            x_frame_options TINYINT(1) DEFAULT 0,
+            x_content_type_options TINYINT(1) DEFAULT 0,
+            referrer_policy TINYINT(1) DEFAULT 0,
+            permissions_policy TINYINT(1) DEFAULT 0,
+            missing_headers TEXT DEFAULT NULL,
+            raw_headers LONGTEXT DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (scan_id),
+            UNIQUE KEY uq_site_date_sec (site_id, scanned_at),
+            KEY idx_site_id (site_id),
+            KEY idx_scanned_at (scanned_at)
+        ) $charset_collate;";
+        dbDelta( $sql_sec_headers );
+    }
+
+    // Migration: Create SSL Labs table
+    $ssl_labs_table = $wpdb->prefix . 'bite_ssl_labs';
+    $ssl_labs_exists = $wpdb->get_var( "SHOW TABLES LIKE '$ssl_labs_table'" );
+    if ( ! $ssl_labs_exists ) {
+        $sql_ssl_labs = "CREATE TABLE $ssl_labs_table (
+            scan_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            site_id INT UNSIGNED NOT NULL,
+            scanned_at DATE NOT NULL,
+            grade VARCHAR(5) DEFAULT NULL,
+            has_warnings TINYINT(1) DEFAULT 0,
+            cert_expiry DATE DEFAULT NULL,
+            protocols TEXT DEFAULT NULL,
+            vulnerabilities TEXT DEFAULT NULL,
+            endpoints_json LONGTEXT DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (scan_id),
+            UNIQUE KEY uq_site_date_ssl (site_id, scanned_at),
+            KEY idx_site_id (site_id),
+            KEY idx_scanned_at (scanned_at)
+        ) $charset_collate;";
+        dbDelta( $sql_ssl_labs );
+    }
 }
 add_action( 'init', 'bite_create_missing_tables' );

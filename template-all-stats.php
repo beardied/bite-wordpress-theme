@@ -72,6 +72,8 @@ $show_ga4_users    = isset( $_GET['show_ga4_users'] ) ? true : false;
 $show_ga4_pv       = isset( $_GET['show_ga4_pv'] ) ? true : false;
 $show_bing_clicks  = isset( $_GET['show_bing_clicks'] ) ? true : false;
 $show_bing_impressions = isset( $_GET['show_bing_impressions'] ) ? true : false;
+$show_security_score = isset( $_GET['show_security_score'] ) ? true : false;
+$show_ssl_grade    = isset( $_GET['show_ssl_grade'] ) ? true : false;
 
 $chart_data = array();
 if ( $selected_site ) {
@@ -152,13 +154,37 @@ if ( $selected_site ) {
         $dates[ $row->date ]['bing_impressions'] = intval( $row->impressions );
     }
 
+    // Security headers data
+    $sec_rows = array();
+    if ( function_exists( 'bite_get_security_headers_history' ) ) {
+        $sec_rows = bite_get_security_headers_history( $selected_site_id, $start_date, $end_date );
+    }
+    foreach ( $sec_rows as $row ) {
+        if ( ! isset( $dates[ $row->scanned_at ] ) ) {
+            $dates[ $row->scanned_at ] = array();
+        }
+        $dates[ $row->scanned_at ]['security_score'] = intval( $row->overall_score );
+    }
+
+    // SSL Labs data
+    $ssl_rows = array();
+    if ( function_exists( 'bite_get_ssl_labs_history' ) ) {
+        $ssl_rows = bite_get_ssl_labs_history( $selected_site_id, $start_date, $end_date );
+    }
+    foreach ( $ssl_rows as $row ) {
+        if ( ! isset( $dates[ $row->scanned_at ] ) ) {
+            $dates[ $row->scanned_at ] = array();
+        }
+        $dates[ $row->scanned_at ]['ssl_grade_num'] = function_exists( 'bite_grade_to_numeric' ) ? bite_grade_to_numeric( $row->grade ) : null;
+    }
+
     ksort( $dates );
     $chart_data = $dates;
 }
 
 // Build Chart.js datasets in PHP
 $chart_datasets = array();
-$has_scores = $show_auth_index || $show_opr_rank || $show_d_perf || $show_d_a11y || $show_d_bp || $show_d_seo || $show_m_perf || $show_m_a11y || $show_m_bp || $show_m_seo;
+$has_scores = $show_auth_index || $show_opr_rank || $show_d_perf || $show_d_a11y || $show_d_bp || $show_d_seo || $show_m_perf || $show_m_a11y || $show_m_bp || $show_m_seo || $show_security_score || $show_ssl_grade;
 $has_ga4 = $show_ga4_sessions || $show_ga4_users || $show_ga4_pv;
 
 $show_vars = array(
@@ -179,6 +205,8 @@ $show_vars = array(
     'ga4_pv'       => $show_ga4_pv,
     'bing_clicks'  => $show_bing_clicks,
     'bing_impressions' => $show_bing_impressions,
+    'security_score' => $show_security_score,
+    'ssl_grade'      => $show_ssl_grade,
 );
 
 $ds_config = array(
@@ -199,6 +227,8 @@ $ds_config = array(
     'ga4_pv'      => array( 'label' => 'GA4 Pageviews',       'key' => 'ga4_pv',       'color' => '#ea4335', 'bg' => 'rgba(234,67,53,0.08)',   'axis' => 'y1', 'fill' => true,  'point' => 3 ),
     'bing_clicks' => array( 'label' => 'Bing Clicks',         'key' => 'bing_clicks',  'color' => '#008373', 'bg' => 'rgba(0,131,115,0.08)',   'axis' => 'y',  'fill' => true,  'point' => 3 ),
     'bing_impressions' => array( 'label' => 'Bing Impressions', 'key' => 'bing_impressions', 'color' => '#00bfa5', 'bg' => 'rgba(0,191,165,0.08)', 'axis' => 'y1', 'fill' => true, 'point' => 3 ),
+    'security_score' => array( 'label' => 'Security Score', 'key' => 'security_score', 'color' => '#2196f3', 'bg' => 'rgba(33,150,243,0.08)', 'axis' => 'y2', 'fill' => false, 'point' => 4 ),
+    'ssl_grade'      => array( 'label' => 'SSL Grade (numeric)', 'key' => 'ssl_grade_num', 'color' => '#9c27b0', 'bg' => 'rgba(156,39,176,0.08)', 'axis' => 'y2', 'fill' => false, 'point' => 4 ),
 );
 
 foreach ( $ds_config as $key => $cfg ) {
@@ -334,13 +364,23 @@ foreach ( $ds_config as $key => $cfg ) {
                         </label>
                     </div>
 
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px;">
                         <span style="font-size: 0.75em; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; min-width: 140px;">Bing WMT</span>
                         <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
                             <input type="checkbox" name="show_bing_clicks" <?php checked( $show_bing_clicks ); ?>> <span>Clicks</span>
                         </label>
                         <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
                             <input type="checkbox" name="show_bing_impressions" <?php checked( $show_bing_impressions ); ?>> <span>Impressions</span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px;">
+                        <span style="font-size: 0.75em; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; min-width: 140px;">Security</span>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_security_score" <?php checked( $show_security_score ); ?>> <span>Header Score</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_ssl_grade" <?php checked( $show_ssl_grade ); ?>> <span>SSL Grade</span>
                         </label>
                     </div>
                 </div>
@@ -377,6 +417,9 @@ foreach ( $ds_config as $key => $cfg ) {
                                             if (context.parsed.y !== null) {
                                                 if (label.indexOf('OpenPageRank') !== -1) {
                                                     label += (context.parsed.y / 10).toFixed(2);
+                                                } else if (label.indexOf('SSL Grade') !== -1) {
+                                                    var gradeMap = {100: 'A+', 95: 'A', 90: 'A-', 80: 'B', 70: 'C', 60: 'D', 50: 'E', 40: 'F'};
+                                                    label += gradeMap[context.parsed.y] || context.parsed.y;
                                                 } else {
                                                     label += context.parsed.y.toLocaleString();
                                                 }

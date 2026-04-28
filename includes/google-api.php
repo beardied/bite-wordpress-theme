@@ -486,6 +486,25 @@ function bite_run_daily_update() {
             error_log( 'BITE Daily Update: URL inspection complete. Inspected: ' . $inspection_summary['total_inspected'] . ' URLs across ' . $inspection_summary['sites_processed'] . ' sites' );
         }
     }
+
+    // Run Security Header scans
+    if ( function_exists( 'bite_run_all_security_header_scans' ) ) {
+        error_log( 'BITE Daily Update: Starting security header scans...' );
+        $sec_summary = bite_run_all_security_header_scans();
+        error_log( 'BITE Daily Update: Security header scans complete. Processed: ' . $sec_summary['processed'] . ', Errors: ' . $sec_summary['errors'] );
+    }
+
+    // Run SSL Labs scans
+    if ( function_exists( 'bite_run_all_ssl_labs_scans' ) ) {
+        error_log( 'BITE Daily Update: Starting SSL Labs scans...' );
+        $ssl_summary = bite_run_all_ssl_labs_scans();
+        error_log( 'BITE Daily Update: SSL Labs scans complete. Processed: ' . $ssl_summary['processed'] . ', Errors: ' . $ssl_summary['errors'] );
+        if ( ! empty( $ssl_summary['details'] ) ) {
+            foreach ( $ssl_summary['details'] as $detail ) {
+                error_log( 'BITE SSL Labs: ' . $detail );
+            }
+        }
+    }
 }
 add_action( 'bite_daily_update_hook', 'bite_run_daily_update' );
 

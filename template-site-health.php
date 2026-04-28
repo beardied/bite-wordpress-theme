@@ -44,6 +44,8 @@ $sitemap_summary = array();
 $inspection_summary = array();
 $recent_inspections = array();
 $not_indexed_urls = array();
+$security_headers = null;
+$ssl_labs = null;
 
 if ( $selected_site ) {
     if ( function_exists( 'bite_get_sitemap_summary' ) ) {
@@ -57,6 +59,12 @@ if ( $selected_site ) {
     }
     if ( function_exists( 'bite_get_sitemap_urls' ) ) {
         $not_indexed_urls = bite_get_sitemap_urls( $selected_site_id, 'not_indexed' );
+    }
+    if ( function_exists( 'bite_get_latest_security_headers' ) ) {
+        $security_headers = bite_get_latest_security_headers( $selected_site_id );
+    }
+    if ( function_exists( 'bite_get_latest_ssl_labs' ) ) {
+        $ssl_labs = bite_get_latest_ssl_labs( $selected_site_id );
     }
 }
 
@@ -115,6 +123,90 @@ if ( $selected_site ) {
                     <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 20px; text-align: center;">
                         <div style="font-size: 2em; font-weight: bold; color: #9c27b0;"><?php echo number_format( $inspection_summary['total_inspected'] ?? 0 ); ?></div>
                         <div style="color: #666; font-size: 0.85em; margin-top: 4px;">Inspected</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Security Scorecards -->
+            <section class="bite-dashboard-section">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <!-- Security Header Score -->
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 20px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <span class="material-icons" style="color: #2271b1;">shield</span>
+                            <strong style="color: #333;">Security Headers</strong>
+                        </div>
+                        <?php if ( $security_headers ) : ?>
+                            <div style="text-align: center; margin-bottom: 12px;">
+                                <div style="font-size: 2.5em; font-weight: bold; color: <?php echo $security_headers->overall_score >= 80 ? '#00a32a' : ( $security_headers->overall_score >= 50 ? '#f9ab00' : '#d63638' ); ?>;">
+                                    <?php echo intval( $security_headers->overall_score ); ?>/100
+                                </div>
+                                <div style="color: #888; font-size: 0.8em;">Scanned <?php echo esc_html( date( 'M j', strtotime( $security_headers->scanned_at ) ) ); ?></div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 0.75em; text-align: center;">
+                                <div style="padding: 4px; border-radius: 4px; background: <?php echo $security_headers->hsts ? '#e7f5e7' : '#ffeaea'; ?>; color: <?php echo $security_headers->hsts ? '#00a32a' : '#d63638'; ?>;">
+                                    <span class="material-icons" style="font-size: 14px; display: block;"><?php echo $security_headers->hsts ? 'check' : 'close'; ?></span>HSTS
+                                </div>
+                                <div style="padding: 4px; border-radius: 4px; background: <?php echo $security_headers->csp ? '#e7f5e7' : '#ffeaea'; ?>; color: <?php echo $security_headers->csp ? '#00a32a' : '#d63638'; ?>;">
+                                    <span class="material-icons" style="font-size: 14px; display: block;"><?php echo $security_headers->csp ? 'check' : 'close'; ?></span>CSP
+                                </div>
+                                <div style="padding: 4px; border-radius: 4px; background: <?php echo $security_headers->x_frame_options ? '#e7f5e7' : '#ffeaea'; ?>; color: <?php echo $security_headers->x_frame_options ? '#00a32a' : '#d63638'; ?>;">
+                                    <span class="material-icons" style="font-size: 14px; display: block;"><?php echo $security_headers->x_frame_options ? 'check' : 'close'; ?></span>X-Frame
+                                </div>
+                                <div style="padding: 4px; border-radius: 4px; background: <?php echo $security_headers->x_content_type_options ? '#e7f5e7' : '#ffeaea'; ?>; color: <?php echo $security_headers->x_content_type_options ? '#00a32a' : '#d63638'; ?>;">
+                                    <span class="material-icons" style="font-size: 14px; display: block;"><?php echo $security_headers->x_content_type_options ? 'check' : 'close'; ?></span>X-CTO
+                                </div>
+                                <div style="padding: 4px; border-radius: 4px; background: <?php echo $security_headers->referrer_policy ? '#e7f5e7' : '#ffeaea'; ?>; color: <?php echo $security_headers->referrer_policy ? '#00a32a' : '#d63638'; ?>;">
+                                    <span class="material-icons" style="font-size: 14px; display: block;"><?php echo $security_headers->referrer_policy ? 'check' : 'close'; ?></span>Referrer
+                                </div>
+                                <div style="padding: 4px; border-radius: 4px; background: <?php echo $security_headers->permissions_policy ? '#e7f5e7' : '#ffeaea'; ?>; color: <?php echo $security_headers->permissions_policy ? '#00a32a' : '#d63638'; ?>;">
+                                    <span class="material-icons" style="font-size: 14px; display: block;"><?php echo $security_headers->permissions_policy ? 'check' : 'close'; ?></span>Perms
+                                </div>
+                            </div>
+                        <?php else : ?>
+                            <div style="text-align: center; padding: 20px; color: #888;">
+                                <span class="material-icons" style="font-size: 32px;">pending</span>
+                                <p style="margin: 8px 0 0; font-size: 0.85em;">Awaiting first scan</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- SSL Labs Grade -->
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 20px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <span class="material-icons" style="color: #2271b1;">lock</span>
+                            <strong style="color: #333;">SSL/TLS Grade</strong>
+                        </div>
+                        <?php if ( $ssl_labs ) : ?>
+                            <?php
+                            $grade_color = '#00a32a';
+                            if ( $ssl_labs->grade === 'B' || $ssl_labs->grade === 'C' ) $grade_color = '#f9ab00';
+                            if ( $ssl_labs->grade === 'D' || $ssl_labs->grade === 'E' || $ssl_labs->grade === 'F' || $ssl_labs->grade === 'T' || $ssl_labs->grade === 'M' ) $grade_color = '#d63638';
+                            ?>
+                            <div style="text-align: center; margin-bottom: 12px;">
+                                <div style="font-size: 2.5em; font-weight: bold; color: <?php echo esc_attr( $grade_color ); ?>;">
+                                    <?php echo esc_html( $ssl_labs->grade ?: '?' ); ?>
+                                </div>
+                                <div style="color: #888; font-size: 0.8em;">Scanned <?php echo esc_html( date( 'M j', strtotime( $ssl_labs->scanned_at ) ) ); ?></div>
+                            </div>
+                            <?php if ( $ssl_labs->cert_expiry ) : ?>
+                                <div style="font-size: 0.8em; color: #666; text-align: center;">
+                                    <span class="material-icons" style="font-size: 14px; vertical-align: middle;">event</span>
+                                    Cert expires <?php echo esc_html( date( 'M j, Y', strtotime( $ssl_labs->cert_expiry ) ) ); ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ( ! empty( $ssl_labs->vulnerabilities ) ) : ?>
+                                <div style="font-size: 0.75em; color: #d63638; text-align: center; margin-top: 6px;">
+                                    <span class="material-icons" style="font-size: 14px; vertical-align: middle;">warning</span>
+                                    <?php echo esc_html( $ssl_labs->vulnerabilities ); ?>
+                                </div>
+                            <?php endif; ?>
+                        <?php else : ?>
+                            <div style="text-align: center; padding: 20px; color: #888;">
+                                <span class="material-icons" style="font-size: 32px;">pending</span>
+                                <p style="margin: 8px 0 0; font-size: 0.85em;">Awaiting first scan</p>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </section>
