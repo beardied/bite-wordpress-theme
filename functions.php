@@ -38,6 +38,9 @@ require_once BITE_THEME_DIR . '/includes/reporting.php';
 // 6.5. Domain Metrics API (Authority scores: OPR, SRT, Moz)
 require_once BITE_THEME_DIR . '/includes/domain-metrics-api.php';
 
+// 6.6. GA4 API Integration
+require_once BITE_THEME_DIR . '/includes/ga4-api.php';
+
 // 7. User Access Control (Client isolation)
 require_once BITE_THEME_DIR . '/includes/user-access.php';
 
@@ -158,7 +161,14 @@ add_action( 'template_redirect', 'bite_handle_dashboard_disconnect' );
  * Initialize datepicker for dashboard data view
  */
 function bite_dashboard_datepicker_init() {
-    if ( ! is_page_template( 'template-dashboard.php' ) && ! is_page_template( 'template-all-stats.php' ) ) {
+    $datepicker_templates = array(
+        'template-dashboard.php',
+        'template-all-stats.php',
+        'template-account-setup.php',
+    );
+    $current_template = get_page_template_slug();
+    $current_template = basename( $current_template );
+    if ( ! in_array( $current_template, $datepicker_templates ) ) {
         return;
     }
     ?>

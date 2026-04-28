@@ -13,9 +13,9 @@ if ( ! is_user_logged_in() ) {
 $form_message = '';
 $form_error = '';
 
-// Handle OAuth success/error messages
+// Handle OAuth success/error messages (redirected from Account Setup)
 if ( isset( $_GET['oauth_success'] ) ) {
-    $form_message = 'Google account connected successfully! You can now add sites from your Search Console.';
+    $form_message = 'Google account connected successfully!';
 } elseif ( isset( $_GET['oauth_error'] ) ) {
     $error_code = sanitize_text_field( $_GET['oauth_error'] );
     $error_messages = array(
@@ -177,13 +177,35 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
             </div>
         </section>
         
-        <?php 
+        <?php
         // Show token renewal notice if needed
         $token_notice = bite_get_user_token_notice();
         if ( ! empty( $token_notice ) ) {
             echo $token_notice;
         }
+
+        // Connection notice bars
+        $account_setup_url = get_permalink( get_page_by_path( 'account-setup' ) ) ?: home_url( '/account-setup/' );
+
+        if ( ! $user_connected ) :
         ?>
+            <div class="bite-notice warning" style="margin-bottom: 20px;">
+                <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">link_off</span>
+                <strong>Google Search Console not connected.</strong>
+                <a href="<?php echo esc_url( $account_setup_url ); ?>" style="text-decoration: underline; font-weight: 600;">Go to Account Setup →</a>
+            </div>
+        <?php
+        endif;
+
+        // GA4 notice
+        if ( $user_connected && function_exists( 'bite_user_has_ga4_scope' ) && ! bite_user_has_ga4_scope( $current_user_id ) ) :
+        ?>
+            <div class="bite-notice info" style="margin-bottom: 20px; background: #e7f3ff; border-color: #b3d7ff; color: #004085;">
+                <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">analytics</span>
+                <strong>Google Analytics 4 available.</strong> Grant access to overlay traffic data with your Search Console stats.
+                <a href="<?php echo esc_url( $account_setup_url ); ?>" style="text-decoration: underline; font-weight: 600;">Set up GA4 →</a>
+            </div>
+        <?php endif; ?>
 
         <section class="bite-dashboard-section bite-sites-section">
             <div class="bite-section-header">
@@ -291,141 +313,76 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                             <span class="bite-wizard-remaining"><?php echo $remaining_sites; ?> of <?php echo $site_limit; ?> sites remaining</span>
                         <?php endif; ?>
                     </div>
-                    
+
                     <?php
-                    // Check if user has auth errors (expired token) — either site-level or user-level flag
+                    // Check if user has auth errors
                     $has_site_auth_errors = ! empty( bite_get_user_auth_error_sites( $current_user_id ) );
                     $has_user_auth_flag   = (bool) get_user_meta( $current_user_id, 'bite_google_auth_failed', true );
                     $has_auth_errors      = $has_site_auth_errors || $has_user_auth_flag;
-                    $auth_url = bite_get_google_auth_url( $current_user_id );
-                    $auth_url_valid = ! is_wp_error( $auth_url );
                     ?>
-                    
+
                     <?php if ( ! $user_connected || $has_auth_errors ) : ?>
-                        <div class="bite-wizard" id="site-wizard">
-                            <div class="bite-wizard-progress">
-                                <div class="bite-wizard-progress-bar" style="width: 0%;"></div>
-                                <div class="bite-wizard-steps-indicator">
-                                    <span class="step-dot active" data-step="1"></span>
-                                    <span class="step-dot" data-step="2"></span>
-                                </div>
-                            </div>
-                            
-                            <div class="bite-wizard-step active" data-step="1">
-                                <div class="bite-step-content">
-                                    <?php if ( $has_auth_errors ) : ?>
-                                        <div class="bite-step-icon">⚠️</div>
-                                        <h4>Google Connection Expired</h4>
-                                        <p style="color: #c0392b; font-weight: 500;">Your Google authorization has expired. Please reconnect to continue syncing data.</p>
-                                    <?php else : ?>
-                                        <div class="bite-step-icon">🔗</div>
-                                        <h4>Connect Your Google Account</h4>
-                                        <p>To access your Google Search Console data, you need to authorize BITE.</p>
-                                    <?php endif; ?>
-                                    
-                                    <div class="bite-step-box" style="text-align: center; padding: 40px;">
-                                        <?php if ( $has_auth_errors ) : ?>
-                                            <p style="font-size: 1.1em; margin-bottom: 25px; color: #5d4037;">
-                                                Your Google access token has expired or been revoked.<br>
-                                                Click below to reconnect your account — data syncing will resume automatically.
-                                            </p>
-                                            <?php if ( $auth_url_valid ) : ?>
-                                                <a href="<?php echo esc_url( $auth_url ); ?>" class="bite-button bite-button-primary bite-button-large">
-                                                    <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">refresh</span>
-                                                    Reconnect Google Account
-                                                </a>
-                                            <?php endif; ?>
-                                            <?php if ( $user_connected ) : ?>
-                                                <br><br>
-                                                <button type="button" class="bite-button bite-button-secondary" id="bite-disconnect-google" style="font-size: 0.9em;">
-                                                    <span class="material-icons" style="vertical-align: middle; margin-right: 4px; font-size: 16px;">link_off</span>
-                                                    Disconnect Account
-                                                </button>
-                                            <?php endif; ?>
-                                        <?php else : ?>
-                                            <p style="font-size: 1.1em; margin-bottom: 25px;">
-                                                Click the button below to securely connect your Google account.<br>
-                                                We'll only access your Search Console data — nothing else.
-                                            </p>
-                                            <?php if ( $auth_url_valid ) : ?>
-                                                <a href="<?php echo esc_url( $auth_url ); ?>" class="bite-button bite-button-primary bite-button-large">
-                                                    <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">login</span>
-                                                    Connect Google Account
-                                                </a>
-                                            <?php endif; ?>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="bite-setup-card" style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 32px; text-align: center;">
+                            <?php if ( $has_auth_errors ) : ?>
+                                <div class="bite-step-icon" style="font-size: 2.5em; margin-bottom: 12px;">⚠️</div>
+                                <h4 style="margin-bottom: 8px;">Google Connection Expired</h4>
+                                <p style="color: #c0392b; font-weight: 500; margin-bottom: 16px;">Your Google authorization has expired. Please reconnect to continue syncing data.</p>
+                            <?php else : ?>
+                                <div class="bite-step-icon" style="font-size: 2.5em; margin-bottom: 12px;">🔗</div>
+                                <h4 style="margin-bottom: 8px;">Connect Your Google Account</h4>
+                                <p style="margin-bottom: 16px;">To access your Google Search Console data, you need to authorize BITE.</p>
+                            <?php endif; ?>
+                            <a href="<?php echo esc_url( $account_setup_url ); ?>" class="bite-button bite-button-primary bite-button-large">
+                                <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">settings</span>
+                                Go to Account Setup
+                            </a>
                         </div>
                     <?php else : ?>
                         <div class="bite-wizard" id="site-wizard">
-                            <div class="bite-wizard-progress">
-                                <div class="bite-wizard-progress-bar" style="width: 100%;"></div>
-                                <div class="bite-wizard-steps-indicator">
-                                    <span class="step-dot completed" data-step="1"></span>
-                                    <span class="step-dot active" data-step="2"></span>
+                            <form method="POST" action="#add-site" class="bite-wizard-form">
+                                <?php wp_nonce_field( 'bite_add_site', 'bite_add_site_nonce' ); ?>
+
+                                <div class="bite-form-group">
+                                    <label>Select Google Search Console Property <span class="required">*</span></label>
+                                    <?php if ( ! empty( $gsc_properties ) ) : ?>
+                                        <select name="bite_gsc_property" id="gsc-property-select" required class="bite-form-select">
+                                            <option value="">-- Select a property --</option>
+                                            <?php foreach ( $gsc_properties as $prop ) : ?>
+                                                <option value="<?php echo esc_attr( $prop['property'] ); ?>">
+                                                    <?php echo esc_html( $prop['property'] ); ?>
+                                                    <?php if ( $prop['permission'] === 'siteOwner' ) echo '(Owner)'; ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    <?php else : ?>
+                                        <div class="bite-notice warning">No Search Console properties found.</div>
+                                    <?php endif; ?>
                                 </div>
-                            </div>
-                            
-                            <div class="bite-wizard-step active" data-step="2">
-                                <div class="bite-step-content">
-                                    <div class="bite-step-icon">✅</div>
-                                    <h4>Google Account Connected!</h4>
-                                    <p>Your Google account is connected. Now add a site from your Search Console.</p>
-                                    <p style="margin-top: 10px;">
-                                        <button type="button" class="bite-button bite-button-secondary" id="bite-disconnect-google" style="font-size: 0.85em;">
-                                            <span class="material-icons" style="vertical-align: middle; margin-right: 4px; font-size: 16px;">link_off</span>
-                                            Disconnect Account
-                                        </button>
-                                    </p>
-                                    
-                                    <form method="POST" action="#add-site" class="bite-wizard-form">
-                                        <?php wp_nonce_field( 'bite_add_site', 'bite_add_site_nonce' ); ?>
-                                        
-                                        <div class="bite-form-group">
-                                            <label>Select Google Search Console Property <span class="required">*</span></label>
-                                            <?php if ( ! empty( $gsc_properties ) ) : ?>
-                                                <select name="bite_gsc_property" id="gsc-property-select" required class="bite-form-select">
-                                                    <option value="">-- Select a property --</option>
-                                                    <?php foreach ( $gsc_properties as $prop ) : ?>
-                                                        <option value="<?php echo esc_attr( $prop['property'] ); ?>">
-                                                            <?php echo esc_html( $prop['property'] ); ?>
-                                                            <?php if ( $prop['permission'] === 'siteOwner' ) echo '(Owner)'; ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            <?php else : ?>
-                                                <div class="bite-notice warning">No Search Console properties found.</div>
-                                            <?php endif; ?>
-                                        </div>
-                                        
-                                        <div class="bite-form-group">
-                                            <label>Site Name <span class="required">*</span></label>
-                                            <input type="text" name="bite_site_name" id="site-name-input" required placeholder="e.g., My Website">
-                                        </div>
-                                        
-                                        <div class="bite-form-group">
-                                            <label>Domain <span class="required">*</span></label>
-                                            <input type="text" name="bite_domain" id="domain-input" required placeholder="example.com">
-                                        </div>
-                                        
-                                        <div class="bite-form-group">
-                                            <label>Niche (Optional)</label>
-                                            <div class="bite-autocomplete-container">
-                                                <input type="text" id="niche-input" name="bite_niche" placeholder="Start typing..." autocomplete="off">
-                                                <div class="bite-autocomplete-list" id="niche-suggestions"></div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="bite-step-actions">
-                                            <button type="submit" name="bite_add_site_submit" class="bite-button bite-button-primary bite-button-large" <?php echo empty( $gsc_properties ) ? 'disabled' : ''; ?>>
-                                                <span class="material-icons">add</span> Add Site
-                                            </button>
-                                        </div>
-                                    </form>
+
+                                <div class="bite-form-group">
+                                    <label>Site Name <span class="required">*</span></label>
+                                    <input type="text" name="bite_site_name" id="site-name-input" required placeholder="e.g., My Website">
                                 </div>
-                            </div>
+
+                                <div class="bite-form-group">
+                                    <label>Domain <span class="required">*</span></label>
+                                    <input type="text" name="bite_domain" id="domain-input" required placeholder="example.com">
+                                </div>
+
+                                <div class="bite-form-group">
+                                    <label>Niche (Optional)</label>
+                                    <div class="bite-autocomplete-container">
+                                        <input type="text" id="niche-input" name="bite_niche" placeholder="Start typing..." autocomplete="off">
+                                        <div class="bite-autocomplete-list" id="niche-suggestions"></div>
+                                    </div>
+                                </div>
+
+                                <div class="bite-step-actions">
+                                    <button type="submit" name="bite_add_site_submit" class="bite-button bite-button-primary bite-button-large" <?php echo empty( $gsc_properties ) ? 'disabled' : ''; ?>>
+                                        <span class="material-icons">add</span> Add Site
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -489,42 +446,6 @@ $data_view_url = $data_view_page ? get_permalink( $data_view_page->ID ) : home_u
                 }
             });
         }
-        </script>
-
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var disconnectBtn = document.getElementById('bite-disconnect-google');
-            if ( disconnectBtn ) {
-                disconnectBtn.addEventListener('click', function() {
-                    if ( ! confirm( 'Are you sure you want to disconnect your Google account? You will need to reconnect to sync data.' ) ) {
-                        return;
-                    }
-                    disconnectBtn.disabled = true;
-                    disconnectBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:4px;font-size:16px;">hourglass_empty</span> Disconnecting...';
-                    
-                    fetch( '<?php echo admin_url( 'admin-ajax.php' ); ?>', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: 'action=bite_disconnect_google&nonce=<?php echo wp_create_nonce( 'bite_disconnect_google' ); ?>'
-                    })
-                    .then( function( response ) { return response.json(); } )
-                    .then( function( data ) {
-                        if ( data.success ) {
-                            window.location.reload();
-                        } else {
-                            alert( 'Error: ' + ( data.data || 'Failed to disconnect' ) );
-                            disconnectBtn.disabled = false;
-                            disconnectBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:4px;font-size:16px;">link_off</span> Disconnect Account';
-                        }
-                    })
-                    .catch( function() {
-                        alert( 'Network error. Please try again.' );
-                        disconnectBtn.disabled = false;
-                        disconnectBtn.innerHTML = '<span class="material-icons" style="vertical-align:middle;margin-right:4px;font-size:16px;">link_off</span> Disconnect Account';
-                    });
-                });
-            }
-        });
         </script>
 
     </main>

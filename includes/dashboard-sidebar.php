@@ -139,6 +139,12 @@ $has_sidebar_menu = has_nav_menu( 'sidebar-menu' );
         <?php if ( $is_admin ) : ?>
             <div class="bite-sidebar-divider"></div>
             <ul class="bite-sidebar-menu bite-sidebar-hardcoded">
+                <li class="bite-menu-item <?php echo ( $current_slug === 'account-setup' ) ? 'active' : ''; ?>">
+                    <a href="<?php echo esc_url( get_permalink( get_page_by_path( 'account-setup' ) ) ?: home_url( '/account-setup/' ) ); ?>">
+                        <span class="bite-menu-icon material-icons">account_circle</span>
+                        <span class="bite-menu-text">Account Setup</span>
+                    </a>
+                </li>
                 <li class="bite-menu-item">
                     <a href="<?php echo esc_url( admin_url( 'admin.php?page=bite-admin-main' ) ); ?>">
                         <span class="bite-menu-icon material-icons">settings</span>

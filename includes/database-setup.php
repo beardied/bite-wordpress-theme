@@ -283,5 +283,34 @@ function bite_create_missing_tables() {
             $wpdb->query( "ALTER TABLE $domain_metrics_table ADD COLUMN $col_name $col_def" );
         }
     }
+
+    // Migration: Create GA4 daily summary table if not exists
+    $ga4_table = $wpdb->prefix . 'bite_ga4_daily_summary';
+    $ga4_exists = $wpdb->get_var( "SHOW TABLES LIKE '$ga4_table'" );
+    if ( ! $ga4_exists ) {
+        $sql_ga4 = "CREATE TABLE $ga4_table (
+            ga4_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            site_id INT UNSIGNED NOT NULL,
+            date DATE NOT NULL,
+            sessions INT UNSIGNED DEFAULT 0,
+            users INT UNSIGNED DEFAULT 0,
+            pageviews INT UNSIGNED DEFAULT 0,
+            bounce_rate DECIMAL(5,2) DEFAULT NULL,
+            avg_session_duration DECIMAL(10,2) DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (ga4_id),
+            UNIQUE KEY uq_site_date_ga4 (site_id, date),
+            KEY idx_date (date),
+            KEY idx_site_id (site_id)
+        ) $charset_collate;";
+        dbDelta( $sql_ga4 );
+    }
+
+    // Migration: Add ga4_property_id column to sites table if missing
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    $ga4_col_exists = $wpdb->get_results( "SHOW COLUMNS FROM $sites_table LIKE 'ga4_property_id'" );
+    if ( empty( $ga4_col_exists ) ) {
+        $wpdb->query( "ALTER TABLE $sites_table ADD COLUMN ga4_property_id VARCHAR(50) NULL AFTER gsc_credentials" );
+    }
 }
 add_action( 'init', 'bite_create_missing_tables' );

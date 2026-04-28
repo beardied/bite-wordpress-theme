@@ -438,6 +438,13 @@ function bite_run_daily_update() {
         $dm_summary = bite_fetch_all_domain_metrics();
         error_log( 'BITE Daily Update: Domain metrics fetch complete. ' . wp_json_encode( $dm_summary ) );
     }
+
+    // Fetch GA4 analytics data
+    if ( function_exists( 'bite_fetch_all_ga4_metrics' ) ) {
+        error_log( 'BITE Daily Update: Starting GA4 metrics fetch...' );
+        $ga4_summary = bite_fetch_all_ga4_metrics();
+        error_log( 'BITE Daily Update: GA4 metrics fetch complete. Processed: ' . $ga4_summary['processed'] . ', Errors: ' . $ga4_summary['errors'] );
+    }
 }
 add_action( 'bite_daily_update_hook', 'bite_run_daily_update' );
 

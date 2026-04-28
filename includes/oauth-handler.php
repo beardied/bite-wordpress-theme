@@ -42,35 +42,13 @@ function bite_get_oauth_redirect_uri() {
 }
 
 /**
- * Generate the Google OAuth authorization URL
- * 
+ * Generate the Google OAuth authorization URL (legacy, GSC-only scope)
+ *
  * @param int $user_id The user ID to authorize
  * @return string|WP_Error The authorization URL or error
  */
 function bite_get_google_auth_url( $user_id = null ) {
-    if ( ! bite_is_oauth_configured() ) {
-        return new WP_Error( 'oauth_not_configured', 'Google OAuth is not configured. Please contact the administrator.' );
-    }
-
-    $client_id = bite_get_google_client_id();
-    $redirect_uri = bite_get_oauth_redirect_uri();
-    
-    // Generate and store state parameter for security
-    $state = wp_create_nonce( 'bite_google_oauth_' . $user_id );
-    update_user_meta( $user_id, 'bite_oauth_state', $state );
-    
-    // Build authorization URL
-    $params = array(
-        'client_id'     => $client_id,
-        'redirect_uri'  => $redirect_uri,
-        'response_type' => 'code',
-        'scope'         => 'https://www.googleapis.com/auth/webmasters.readonly',
-        'access_type'   => 'offline', // Request refresh token
-        'prompt'        => 'consent', // Force consent screen to get refresh token
-        'state'         => base64_encode( $user_id . ':' . $state ),
-    );
-    
-    return 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query( $params );
+    return bite_get_google_auth_url_with_scope( $user_id, false );
 }
 
 /**
@@ -101,8 +79,10 @@ function bite_handle_google_oauth_callback() {
         exit;
     }
     
-    list( $user_id, $nonce ) = explode( ':', $state_data, 2 );
-    $user_id = absint( $user_id );
+    $state_parts = explode( ':', $state_data, 3 );
+    $user_id = absint( $state_parts[0] );
+    $nonce = $state_parts[1] ?? '';
+    $auth_type = $state_parts[2] ?? 'gsc'; // 'gsc' or 'ga4'
     
     // Verify the nonce
     if ( ! wp_verify_nonce( $nonce, 'bite_google_oauth_' . $user_id ) ) {
@@ -139,12 +119,22 @@ function bite_handle_google_oauth_callback() {
     // Clear any pending OAuth errors
     delete_user_meta( $user_id, 'bite_oauth_state' );
     delete_user_meta( $user_id, 'bite_google_auth_failed' );
-    
+
+    // Clear GA4 scope cache so it's re-checked
+    if ( function_exists( 'bite_clear_ga4_scope_cache' ) ) {
+        bite_clear_ga4_scope_cache( $user_id );
+    }
+
     // Fire action for connected hook (resumes backfill if there were auth errors)
     do_action( 'bite_google_connected', $user_id );
-    
-    // Redirect back to dashboard with success
-    wp_redirect( home_url( '/dashboard/?oauth_success=1' ) );
+
+    // Redirect back to Account Setup page (or dashboard if not available)
+    $account_setup_page = get_page_by_path( 'account-setup' );
+    if ( $account_setup_page ) {
+        wp_redirect( get_permalink( $account_setup_page->ID ) . '?oauth_success=1' );
+    } else {
+        wp_redirect( home_url( '/dashboard/?oauth_success=1' ) );
+    }
     exit;
 }
 add_action( 'wp_ajax_bite_google_oauth_callback', 'bite_handle_google_oauth_callback' );

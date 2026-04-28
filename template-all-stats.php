@@ -67,6 +67,9 @@ $show_m_perf     = isset( $_GET['show_m_perf'] ) ? true : false;
 $show_m_a11y     = isset( $_GET['show_m_a11y'] ) ? true : false;
 $show_m_bp       = isset( $_GET['show_m_bp'] ) ? true : false;
 $show_m_seo      = isset( $_GET['show_m_seo'] ) ? true : false;
+$show_ga4_sessions = isset( $_GET['show_ga4_sessions'] ) ? true : false;
+$show_ga4_users    = isset( $_GET['show_ga4_users'] ) ? true : false;
+$show_ga4_pv       = isset( $_GET['show_ga4_pv'] ) ? true : false;
 
 $chart_data = array();
 if ( $selected_site ) {
@@ -95,6 +98,12 @@ if ( $selected_site ) {
         $dm_rows = bite_get_domain_metrics_history( $selected_site_id, $start_date, $end_date );
     }
 
+    // GA4 data
+    $ga4_rows = array();
+    if ( function_exists( 'bite_get_ga4_metrics_history' ) ) {
+        $ga4_rows = bite_get_ga4_metrics_history( $selected_site_id, $start_date, $end_date );
+    }
+
     // Build merged dataset keyed by date
     $dates = array();
     foreach ( $summary_rows as $row ) {
@@ -119,6 +128,14 @@ if ( $selected_site ) {
         $dates[ $row->recorded_at ]['m_bp']        = $row->mobile_best_practices ? intval( $row->mobile_best_practices ) : null;
         $dates[ $row->recorded_at ]['m_seo']       = $row->mobile_seo ? intval( $row->mobile_seo ) : null;
     }
+    foreach ( $ga4_rows as $row ) {
+        if ( ! isset( $dates[ $row->date ] ) ) {
+            $dates[ $row->date ] = array();
+        }
+        $dates[ $row->date ]['ga4_sessions']  = intval( $row->sessions );
+        $dates[ $row->date ]['ga4_users']     = intval( $row->users );
+        $dates[ $row->date ]['ga4_pv']        = intval( $row->pageviews );
+    }
 
     ksort( $dates );
     $chart_data = $dates;
@@ -127,20 +144,24 @@ if ( $selected_site ) {
 // Build Chart.js datasets in PHP
 $chart_datasets = array();
 $has_scores = $show_auth_index || $show_opr_rank || $show_d_perf || $show_d_a11y || $show_d_bp || $show_d_seo || $show_m_perf || $show_m_a11y || $show_m_bp || $show_m_seo;
+$has_ga4 = $show_ga4_sessions || $show_ga4_users || $show_ga4_pv;
 
 $show_vars = array(
-    'clicks'      => $show_clicks,
-    'impressions' => $show_impressions,
-    'auth_index'  => $show_auth_index,
-    'opr_rank'    => $show_opr_rank,
-    'd_perf'      => $show_d_perf,
-    'd_a11y'      => $show_d_a11y,
-    'd_bp'        => $show_d_bp,
-    'd_seo'       => $show_d_seo,
-    'm_perf'      => $show_m_perf,
-    'm_a11y'      => $show_m_a11y,
-    'm_bp'        => $show_m_bp,
-    'm_seo'       => $show_m_seo,
+    'clicks'       => $show_clicks,
+    'impressions'  => $show_impressions,
+    'auth_index'   => $show_auth_index,
+    'opr_rank'     => $show_opr_rank,
+    'd_perf'       => $show_d_perf,
+    'd_a11y'       => $show_d_a11y,
+    'd_bp'         => $show_d_bp,
+    'd_seo'        => $show_d_seo,
+    'm_perf'       => $show_m_perf,
+    'm_a11y'       => $show_m_a11y,
+    'm_bp'         => $show_m_bp,
+    'm_seo'        => $show_m_seo,
+    'ga4_sessions' => $show_ga4_sessions,
+    'ga4_users'    => $show_ga4_users,
+    'ga4_pv'       => $show_ga4_pv,
 );
 
 $ds_config = array(
@@ -156,6 +177,9 @@ $ds_config = array(
     'm_a11y'      => array( 'label' => 'Mobile Accessibility','key' => 'm_a11y',      'color' => '#ce93d8', 'bg' => 'rgba(206,147,216,0.08)', 'axis' => 'y2', 'fill' => false, 'point' => 4 ),
     'm_bp'        => array( 'label' => 'Mobile Best Practices','key'=> 'm_bp',        'color' => '#bcaaa4', 'bg' => 'rgba(188,170,164,0.08)', 'axis' => 'y2', 'fill' => false, 'point' => 4 ),
     'm_seo'       => array( 'label' => 'Mobile SEO',          'key' => 'm_seo',       'color' => '#ffab91', 'bg' => 'rgba(255,171,145,0.08)', 'axis' => 'y2', 'fill' => false, 'point' => 4 ),
+    'ga4_sessions'=> array( 'label' => 'GA4 Sessions',        'key' => 'ga4_sessions', 'color' => '#f9ab00', 'bg' => 'rgba(249,171,0,0.08)',   'axis' => 'y',  'fill' => true,  'point' => 3 ),
+    'ga4_users'   => array( 'label' => 'GA4 Users',           'key' => 'ga4_users',    'color' => '#34a853', 'bg' => 'rgba(52,168,83,0.08)',   'axis' => 'y',  'fill' => true,  'point' => 3 ),
+    'ga4_pv'      => array( 'label' => 'GA4 Pageviews',       'key' => 'ga4_pv',       'color' => '#ea4335', 'bg' => 'rgba(234,67,53,0.08)',   'axis' => 'y1', 'fill' => true,  'point' => 3 ),
 );
 
 foreach ( $ds_config as $key => $cfg ) {
@@ -262,7 +286,7 @@ foreach ( $ds_config as $key => $cfg ) {
                         </label>
                     </div>
 
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px;">
                         <span style="font-size: 0.75em; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; min-width: 140px;">Mobile PageSpeed</span>
                         <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
                             <input type="checkbox" name="show_m_perf" <?php checked( $show_m_perf ); ?>> <span>Performance</span>
@@ -275,6 +299,19 @@ foreach ( $ds_config as $key => $cfg ) {
                         </label>
                         <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
                             <input type="checkbox" name="show_m_seo" <?php checked( $show_m_seo ); ?>> <span>SEO</span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px;">
+                        <span style="font-size: 0.75em; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; min-width: 140px;">GA4 Analytics</span>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_ga4_sessions" <?php checked( $show_ga4_sessions ); ?>> <span>Sessions</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_ga4_users" <?php checked( $show_ga4_users ); ?>> <span>Users</span>
+                        </label>
+                        <label class="bite-toggle-label" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; cursor: pointer; padding: 5px 10px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                            <input type="checkbox" name="show_ga4_pv" <?php checked( $show_ga4_pv ); ?>> <span>Pageviews</span>
                         </label>
                     </div>
                 </div>
@@ -326,16 +363,16 @@ foreach ( $ds_config as $key => $cfg ) {
                                 x: { grid: { display: false } },
                                 y: {
                                     type: 'linear',
-                                    display: <?php echo json_encode( $show_clicks ); ?>,
+                                    display: <?php echo json_encode( $show_clicks || $show_ga4_sessions || $show_ga4_users ); ?>,
                                     position: 'left',
-                                    title: { display: true, text: 'Clicks' },
+                                    title: { display: true, text: 'Clicks / Sessions / Users' },
                                     beginAtZero: true,
                                 },
                                 y1: {
                                     type: 'linear',
-                                    display: <?php echo json_encode( $show_impressions ); ?>,
+                                    display: <?php echo json_encode( $show_impressions || $show_ga4_pv ); ?>,
                                     position: 'left',
-                                    title: { display: true, text: 'Impressions' },
+                                    title: { display: true, text: 'Impressions / Pageviews' },
                                     grid: { drawOnChartArea: false },
                                     beginAtZero: true,
                                 },

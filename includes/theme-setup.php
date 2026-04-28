@@ -179,14 +179,15 @@ function bite_enqueue_scripts() {
         }
         
         // Sidebar menu styles for dashboard pages
-        if ( is_page_template( 'template-dashboard.php' ) || 
+        if ( is_page_template( 'template-dashboard.php' ) ||
              is_page_template( 'template-data-view.php' ) ||
              is_page_template( 'template-opportunity-finder.php' ) ||
              is_page_template( 'template-global-champions.php' ) ||
              is_page_template( 'template-emerging-trends.php' ) ||
              is_page_template( 'template-keyword-explorer.php' ) ||
              is_page_template( 'template-ctr-efficiency.php' ) ||
-             is_page_template( 'template-all-stats.php' ) ) {
+             is_page_template( 'template-all-stats.php' ) ||
+             is_page_template( 'template-account-setup.php' ) ) {
             wp_enqueue_style(
                 'bite-dashboard-sidebar',
                 get_template_directory_uri() . '/dashboard-sidebar.css',
