@@ -48,12 +48,9 @@ $all_sitemap_urls = array();
 $security_headers = null;
 $ssl_labs = null;
 
-// Table pagination & search
-$per_page = isset( $_GET['per_page'] ) ? absint( $_GET['per_page'] ) : 50;
-if ( ! in_array( $per_page, array( 10, 25, 50, 100, 250 ) ) ) {
-    $per_page = 50;
-}
-$url_search = isset( $_GET['url_search'] ) ? sanitize_text_field( $_GET['url_search'] ) : '';
+// Table display settings (client-side JS filtering)
+$not_indexed_per_page = 50;
+$inspections_per_page = 25;
 
 if ( $selected_site ) {
     if ( function_exists( 'bite_get_sitemap_summary' ) ) {
@@ -77,15 +74,7 @@ if ( $selected_site ) {
     }
 }
 
-// Filter not_indexed URLs by search term
-$filtered_not_indexed = $not_indexed_urls;
-if ( ! empty( $url_search ) && ! empty( $not_indexed_urls ) ) {
-    $filtered_not_indexed = array_filter( $not_indexed_urls, function( $row ) use ( $url_search ) {
-        return stripos( $row->url, $url_search ) !== false;
-    } );
-}
-$total_not_indexed = count( $filtered_not_indexed );
-$not_indexed_display = array_slice( array_values( $filtered_not_indexed ), 0, $per_page );
+$total_not_indexed = count( $not_indexed_urls );
 
 // Coverage stats
 $total_sitemap = $sitemap_summary['total'] ?? 0;
@@ -470,30 +459,25 @@ $has_inspection_data = $total_inspected > 0;
                 <div class="bite-section-header">
                     <h2>
                         <span class="material-icons" style="vertical-align: middle; margin-right: 8px; color: #d63638;">error</span>
-                        Not Indexed by Google <span style="font-size: 0.7em; color: #888; font-weight: 400;">(<?php echo number_format( $total_not_indexed ); ?>)</span>
+                        Not Indexed by Google <span class="not-indexed-count" style="font-size: 0.7em; color: #888; font-weight: 400;">(<?php echo number_format( $total_not_indexed ); ?>)</span>
                     </h2>
                 </div>
                 <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 0; margin-bottom: 24px; overflow: hidden;">
                     <!-- Toolbar: Search + Per Page -->
                     <div style="padding: 12px 16px; background: var(--bg-color); border-bottom: 1px solid var(--border-light); display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
-                        <form method="GET" action="" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; flex: 1;">
-                            <input type="hidden" name="site_id" value="<?php echo esc_attr( $selected_site_id ); ?>">
-                            <input type="text" name="url_search" value="<?php echo esc_attr( $url_search ); ?>" placeholder="Search URLs..." style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.85em; min-width: 220px;">
-                            <select name="per_page" onchange="this.form.submit()" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.85em;">
-                                <option value="10" <?php selected( $per_page, 10 ); ?>>10 per page</option>
-                                <option value="25" <?php selected( $per_page, 25 ); ?>>25 per page</option>
-                                <option value="50" <?php selected( $per_page, 50 ); ?>>50 per page</option>
-                                <option value="100" <?php selected( $per_page, 100 ); ?>>100 per page</option>
-                                <option value="250" <?php selected( $per_page, 250 ); ?>>250 per page</option>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; flex: 1;">
+                            <input type="text" class="not-indexed-search" placeholder="Search URLs..." style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.85em; min-width: 220px;">
+                            <select class="not-indexed-per-page" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.85em;">
+                                <option value="10">10 per page</option>
+                                <option value="25">25 per page</option>
+                                <option value="50" selected>50 per page</option>
+                                <option value="100">100 per page</option>
+                                <option value="250">250 per page</option>
                             </select>
-                            <button type="submit" class="bite-button bite-button-secondary" style="font-size: 0.8em; padding: 6px 14px;">Search</button>
-                            <?php if ( ! empty( $url_search ) ) : ?>
-                                <a href="?site_id=<?php echo esc_attr( $selected_site_id ); ?>" class="bite-button bite-button-secondary" style="font-size: 0.8em; padding: 6px 14px;">Clear</a>
-                            <?php endif; ?>
-                        </form>
+                        </div>
                     </div>
                     <div style="max-height: 500px; overflow-y: auto;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                        <table class="not-indexed-table" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
                             <thead style="position: sticky; top: 0; background: #f0f4f8; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                                 <tr style="border-bottom: 1px solid var(--border-light);">
                                     <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555;">URL</th>
@@ -502,8 +486,8 @@ $has_inspection_data = $total_inspected > 0;
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ( $not_indexed_display as $url_row ) : ?>
-                                    <tr style="border-bottom: 1px solid var(--border-light);">
+                                <?php foreach ( $not_indexed_urls as $url_row ) : ?>
+                                    <tr class="not-indexed-row" style="border-bottom: 1px solid var(--border-light);" data-url="<?php echo esc_attr( strtolower( $url_row->url ) ); ?>">
                                         <td style="padding: 10px 16px; word-break: break-all;">
                                             <a href="<?php echo esc_url( $url_row->url ); ?>" target="_blank" style="color: #2271b1;"><?php echo esc_html( $url_row->url ); ?></a>
                                         </td>
@@ -514,63 +498,38 @@ $has_inspection_data = $total_inspected > 0;
                             </tbody>
                         </table>
                     </div>
-                    <?php if ( $total_not_indexed > $per_page ) : ?>
-                        <div style="padding: 12px 16px; background: var(--bg-color); color: #666; font-size: 0.85em; text-align: center;">
-                            Showing <?php echo number_format( count( $not_indexed_display ) ); ?> of <?php echo number_format( $total_not_indexed ); ?> not indexed URLs
-                        </div>
-                    <?php elseif ( $total_not_indexed > 0 ) : ?>
-                        <div style="padding: 12px 16px; background: var(--bg-color); color: #666; font-size: 0.85em; text-align: center;">
-                            Showing all <?php echo number_format( $total_not_indexed ); ?> not indexed URLs
-                        </div>
-                    <?php endif; ?>
+                    <div class="not-indexed-footer" style="padding: 12px 16px; background: var(--bg-color); color: #666; font-size: 0.85em; text-align: center;">
+                        Showing <span class="not-indexed-showing"><?php echo number_format( min( $not_indexed_per_page, $total_not_indexed ) ); ?></span> of <span class="not-indexed-total"><?php echo number_format( $total_not_indexed ); ?></span> not indexed URLs
+                    </div>
                 </div>
             </section>
             <?php endif; ?>
 
             <!-- Recent Inspections -->
             <?php if ( ! empty( $recent_inspections ) ) : ?>
-            <?php
-            $inspection_search = isset( $_GET['inspection_search'] ) ? sanitize_text_field( $_GET['inspection_search'] ) : '';
-            $inspection_per_page = isset( $_GET['inspection_per_page'] ) ? absint( $_GET['inspection_per_page'] ) : 25;
-            if ( ! in_array( $inspection_per_page, array( 10, 25, 50, 100 ) ) ) {
-                $inspection_per_page = 25;
-            }
-            $filtered_inspections = $recent_inspections;
-            if ( ! empty( $inspection_search ) ) {
-                $filtered_inspections = array_filter( $recent_inspections, function( $row ) use ( $inspection_search ) {
-                    return stripos( $row->url, $inspection_search ) !== false || stripos( $row->coverage_state, $inspection_search ) !== false;
-                } );
-            }
-            $total_inspections_display = count( $filtered_inspections );
-            $inspections_display = array_slice( array_values( $filtered_inspections ), 0, $inspection_per_page );
-            ?>
+            <?php $total_inspections = count( $recent_inspections ); ?>
             <section class="bite-dashboard-section">
                 <div class="bite-section-header">
                     <h2>
                         <span class="material-icons" style="vertical-align: middle; margin-right: 8px; color: #2271b1;">manage_search</span>
-                        Recent URL Inspections <span style="font-size: 0.7em; color: #888; font-weight: 400;">(<?php echo number_format( $total_inspections_display ); ?>)</span>
+                        Recent URL Inspections <span class="inspection-count" style="font-size: 0.7em; color: #888; font-weight: 400;">(<?php echo number_format( $total_inspections ); ?>)</span>
                     </h2>
                 </div>
                 <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 0; margin-bottom: 24px; overflow: hidden;">
                     <!-- Toolbar: Search + Per Page -->
                     <div style="padding: 12px 16px; background: var(--bg-color); border-bottom: 1px solid var(--border-light); display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
-                        <form method="GET" action="" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; flex: 1;">
-                            <input type="hidden" name="site_id" value="<?php echo esc_attr( $selected_site_id ); ?>">
-                            <input type="text" name="inspection_search" value="<?php echo esc_attr( $inspection_search ); ?>" placeholder="Search URLs or coverage..." style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.85em; min-width: 220px;">
-                            <select name="inspection_per_page" onchange="this.form.submit()" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.85em;">
-                                <option value="10" <?php selected( $inspection_per_page, 10 ); ?>>10 per page</option>
-                                <option value="25" <?php selected( $inspection_per_page, 25 ); ?>>25 per page</option>
-                                <option value="50" <?php selected( $inspection_per_page, 50 ); ?>>50 per page</option>
-                                <option value="100" <?php selected( $inspection_per_page, 100 ); ?>>100 per page</option>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; flex: 1;">
+                            <input type="text" class="inspection-search" placeholder="Search URLs or coverage..." style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.85em; min-width: 220px;">
+                            <select class="inspection-per-page" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.85em;">
+                                <option value="10">10 per page</option>
+                                <option value="25" selected>25 per page</option>
+                                <option value="50">50 per page</option>
+                                <option value="100">100 per page</option>
                             </select>
-                            <button type="submit" class="bite-button bite-button-secondary" style="font-size: 0.8em; padding: 6px 14px;">Search</button>
-                            <?php if ( ! empty( $inspection_search ) ) : ?>
-                                <a href="?site_id=<?php echo esc_attr( $selected_site_id ); ?>" class="bite-button bite-button-secondary" style="font-size: 0.8em; padding: 6px 14px;">Clear</a>
-                            <?php endif; ?>
-                        </form>
+                        </div>
                     </div>
                     <div style="max-height: 500px; overflow-y: auto;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                        <table class="inspection-table" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
                             <thead style="position: sticky; top: 0; background: #f0f4f8; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                                 <tr style="border-bottom: 1px solid var(--border-light);">
                                     <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555;">URL</th>
@@ -581,14 +540,14 @@ $has_inspection_data = $total_inspected > 0;
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ( $inspections_display as $ins ) :
+                                <?php foreach ( $recent_inspections as $ins ) :
                                     $is_pass = in_array( strtoupper( $ins->verdict ), array( 'PASS', 'Pass' ) );
                                     $status_color = $is_pass ? '#00a32a' : '#d63638';
                                     $status_icon = $is_pass ? 'check_circle' : 'cancel';
                                     $mobile_pass = in_array( strtoupper( $ins->mobile_usability ), array( 'PASS', 'Pass' ) );
                                     $mobile_color = $mobile_pass ? '#00a32a' : '#d63638';
                                 ?>
-                                    <tr style="border-bottom: 1px solid var(--border-light);">
+                                    <tr class="inspection-row" style="border-bottom: 1px solid var(--border-light);" data-url="<?php echo esc_attr( strtolower( $ins->url ) ); ?>" data-coverage="<?php echo esc_attr( strtolower( $ins->coverage_state ?: '' ) ); ?>">
                                         <td style="padding: 10px 16px; word-break: break-all;">
                                             <a href="<?php echo esc_url( $ins->url ); ?>" target="_blank" style="color: #2271b1; font-size: 0.9em;"><?php echo esc_html( $ins->url ); ?></a>
                                         </td>
@@ -610,15 +569,9 @@ $has_inspection_data = $total_inspected > 0;
                             </tbody>
                         </table>
                     </div>
-                    <?php if ( $total_inspections_display > $inspection_per_page ) : ?>
-                        <div style="padding: 12px 16px; background: var(--bg-color); color: #666; font-size: 0.85em; text-align: center;">
-                            Showing <?php echo number_format( count( $inspections_display ) ); ?> of <?php echo number_format( $total_inspections_display ); ?> inspections
-                        </div>
-                    <?php elseif ( $total_inspections_display > 0 ) : ?>
-                        <div style="padding: 12px 16px; background: var(--bg-color); color: #666; font-size: 0.85em; text-align: center;">
-                            Showing all <?php echo number_format( $total_inspections_display ); ?> inspections
-                        </div>
-                    <?php endif; ?>
+                    <div class="inspection-footer" style="padding: 12px 16px; background: var(--bg-color); color: #666; font-size: 0.85em; text-align: center;">
+                        Showing <span class="inspection-showing"><?php echo number_format( min( 25, $total_inspections ) ); ?></span> of <span class="inspection-total"><?php echo number_format( $total_inspections ); ?></span> inspections
+                    </div>
                 </div>
             </section>
             <?php endif; ?>
@@ -633,5 +586,116 @@ $has_inspection_data = $total_inspected > 0;
 
     </main>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // --- Not Indexed URLs: Live Search + Per Page ---
+    (function() {
+        var searchInput = document.querySelector('.not-indexed-search');
+        var perPageSelect = document.querySelector('.not-indexed-per-page');
+        var table = document.querySelector('.not-indexed-table');
+        var footer = document.querySelector('.not-indexed-footer');
+        var countLabel = document.querySelector('.not-indexed-count');
+        if (!table) return;
+
+        var allRows = Array.from(table.querySelectorAll('tbody tr.not-indexed-row'));
+
+        function update() {
+            var term = (searchInput ? searchInput.value : '').toLowerCase().trim();
+            var perPage = perPageSelect ? parseInt(perPageSelect.value, 10) : 50;
+            var visibleCount = 0;
+            var matchedCount = 0;
+
+            allRows.forEach(function(row) {
+                var url = row.dataset.url || '';
+                var match = !term || url.indexOf(term) !== -1;
+                if (match) {
+                    matchedCount++;
+                    if (visibleCount < perPage) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            if (footer) {
+                var showingEl = footer.querySelector('.not-indexed-showing');
+                var totalEl = footer.querySelector('.not-indexed-total');
+                if (showingEl) showingEl.textContent = visibleCount.toLocaleString();
+                if (totalEl) totalEl.textContent = matchedCount.toLocaleString();
+                footer.style.display = matchedCount > 0 ? '' : 'none';
+            }
+            if (countLabel && matchedCount !== allRows.length) {
+                countLabel.textContent = '(' + matchedCount.toLocaleString() + ')';
+            } else if (countLabel) {
+                countLabel.textContent = '(' + allRows.length.toLocaleString() + ')';
+            }
+        }
+
+        if (searchInput) searchInput.addEventListener('input', update);
+        if (perPageSelect) perPageSelect.addEventListener('change', update);
+        update();
+    })();
+
+    // --- Recent Inspections: Live Search + Per Page ---
+    (function() {
+        var searchInput = document.querySelector('.inspection-search');
+        var perPageSelect = document.querySelector('.inspection-per-page');
+        var table = document.querySelector('.inspection-table');
+        var footer = document.querySelector('.inspection-footer');
+        var countLabel = document.querySelector('.inspection-count');
+        if (!table) return;
+
+        var allRows = Array.from(table.querySelectorAll('tbody tr.inspection-row'));
+
+        function update() {
+            var term = (searchInput ? searchInput.value : '').toLowerCase().trim();
+            var perPage = perPageSelect ? parseInt(perPageSelect.value, 10) : 25;
+            var visibleCount = 0;
+            var matchedCount = 0;
+
+            allRows.forEach(function(row) {
+                var url = row.dataset.url || '';
+                var coverage = row.dataset.coverage || '';
+                var match = !term || url.indexOf(term) !== -1 || coverage.indexOf(term) !== -1;
+                if (match) {
+                    matchedCount++;
+                    if (visibleCount < perPage) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            if (footer) {
+                var showingEl = footer.querySelector('.inspection-showing');
+                var totalEl = footer.querySelector('.inspection-total');
+                if (showingEl) showingEl.textContent = visibleCount.toLocaleString();
+                if (totalEl) totalEl.textContent = matchedCount.toLocaleString();
+                footer.style.display = matchedCount > 0 ? '' : 'none';
+            }
+            if (countLabel && matchedCount !== allRows.length) {
+                countLabel.textContent = '(' + matchedCount.toLocaleString() + ')';
+            } else if (countLabel) {
+                countLabel.textContent = '(' + allRows.length.toLocaleString() + ')';
+            }
+        }
+
+        if (searchInput) searchInput.addEventListener('input', update);
+        if (perPageSelect) perPageSelect.addEventListener('change', update);
+        update();
+    })();
+
+});
+</script>
 
 <?php get_footer(); ?>
