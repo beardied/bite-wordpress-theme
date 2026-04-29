@@ -129,7 +129,7 @@ if ( $selected_site ) {
 
             <!-- Security Scorecards -->
             <section class="bite-dashboard-section">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 24px;">
                     <!-- Security Header Score -->
                     <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 20px;">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
@@ -143,7 +143,7 @@ if ( $selected_site ) {
                                 </div>
                                 <div style="color: #888; font-size: 0.8em;">Scanned <?php echo esc_html( date( 'M j', strtotime( $security_headers->scanned_at ) ) ); ?></div>
                             </div>
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 0.75em; text-align: center;">
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 0.75em; text-align: center; margin-bottom: 14px;">
                                 <div style="padding: 4px; border-radius: 4px; background: <?php echo $security_headers->hsts ? '#e7f5e7' : '#ffeaea'; ?>; color: <?php echo $security_headers->hsts ? '#00a32a' : '#d63638'; ?>;">
                                     <span class="material-icons" style="font-size: 14px; display: block;"><?php echo $security_headers->hsts ? 'check' : 'close'; ?></span>HSTS
                                 </div>
@@ -163,6 +163,17 @@ if ( $selected_site ) {
                                     <span class="material-icons" style="font-size: 14px; display: block;"><?php echo $security_headers->permissions_policy ? 'check' : 'close'; ?></span>Perms
                                 </div>
                             </div>
+                            <details style="font-size: 0.8em; color: #555;">
+                                <summary style="cursor: pointer; color: #2271b1; font-weight: 500;">What do these mean?</summary>
+                                <div style="margin-top: 8px; padding: 10px; background: var(--bg-color); border-radius: var(--radius-sm); line-height: 1.6;">
+                                    <strong>HSTS</strong> — Forces browsers to use HTTPS. <em>Fix:</em> Add <code>Strict-Transport-Security: max-age=31536000; includeSubDomains</code> in your server config or via a security plugin.<br><br>
+                                    <strong>CSP</strong> — Content Security Policy blocks XSS and injection attacks. <em>Fix:</em> Add <code>Content-Security-Policy: default-src 'self'</code> (customise per site).<br><br>
+                                    <strong>X-Frame</strong> — Prevents your site being embedded in malicious iframes (clickjacking). <em>Fix:</em> Add <code>X-Frame-Options: SAMEORIGIN</code> or use CSP <code>frame-ancestors</code>.<br><br>
+                                    <strong>X-CTO</strong> — Stops browsers MIME-sniffing files into wrong types. <em>Fix:</em> Add <code>X-Content-Type-Options: nosniff</code>.<br><br>
+                                    <strong>Referrer</strong> — Controls how much referrer info leaks to third parties. <em>Fix:</em> Add <code>Referrer-Policy: strict-origin-when-cross-origin</code>.<br><br>
+                                    <strong>Perms</strong> — Restricts browser features (camera, microphone, geolocation). <em>Fix:</em> Add <code>Permissions-Policy: camera=(), microphone=(), geolocation=()</code>.
+                                </div>
+                            </details>
                         <?php else : ?>
                             <div style="text-align: center; padding: 20px; color: #888;">
                                 <span class="material-icons" style="font-size: 32px;">pending</span>
@@ -190,17 +201,41 @@ if ( $selected_site ) {
                                 <div style="color: #888; font-size: 0.8em;">Scanned <?php echo esc_html( date( 'M j', strtotime( $ssl_labs->scanned_at ) ) ); ?></div>
                             </div>
                             <?php if ( $ssl_labs->cert_expiry ) : ?>
-                                <div style="font-size: 0.8em; color: #666; text-align: center;">
+                                <div style="font-size: 0.8em; color: #666; text-align: center; margin-bottom: 8px;">
                                     <span class="material-icons" style="font-size: 14px; vertical-align: middle;">event</span>
                                     Cert expires <?php echo esc_html( date( 'M j, Y', strtotime( $ssl_labs->cert_expiry ) ) ); ?>
                                 </div>
                             <?php endif; ?>
                             <?php if ( ! empty( $ssl_labs->vulnerabilities ) ) : ?>
-                                <div style="font-size: 0.75em; color: #d63638; text-align: center; margin-top: 6px;">
+                                <div style="font-size: 0.75em; color: #d63638; text-align: center; margin-bottom: 8px;">
                                     <span class="material-icons" style="font-size: 14px; vertical-align: middle;">warning</span>
                                     <?php echo esc_html( $ssl_labs->vulnerabilities ); ?>
                                 </div>
                             <?php endif; ?>
+                            <?php if ( ! empty( $ssl_labs->protocols ) ) : ?>
+                                <div style="font-size: 0.75em; color: #666; text-align: center; margin-bottom: 12px;">
+                                    <span class="material-icons" style="font-size: 14px; vertical-align: middle;">settings_ethernet</span>
+                                    <?php echo esc_html( $ssl_labs->protocols ); ?>
+                                </div>
+                            <?php endif; ?>
+                            <details style="font-size: 0.8em; color: #555;">
+                                <summary style="cursor: pointer; color: #2271b1; font-weight: 500;">What does this grade mean?</summary>
+                                <div style="margin-top: 8px; padding: 10px; background: var(--bg-color); border-radius: var(--radius-sm); line-height: 1.6;">
+                                    <strong>A+ / A</strong> — Excellent. Modern TLS config, no weak ciphers, HSTS enabled.<br>
+                                    <strong>B</strong> — Good, but minor issues (e.g. TLS 1.0/1.1 still enabled, or missing HSTS preloading).<br>
+                                    <strong>C</strong> — Fair. Known weaknesses present (e.g. weak DH parameters, outdated cipher suites).<br>
+                                    <strong>D / E / F</strong> — Poor. Serious vulnerabilities or very outdated SSL/TLS setup.<br>
+                                    <strong>T</strong> — Certificate not trusted (self-signed or expired).<br>
+                                    <strong>M</strong> — Certificate hostname mismatch.<br><br>
+                                    <strong>How to improve:</strong><br>
+                                    • Disable TLS 1.0 and 1.1 (keep 1.2 and 1.3 only)<br>
+                                    • Enable HSTS with a long max-age<br>
+                                    • Use a strong certificate (RSA 2048+ or ECC)<br>
+                                    • Remove weak cipher suites (RC4, 3DES)<br>
+                                    • Keep your server software up to date<br>
+                                    • <em>Tip: Cloudflare or your hosting panel can handle most of this automatically.</em>
+                                </div>
+                            </details>
                         <?php else : ?>
                             <div style="text-align: center; padding: 20px; color: #888;">
                                 <span class="material-icons" style="font-size: 32px;">pending</span>

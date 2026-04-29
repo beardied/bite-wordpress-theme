@@ -32,7 +32,7 @@ if ( ! empty( $user_site_ids ) ) {
     $sites_table = $wpdb->prefix . 'bite_sites';
     $placeholders = implode( ',', array_fill( 0, count( $user_site_ids ), '%d' ) );
     $user_sites = $wpdb->get_results( $wpdb->prepare(
-        "SELECT site_id, name, domain, gsc_property, ga4_property_id, ga4_backfill_status, bing_backfill_status FROM $sites_table WHERE site_id IN ($placeholders) ORDER BY name ASC",
+        "SELECT site_id, name, domain, gsc_property, sitemap_url, ga4_property_id, ga4_backfill_status, bing_backfill_status FROM $sites_table WHERE site_id IN ($placeholders) ORDER BY name ASC",
         $user_site_ids
     ) );
 }
