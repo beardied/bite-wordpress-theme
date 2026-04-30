@@ -541,7 +541,7 @@ $has_inspection_data = $total_inspected > 0;
                             </thead>
                             <tbody>
                                 <?php foreach ( $recent_inspections as $ins ) :
-                                    $is_pass = in_array( strtoupper( $ins->verdict ), array( 'PASS', 'Pass' ) );
+                                    $is_pass = in_array( strtoupper( $ins->verdict ), array( 'PASS', 'Pass' ) ) || ( strtoupper( $ins->verdict ) === 'NEUTRAL' && $ins->coverage_state === 'Submitted and indexed' );
                                     $status_color = $is_pass ? '#00a32a' : '#d63638';
                                     $status_icon = $is_pass ? 'check_circle' : 'cancel';
                                     $mobile_pass = in_array( strtoupper( $ins->mobile_usability ), array( 'PASS', 'Pass' ) );

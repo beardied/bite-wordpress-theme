@@ -111,8 +111,14 @@ function bite_store_url_inspection( $site_id, $result ) {
     );
 
     // Also update the sitemap_urls table with is_indexed status
+    // NEUTRAL + "Submitted and indexed" means the URL IS indexed by Google
     $sitemap_table = $wpdb->prefix . 'bite_sitemap_urls';
-    $is_indexed = ( $result['verdict'] === 'PASS' || $result['verdict'] === 'Pass' ) ? 1 : 0;
+    $is_indexed = 0;
+    if ( $result['verdict'] === 'PASS' || $result['verdict'] === 'Pass' ) {
+        $is_indexed = 1;
+    } elseif ( $result['verdict'] === 'NEUTRAL' && $result['coverage_state'] === 'Submitted and indexed' ) {
+        $is_indexed = 1;
+    }
 
     $wpdb->query( $wpdb->prepare(
         "UPDATE $sitemap_table SET is_indexed = %d, last_inspected = %s WHERE site_id = %d AND url = %s",
@@ -236,7 +242,7 @@ function bite_run_url_inspection_batch( $site_id, &$quota_remaining ) {
             if ( strpos( $error_msg, 'unauthenticated' ) !== false || strpos( $error_msg, 'permission' ) !== false ) {
                 return new WP_Error( 'auth_error', 'GSC auth failed during URL inspection' );
             }
-            usleep( 500000 ); // 500ms
+            usleep( 100000 ); // 100ms
             continue;
         }
 
@@ -244,7 +250,7 @@ function bite_run_url_inspection_batch( $site_id, &$quota_remaining ) {
         $inspected++;
         $quota_remaining--;
 
-        usleep( 500000 ); // 500ms between inspections to avoid rate limits
+        usleep( 100000 ); // 100ms between inspections to avoid rate limits
     }
 
     return array(
@@ -333,12 +339,12 @@ function bite_get_url_inspection_summary( $site_id ) {
     ) );
 
     $pass_count = $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(DISTINCT url) FROM $table WHERE site_id = %d AND verdict IN ('PASS', 'Pass')",
+        "SELECT COUNT(DISTINCT url) FROM $table WHERE site_id = %d AND (verdict IN ('PASS', 'Pass') OR (verdict = 'NEUTRAL' AND coverage_state = 'Submitted and indexed'))",
         $site_id
     ) );
 
     $fail_count = $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(DISTINCT url) FROM $table WHERE site_id = %d AND verdict NOT IN ('PASS', 'Pass', '') AND verdict IS NOT NULL",
+        "SELECT COUNT(DISTINCT url) FROM $table WHERE site_id = %d AND verdict NOT IN ('PASS', 'Pass', '') AND verdict IS NOT NULL AND NOT (verdict = 'NEUTRAL' AND coverage_state = 'Submitted and indexed')",
         $site_id
     ) );
 
@@ -367,10 +373,10 @@ function bite_get_latest_inspections( $site_id, $filter = 'all', $limit = 50 ) {
 
     switch ( $filter ) {
         case 'pass':
-            $where .= " AND verdict IN ('PASS', 'Pass')";
+            $where .= " AND (verdict IN ('PASS', 'Pass') OR (verdict = 'NEUTRAL' AND coverage_state = 'Submitted and indexed'))";
             break;
         case 'fail':
-            $where .= " AND verdict NOT IN ('PASS', 'Pass', '') AND verdict IS NOT NULL";
+            $where .= " AND verdict NOT IN ('PASS', 'Pass', '') AND verdict IS NOT NULL AND NOT (verdict = 'NEUTRAL' AND coverage_state = 'Submitted and indexed')";
             break;
         case 'recent':
             $where .= ' AND inspected_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
