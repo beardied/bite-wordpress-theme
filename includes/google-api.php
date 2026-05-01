@@ -432,6 +432,9 @@ function bite_run_daily_update() {
 
     error_log( 'BITE Daily Update: All completed sites checked.' );
 
+    // Record that daily update ran today
+    set_transient( 'bite_daily_update_last_run', current_time( 'mysql' ), DAY_IN_SECONDS );
+
     // Fetch domain authority metrics from external APIs (OPR, SRT, Moz)
     if ( function_exists( 'bite_fetch_all_domain_metrics' ) ) {
         error_log( 'BITE Daily Update: Starting domain metrics fetch...' );
