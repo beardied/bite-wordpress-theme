@@ -226,19 +226,19 @@ function bite_get_sitemap_urls( $site_id, $status = 'all' ) {
 
     switch ( $status ) {
         case 'indexed':
-            $where .= ' AND is_indexed = 1 AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
+            $where .= " AND source = 'sitemap' AND is_indexed = 1 AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
             break;
         case 'not_indexed':
-            $where .= ' AND (is_indexed = 0 OR is_indexed IS NULL) AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
+            $where .= " AND source = 'sitemap' AND (is_indexed = 0 OR is_indexed IS NULL) AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
             break;
         case 'recently_added':
-            $where .= ' AND first_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
+            $where .= " AND source = 'sitemap' AND first_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
             break;
         case 'recently_removed':
-            $where .= ' AND last_seen < DATE_SUB(CURDATE(), INTERVAL 6 DAY)';
+            $where .= " AND source = 'sitemap' AND last_seen < DATE_SUB(CURDATE(), INTERVAL 6 DAY)";
             break;
         default:
-            $where .= ' AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
+            $where .= " AND source = 'sitemap' AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
     }
 
     return $wpdb->get_results( $wpdb->prepare(
@@ -257,23 +257,36 @@ function bite_get_sitemap_summary( $site_id ) {
     global $wpdb;
     $table = $wpdb->prefix . 'bite_sitemap_urls';
 
+    // Only count URLs that came from the actual sitemap
     $total = $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(*) FROM $table WHERE site_id = %d AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)",
+        "SELECT COUNT(*) FROM $table WHERE site_id = %d AND source = 'sitemap' AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)",
         $site_id
     ) );
 
     $indexed = $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(*) FROM $table WHERE site_id = %d AND is_indexed = 1 AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)",
+        "SELECT COUNT(*) FROM $table WHERE site_id = %d AND source = 'sitemap' AND is_indexed = 1 AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)",
         $site_id
     ) );
 
     $not_indexed = $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(*) FROM $table WHERE site_id = %d AND (is_indexed = 0 OR is_indexed IS NULL) AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)",
+        "SELECT COUNT(*) FROM $table WHERE site_id = %d AND source = 'sitemap' AND (is_indexed = 0 OR is_indexed IS NULL) AND last_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)",
         $site_id
     ) );
 
     $recently_added = $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(*) FROM $table WHERE site_id = %d AND first_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)",
+        "SELECT COUNT(*) FROM $table WHERE site_id = %d AND source = 'sitemap' AND first_seen >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)",
+        $site_id
+    ) );
+
+    // GSC-discovered orphan URLs (not in sitemap)
+    $gsc_orphans = $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM $table WHERE site_id = %d AND source = 'gsc'",
+        $site_id
+    ) );
+
+    // Total unique URLs Google knows about (sitemap + orphans)
+    $gsc_total = $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM $table WHERE site_id = %d AND gsc_known = 1",
         $site_id
     ) );
 
@@ -282,6 +295,8 @@ function bite_get_sitemap_summary( $site_id ) {
         'indexed'         => intval( $indexed ),
         'not_indexed'     => intval( $not_indexed ),
         'recently_added'  => intval( $recently_added ),
+        'gsc_orphans'     => intval( $gsc_orphans ),
+        'gsc_total'       => intval( $gsc_total ),
     );
 }
 

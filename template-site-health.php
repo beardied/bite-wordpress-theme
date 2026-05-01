@@ -132,26 +132,36 @@ $has_inspection_data = $total_inspected > 0;
 
             <!-- Overview Cards -->
             <section class="bite-dashboard-section">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px;">
                     <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 20px; text-align: center;">
                         <div style="font-size: 2em; font-weight: bold; color: #2271b1;"><?php echo number_format( $total_sitemap ); ?></div>
                         <div style="color: #666; font-size: 0.85em; margin-top: 4px;">URLs in Sitemap</div>
+                        <div style="font-size: 0.7em; color: #888; margin-top: 2px;">What you submitted</div>
                     </div>
                     <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 20px; text-align: center;">
                         <div style="font-size: 2em; font-weight: bold; color: #00a32a;"><?php echo number_format( $inspection_summary['pass'] ?? 0 ); ?></div>
-                        <div style="color: #666; font-size: 0.85em; margin-top: 4px;">Indexed by Google</div>
+                        <div style="color: #666; font-size: 0.85em; margin-top: 4px;">Indexed</div>
+                        <div style="font-size: 0.7em; color: #888; margin-top: 2px;">In Google's index</div>
                     </div>
                     <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 20px; text-align: center;">
                         <div style="font-size: 2em; font-weight: bold; color: #d63638;"><?php echo number_format( $inspection_summary['fail'] ?? 0 ); ?></div>
-                        <div style="color: #666; font-size: 0.85em; margin-top: 4px;">Not Indexed by Google</div>
+                        <div style="color: #666; font-size: 0.85em; margin-top: 4px;">Not Indexed</div>
+                        <div style="font-size: 0.7em; color: #888; margin-top: 2px;">Missing from index</div>
                     </div>
                     <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 20px; text-align: center;">
                         <div style="font-size: 2em; font-weight: bold; color: #f9ab00;"><?php echo number_format( $sitemap_summary['recently_added'] ?? 0 ); ?></div>
                         <div style="color: #666; font-size: 0.85em; margin-top: 4px;">New (7d)</div>
+                        <div style="font-size: 0.7em; color: #888; margin-top: 2px;">Recently added</div>
                     </div>
                     <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 20px; text-align: center;">
                         <div style="font-size: 2em; font-weight: bold; color: #9c27b0;"><?php echo number_format( $total_inspected ); ?></div>
-                        <div style="color: #666; font-size: 0.85em; margin-top: 4px;">Inspected by Google</div>
+                        <div style="color: #666; font-size: 0.85em; margin-top: 4px;">Inspected</div>
+                        <div style="font-size: 0.7em; color: #888; margin-top: 2px;">Checked by BITE</div>
+                    </div>
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 20px; text-align: center;">
+                        <div style="font-size: 2em; font-weight: bold; color: #ff7043;"><?php echo number_format( $sitemap_summary['gsc_orphans'] ?? 0 ); ?></div>
+                        <div style="color: #666; font-size: 0.85em; margin-top: 4px;">Orphan URLs</div>
+                        <div style="font-size: 0.7em; color: #888; margin-top: 2px;">GSC only, not sitemap</div>
                     </div>
                 </div>
             </section>
@@ -166,21 +176,26 @@ $has_inspection_data = $total_inspected > 0;
                     </h2>
                 </div>
                 <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 16px;">
                         <div style="text-align: center; padding: 16px; background: var(--bg-color); border-radius: var(--radius-sm);">
                             <div style="font-size: 1.8em; font-weight: bold; color: #2271b1;"><?php echo number_format( $total_sitemap ); ?></div>
                             <div style="color: #666; font-size: 0.8em; margin-top: 4px;">In Sitemap</div>
-                            <div style="font-size: 0.75em; color: #888; margin-top: 2px;">What you tell search engines you have</div>
+                            <div style="font-size: 0.75em; color: #888; margin-top: 2px;">URLs you tell Google about</div>
                         </div>
                         <div style="text-align: center; padding: 16px; background: var(--bg-color); border-radius: var(--radius-sm);">
                             <div style="font-size: 1.8em; font-weight: bold; color: #00a32a;"><?php echo number_format( $total_inspected ); ?></div>
                             <div style="color: #666; font-size: 0.8em; margin-top: 4px;">Inspected by Google</div>
-                            <div style="font-size: 0.75em; color: #888; margin-top: 2px;">URLs BITE has asked Google about</div>
+                            <div style="font-size: 0.75em; color: #888; margin-top: 2px;">URLs BITE has checked</div>
                         </div>
                         <div style="text-align: center; padding: 16px; background: var(--bg-color); border-radius: var(--radius-sm);">
-                            <div style="font-size: 1.8em; font-weight: bold; color: <?php echo $pending_inspection > 0 ? '#f9ab00' : '#00a32a'; ?>;"><?php echo number_format( $pending_inspection ); ?></div>
-                            <div style="color: #666; font-size: 0.8em; margin-top: 4px;">Pending Inspection</div>
-                            <div style="font-size: 0.75em; color: #888; margin-top: 2px;">In sitemap but not yet checked</div>
+                            <div style="font-size: 1.8em; font-weight: bold; color: #ff7043;"><?php echo number_format( $sitemap_summary['gsc_orphans'] ?? 0 ); ?></div>
+                            <div style="color: #666; font-size: 0.8em; margin-top: 4px;">Orphan URLs</div>
+                            <div style="font-size: 0.75em; color: #888; margin-top: 2px;">Google knows, not in sitemap</div>
+                        </div>
+                        <div style="text-align: center; padding: 16px; background: var(--bg-color); border-radius: var(--radius-sm);">
+                            <div style="font-size: 1.8em; font-weight: bold; color: #9c27b0;"><?php echo number_format( $sitemap_summary['gsc_total'] ?? 0 ); ?></div>
+                            <div style="color: #666; font-size: 0.8em; margin-top: 4px;">Total Google Knows</div>
+                            <div style="font-size: 0.75em; color: #888; margin-top: 2px;">Sitemap + orphan URLs</div>
                         </div>
                     </div>
                     <?php if ( $pending_inspection > 0 ) : ?>
@@ -192,7 +207,7 @@ $has_inspection_data = $total_inspected > 0;
                         </div>
                         <div style="display: flex; justify-content: space-between; font-size: 0.75em; color: #888; margin-top: 4px;">
                             <span>0%</span>
-                            <span><?php echo esc_html( $pct_inspected ); ?>% inspected</span>
+                            <span><?php echo esc_html( $pct_inspected ); ?>% of sitemap inspected</span>
                             <span>100%</span>
                         </div>
                     <?php endif; ?>
