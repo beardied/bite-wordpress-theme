@@ -59,8 +59,13 @@ if ( $selected_site ) {
     if ( function_exists( 'bite_get_url_inspection_summary' ) ) {
         $inspection_summary = bite_get_url_inspection_summary( $selected_site_id );
     }
-    if ( function_exists( 'bite_get_latest_inspections' ) ) {
-        $recent_inspections = bite_get_latest_inspections( $selected_site_id, 'recent', 100 );
+    if ( function_exists( 'bite_get_all_sitemap_urls_with_inspection' ) ) {
+        $recent_inspections = bite_get_all_sitemap_urls_with_inspection( $selected_site_id );
+    }
+    // GSC-discovered URLs not in sitemap
+    $gsc_orphan_urls = array();
+    if ( function_exists( 'bite_get_gsc_orphan_urls' ) ) {
+        $gsc_orphan_urls = bite_get_gsc_orphan_urls( $selected_site_id );
     }
     if ( function_exists( 'bite_get_sitemap_urls' ) ) {
         $not_indexed_urls = bite_get_sitemap_urls( $selected_site_id, 'not_indexed' );
@@ -477,17 +482,17 @@ $has_inspection_data = $total_inspected > 0;
                         </div>
                     </div>
                     <div style="max-height: 500px; overflow-y: auto;">
-                        <table class="not-indexed-table" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                        <table class="not-indexed-table sortable-table" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
                             <thead style="position: sticky; top: 0; background: #f0f4f8; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                                 <tr style="border-bottom: 1px solid var(--border-light);">
-                                    <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555;">URL</th>
-                                    <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 140px;">First Seen</th>
-                                    <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 140px;">Last Inspected</th>
+                                    <th class="sortable-header" data-sort="url" style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; cursor: pointer; user-select: none;">URL ↕</th>
+                                    <th class="sortable-header" data-sort="firstseen" style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 140px; cursor: pointer; user-select: none;">First Seen ↕</th>
+                                    <th class="sortable-header" data-sort="lastinspected" style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 140px; cursor: pointer; user-select: none;">Last Inspected ↕</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ( $not_indexed_urls as $url_row ) : ?>
-                                    <tr class="not-indexed-row" style="border-bottom: 1px solid var(--border-light);" data-url="<?php echo esc_attr( strtolower( $url_row->url ) ); ?>">
+                                    <tr class="not-indexed-row" style="border-bottom: 1px solid var(--border-light);" data-url="<?php echo esc_attr( strtolower( $url_row->url ) ); ?>" data-firstseen="<?php echo esc_attr( $url_row->first_seen ); ?>" data-lastinspected="<?php echo esc_attr( $url_row->last_inspected ?: '' ); ?>">
                                         <td style="padding: 10px 16px; word-break: break-all;">
                                             <a href="<?php echo esc_url( $url_row->url ); ?>" target="_blank" style="color: #2271b1;"><?php echo esc_html( $url_row->url ); ?></a>
                                         </td>
@@ -505,14 +510,14 @@ $has_inspection_data = $total_inspected > 0;
             </section>
             <?php endif; ?>
 
-            <!-- Recent Inspections -->
+            <!-- All URLs (Sitemap + Inspection Data) -->
             <?php if ( ! empty( $recent_inspections ) ) : ?>
             <?php $total_inspections = count( $recent_inspections ); ?>
             <section class="bite-dashboard-section">
                 <div class="bite-section-header">
                     <h2>
                         <span class="material-icons" style="vertical-align: middle; margin-right: 8px; color: #2271b1;">manage_search</span>
-                        Recent URL Inspections <span class="inspection-count" style="font-size: 0.7em; color: #888; font-weight: 400;">(<?php echo number_format( $total_inspections ); ?>)</span>
+                        All URLs <span class="inspection-count" style="font-size: 0.7em; color: #888; font-weight: 400;">(<?php echo number_format( $total_inspections ); ?>)</span>
                     </h2>
                 </div>
                 <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 0; margin-bottom: 24px; overflow: hidden;">
@@ -525,36 +530,50 @@ $has_inspection_data = $total_inspected > 0;
                                 <option value="25" selected>25 per page</option>
                                 <option value="50">50 per page</option>
                                 <option value="100">100 per page</option>
+                                <option value="250">250 per page</option>
+                                <option value="500">500 per page</option>
+                                <option value="99999">All</option>
                             </select>
                         </div>
                     </div>
-                    <div style="max-height: 500px; overflow-y: auto;">
-                        <table class="inspection-table" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                    <div style="max-height: 600px; overflow-y: auto;">
+                        <table class="inspection-table sortable-table" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
                             <thead style="position: sticky; top: 0; background: #f0f4f8; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                                 <tr style="border-bottom: 1px solid var(--border-light);">
-                                    <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555;">URL</th>
-                                    <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 100px;">Status</th>
-                                    <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 160px;">Coverage</th>
-                                    <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 100px;">Mobile</th>
-                                    <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 120px;">Date</th>
+                                    <th class="sortable-header" data-sort="url" style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; cursor: pointer; user-select: none;">URL ↕</th>
+                                    <th class="sortable-header" data-sort="indexed" style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 90px; cursor: pointer; user-select: none;">Indexed ↕</th>
+                                    <th class="sortable-header" data-sort="status" style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 110px; cursor: pointer; user-select: none;">Status ↕</th>
+                                    <th class="sortable-header" data-sort="coverage" style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 200px; cursor: pointer; user-select: none;">Coverage ↕</th>
+                                    <th class="sortable-header" data-sort="mobile" style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 100px; cursor: pointer; user-select: none;">Mobile ↕</th>
+                                    <th class="sortable-header" data-sort="date" style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 120px; cursor: pointer; user-select: none;">Date ↕</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ( $recent_inspections as $ins ) :
-                                    $is_pass = in_array( strtoupper( $ins->verdict ), array( 'PASS', 'Pass' ) ) || ( strtoupper( $ins->verdict ) === 'NEUTRAL' && $ins->coverage_state === 'Submitted and indexed' );
-                                    $status_color = $is_pass ? '#00a32a' : '#d63638';
-                                    $status_icon = $is_pass ? 'check_circle' : 'cancel';
+                                    $has_inspection = ! empty( $ins->verdict );
+                                    $is_pass = $has_inspection && ( in_array( strtoupper( $ins->verdict ), array( 'PASS', 'Pass' ) ) || ( strtoupper( $ins->verdict ) === 'NEUTRAL' && $ins->coverage_state === 'Submitted and indexed' ) );
+                                    $status_color = $is_pass ? '#00a32a' : ( $has_inspection ? '#d63638' : '#888' );
+                                    $status_icon = $is_pass ? 'check_circle' : ( $has_inspection ? 'cancel' : 'schedule' );
+                                    $status_text = $has_inspection ? $ins->verdict : 'Pending';
                                     $mobile_pass = in_array( strtoupper( $ins->mobile_usability ), array( 'PASS', 'Pass' ) );
                                     $mobile_color = $mobile_pass ? '#00a32a' : '#d63638';
+                                    $indexed_text = ( $ins->is_indexed ) ? 'Yes' : ( $has_inspection ? 'No' : '—' );
+                                    $indexed_color = ( $ins->is_indexed ) ? '#00a32a' : ( $has_inspection ? '#d63638' : '#888' );
+                                    $date_text = $ins->last_inspected ? esc_html( date( 'M j, Y', strtotime( $ins->last_inspected ) ) ) : '—';
                                 ?>
-                                    <tr class="inspection-row" style="border-bottom: 1px solid var(--border-light);" data-url="<?php echo esc_attr( strtolower( $ins->url ) ); ?>" data-coverage="<?php echo esc_attr( strtolower( $ins->coverage_state ?: '' ) ); ?>">
+                                    <tr class="inspection-row" style="border-bottom: 1px solid var(--border-light);" data-url="<?php echo esc_attr( strtolower( $ins->url ) ); ?>" data-coverage="<?php echo esc_attr( strtolower( $ins->coverage_state ?: '' ) ); ?>" data-indexed="<?php echo esc_attr( $indexed_text ); ?>" data-status="<?php echo esc_attr( strtolower( $status_text ) ); ?>" data-date="<?php echo esc_attr( $ins->last_inspected ?: '' ); ?>">
                                         <td style="padding: 10px 16px; word-break: break-all;">
                                             <a href="<?php echo esc_url( $ins->url ); ?>" target="_blank" style="color: #2271b1; font-size: 0.9em;"><?php echo esc_html( $ins->url ); ?></a>
                                         </td>
                                         <td style="padding: 10px 16px;">
+                                            <span style="display: inline-flex; align-items: center; gap: 4px; color: <?php echo esc_attr( $indexed_color ); ?>; font-weight: 600; font-size: 0.85em;">
+                                                <?php echo esc_html( $indexed_text ); ?>
+                                            </span>
+                                        </td>
+                                        <td style="padding: 10px 16px;">
                                             <span style="display: inline-flex; align-items: center; gap: 4px; color: <?php echo esc_attr( $status_color ); ?>; font-weight: 600; font-size: 0.85em;">
                                                 <span class="material-icons" style="font-size: 16px;"><?php echo esc_html( $status_icon ); ?></span>
-                                                <?php echo esc_html( $ins->verdict ?: 'Unknown' ); ?>
+                                                <?php echo esc_html( $status_text ); ?>
                                             </span>
                                         </td>
                                         <td style="padding: 10px 16px; color: #666; font-size: 0.85em;"><?php echo esc_html( $ins->coverage_state ?: '—' ); ?></td>
@@ -563,14 +582,53 @@ $has_inspection_data = $total_inspected > 0;
                                                 <?php echo esc_html( $ins->mobile_usability ?: '—' ); ?>
                                             </span>
                                         </td>
-                                        <td style="padding: 10px 16px; color: #666; font-size: 0.85em;"><?php echo esc_html( date( 'M j', strtotime( $ins->inspected_at ) ) ); ?></td>
+                                        <td style="padding: 10px 16px; color: #666; font-size: 0.85em;"><?php echo $date_text; ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
                     <div class="inspection-footer" style="padding: 12px 16px; background: var(--bg-color); color: #666; font-size: 0.85em; text-align: center;">
-                        Showing <span class="inspection-showing"><?php echo number_format( min( 25, $total_inspections ) ); ?></span> of <span class="inspection-total"><?php echo number_format( $total_inspections ); ?></span> inspections
+                        Showing <span class="inspection-showing"><?php echo number_format( min( 25, $total_inspections ) ); ?></span> of <span class="inspection-total"><?php echo number_format( $total_inspections ); ?></span> URLs
+                    </div>
+                </div>
+            </section>
+            <?php endif; ?>
+
+            <!-- GSC Discovered URLs (not in sitemap) -->
+            <?php if ( ! empty( $gsc_orphan_urls ) ) : ?>
+            <?php $total_orphans = count( $gsc_orphan_urls ); ?>
+            <section class="bite-dashboard-section">
+                <div class="bite-section-header">
+                    <h2>
+                        <span class="material-icons" style="vertical-align: middle; margin-right: 8px; color: #f9ab00;">travel_explore</span>
+                        URLs Google Knows About (Not in Sitemap) <span style="font-size: 0.7em; color: #888; font-weight: 400;">(<?php echo number_format( $total_orphans ); ?>)</span>
+                    </h2>
+                </div>
+                <div style="background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 0; margin-bottom: 24px; overflow: hidden;">
+                    <div style="padding: 12px 16px; background: #fff8e1; border-bottom: 1px solid var(--border-light); font-size: 0.85em; color: #5d4037;">
+                        <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">info</span>
+                        These URLs were discovered via Google Search Console but are not listed in your sitemap. Consider adding them to improve index coverage.
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="orphan-table sortable-table" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                            <thead style="position: sticky; top: 0; background: #f0f4f8; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                <tr style="border-bottom: 1px solid var(--border-light);">
+                                    <th class="sortable-header" data-sort="url" style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; cursor: pointer; user-select: none;">URL ↕</th>
+                                    <th class="sortable-header" data-sort="date" style="text-align: left; padding: 12px 16px; font-weight: 600; color: #555; width: 160px; cursor: pointer; user-select: none;">Discovered ↕</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ( $gsc_orphan_urls as $orphan ) : ?>
+                                    <tr class="orphan-row" style="border-bottom: 1px solid var(--border-light);" data-url="<?php echo esc_attr( strtolower( $orphan->url ) ); ?>">
+                                        <td style="padding: 10px 16px; word-break: break-all;">
+                                            <a href="<?php echo esc_url( $orphan->url ); ?>" target="_blank" style="color: #2271b1; font-size: 0.9em;"><?php echo esc_html( $orphan->url ); ?></a>
+                                        </td>
+                                        <td style="padding: 10px 16px; color: #666; font-size: 0.85em;"><?php echo esc_html( date( 'M j, Y', strtotime( $orphan->first_seen ) ) ); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -590,7 +648,58 @@ $has_inspection_data = $total_inspected > 0;
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
-    // --- Not Indexed URLs: Live Search + Per Page ---
+    // === Generic Table Sort ===
+    function initSortableTable(table) {
+        if (!table) return;
+        var headers = table.querySelectorAll('.sortable-header');
+        var tbody = table.querySelector('tbody');
+        if (!tbody) return;
+
+        headers.forEach(function(th) {
+            th.addEventListener('click', function() {
+                var sortKey = th.dataset.sort;
+                var isAsc = th.dataset.order !== 'desc';
+                var newOrder = isAsc ? 'desc' : 'asc';
+
+                // Reset all headers
+                headers.forEach(function(h) {
+                    h.dataset.order = '';
+                    h.textContent = h.textContent.replace(/ ↓| ↑/, ' ↕');
+                });
+
+                th.dataset.order = newOrder;
+                th.textContent = th.textContent.replace(' ↕', newOrder === 'asc' ? ' ↑' : ' ↓');
+
+                var rows = Array.from(tbody.querySelectorAll('tr'));
+                rows.sort(function(a, b) {
+                    var aVal = '', bVal = '';
+
+                    // Try dataset first, then fall back to cell text
+                    if (a.dataset[sortKey] !== undefined) {
+                        aVal = a.dataset[sortKey] || '';
+                        bVal = b.dataset[sortKey] || '';
+                    } else {
+                        var aCell = a.querySelector('[data-' + sortKey + ']');
+                        var bCell = b.querySelector('[data-' + sortKey + ']');
+                        if (aCell) {
+                            aVal = aCell.dataset[sortKey] || '';
+                            bVal = bCell.dataset[sortKey] || '';
+                        }
+                    }
+
+                    if (aVal < bVal) return isAsc ? -1 : 1;
+                    if (aVal > bVal) return isAsc ? 1 : -1;
+                    return 0;
+                });
+
+                rows.forEach(function(row) { tbody.appendChild(row); });
+            });
+        });
+    }
+
+    document.querySelectorAll('.sortable-table').forEach(initSortableTable);
+
+    // --- Not Indexed URLs: Live Search + Per Page + Sort ---
     (function() {
         var searchInput = document.querySelector('.not-indexed-search');
         var perPageSelect = document.querySelector('.not-indexed-per-page');
@@ -642,7 +751,7 @@ document.addEventListener('DOMContentLoaded', function() {
         update();
     })();
 
-    // --- Recent Inspections: Live Search + Per Page ---
+    // --- All URLs: Live Search + Per Page ---
     (function() {
         var searchInput = document.querySelector('.inspection-search');
         var perPageSelect = document.querySelector('.inspection-per-page');

@@ -390,6 +390,170 @@ function bite_get_latest_inspections( $site_id, $filter = 'all', $limit = 50 ) {
 }
 
 /**
+ * Get all sitemap URLs with their latest inspection data
+ *
+ * @param int $site_id Site ID
+ * @return array Array of objects
+ */
+function bite_get_all_sitemap_urls_with_inspection( $site_id ) {
+    global $wpdb;
+    $sitemap_table    = $wpdb->prefix . 'bite_sitemap_urls';
+    $inspection_table = $wpdb->prefix . 'bite_url_inspection';
+
+    return $wpdb->get_results( $wpdb->prepare(
+        "SELECT su.url, su.first_seen, su.last_seen, su.is_indexed, su.last_inspected,
+                ui.verdict,
+                COALESCE( ui.coverage_state, 'Not yet inspected' ) AS coverage_state,
+                ui.mobile_usability,
+                ui.inspected_at
+         FROM $sitemap_table su
+         LEFT JOIN $inspection_table ui
+            ON su.site_id = ui.site_id
+            AND su.url = ui.url
+            AND ui.inspection_id = (
+                SELECT inspection_id
+                FROM $inspection_table ui2
+                WHERE ui2.site_id = su.site_id
+                  AND ui2.url = su.url
+                ORDER BY ui2.inspected_at DESC, ui2.inspection_id DESC
+                LIMIT 1
+            )
+         WHERE su.site_id = %d
+         ORDER BY su.last_inspected DESC, su.url_id ASC",
+        $site_id
+    ) );
+}
+
+/**
+ * Fetch all pages from Google Search Console and store in sitemap URLs table
+ *
+ * @param int $site_id Site ID
+ * @return array|WP_Error Array with discovered and stored counts, or error
+ */
+function bite_fetch_and_store_gsc_pages( $site_id ) {
+    global $wpdb;
+
+    $sites_table = $wpdb->prefix . 'bite_sites';
+    $site = $wpdb->get_row( $wpdb->prepare(
+        "SELECT gsc_property FROM $sites_table WHERE site_id = %d",
+        $site_id
+    ) );
+
+    if ( ! $site || empty( $site->gsc_property ) ) {
+        return new WP_Error( 'no_gsc_property', 'No GSC property configured' );
+    }
+
+    $access_token = bite_get_google_access_token( $site_id );
+    if ( is_wp_error( $access_token ) ) {
+        return $access_token;
+    }
+
+    $gsc_api_url = 'https://searchconsole.googleapis.com/webmasters/v3/sites/' . urlencode( $site->gsc_property ) . '/searchAnalytics/query';
+    $start_date  = date( 'Y-m-d', strtotime( '-16 months' ) );
+    $end_date    = date( 'Y-m-d' );
+    $row_limit   = 25000;
+    $start_row   = 0;
+    $all_pages   = array();
+
+    do {
+        $request_body = wp_json_encode( array(
+            'startDate'  => $start_date,
+            'endDate'    => $end_date,
+            'dimensions' => array( 'page' ),
+            'rowLimit'   => $row_limit,
+            'startRow'   => $start_row,
+        ) );
+
+        $response = wp_remote_post( $gsc_api_url, array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $access_token,
+                'Content-Type'  => 'application/json',
+            ),
+            'body'    => $request_body,
+            'timeout' => 60,
+        ) );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+
+        $code = wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+        $data = json_decode( $body, true );
+
+        if ( $code !== 200 || isset( $data['error'] ) ) {
+            $error_msg = isset( $data['error']['message'] ) ? $data['error']['message'] : 'HTTP ' . $code;
+            return new WP_Error( 'gsc_api_error', $error_msg, $data );
+        }
+
+        if ( ! empty( $data['rows'] ) ) {
+            foreach ( $data['rows'] as $row ) {
+                $all_pages[] = $row['keys'][0];
+            }
+            $row_count = count( $data['rows'] );
+            $start_row += $row_count;
+        } else {
+            $row_count = 0;
+        }
+    } while ( $row_count === $row_limit );
+
+    $unique_pages = array_unique( $all_pages );
+    $discovered   = count( $unique_pages );
+    $stored       = 0;
+    $today        = date( 'Y-m-d' );
+    $sitemap_table = $wpdb->prefix . 'bite_sitemap_urls';
+
+    foreach ( $unique_pages as $page_url ) {
+        $existing = $wpdb->get_var( $wpdb->prepare(
+            "SELECT url_id FROM $sitemap_table WHERE site_id = %d AND url = %s",
+            $site_id, $page_url
+        ) );
+
+        if ( $existing ) {
+            $wpdb->query( $wpdb->prepare(
+                "UPDATE $sitemap_table SET gsc_known = 1 WHERE url_id = %d",
+                $existing
+            ) );
+        } else {
+            $wpdb->insert(
+                $sitemap_table,
+                array(
+                    'site_id'    => $site_id,
+                    'url'        => $page_url,
+                    'first_seen' => $today,
+                    'last_seen'  => $today,
+                    'gsc_known'  => 1,
+                    'source'     => 'gsc',
+                ),
+                array( '%d', '%s', '%s', '%s', '%d', '%s' )
+            );
+            $stored++;
+        }
+    }
+
+    return array(
+        'discovered' => $discovered,
+        'stored'     => $stored,
+    );
+}
+
+/**
+ * Get GSC-discovered URLs that are NOT in the sitemap (orphan URLs)
+ *
+ * @param int $site_id Site ID
+ * @return array Array of URL objects
+ */
+function bite_get_gsc_orphan_urls( $site_id ) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'bite_sitemap_urls';
+
+    return $wpdb->get_results( $wpdb->prepare(
+        "SELECT url, first_seen, last_seen FROM $table WHERE site_id = %d AND source = 'gsc' ORDER BY first_seen DESC",
+        $site_id
+    ) );
+}
+
+/**
  * AJAX handler: Run manual URL inspection for a specific URL
  */
 function bite_ajax_inspect_single_url() {

@@ -479,6 +479,23 @@ function bite_run_daily_update() {
         error_log( 'BITE Daily Update: Sitemap parsing complete. Processed: ' . $sitemap_summary['processed'] . ', Errors: ' . $sitemap_summary['errors'] );
     }
 
+    // Fetch all pages Google knows about from Search Analytics
+    if ( function_exists( 'bite_fetch_and_store_gsc_pages' ) ) {
+        error_log( 'BITE Daily Update: Starting GSC page discovery...' );
+        $sites_table = $wpdb->prefix . 'bite_sites';
+        $sites = $wpdb->get_results( "SELECT site_id FROM $sites_table WHERE sitemap_url IS NOT NULL AND sitemap_url != ''" );
+        $gsc_discovered_total = 0;
+        $gsc_new_total = 0;
+        foreach ( $sites as $site ) {
+            $result = bite_fetch_and_store_gsc_pages( $site->site_id );
+            if ( ! is_wp_error( $result ) ) {
+                $gsc_discovered_total += $result['discovered'];
+                $gsc_new_total += $result['stored'];
+            }
+        }
+        error_log( 'BITE Daily Update: GSC page discovery complete. Discovered: ' . $gsc_discovered_total . ', New: ' . $gsc_new_total );
+    }
+
     // Run URL Inspection batch (respects 2,000/day limit)
     if ( function_exists( 'bite_run_all_url_inspections' ) ) {
         error_log( 'BITE Daily Update: Starting URL inspection batch...' );

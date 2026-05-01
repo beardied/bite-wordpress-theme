@@ -170,12 +170,12 @@ function bite_store_sitemap_urls( $site_id, $urls ) {
         $seen_urls[] = $url;
 
         if ( isset( $existing_by_url[ $url ] ) ) {
-            // Update last_seen
+            // Update last_seen and ensure source is sitemap
             $wpdb->update(
                 $table,
-                array( 'last_seen' => $today ),
+                array( 'last_seen' => $today, 'source' => 'sitemap' ),
                 array( 'url_id' => $existing_by_url[ $url ] ),
-                array( '%s' ),
+                array( '%s', '%s' ),
                 array( '%d' )
             );
             $updated_count++;
@@ -188,8 +188,9 @@ function bite_store_sitemap_urls( $site_id, $urls ) {
                     'url'        => $url,
                     'first_seen' => $today,
                     'last_seen'  => $today,
+                    'source'     => 'sitemap',
                 ),
-                array( '%d', '%s', '%s', '%s' )
+                array( '%d', '%s', '%s', '%s', '%s' )
             );
             $new_count++;
         }
