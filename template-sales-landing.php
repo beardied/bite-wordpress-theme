@@ -174,10 +174,10 @@ get_header();
                     </ul>
                 </div>
                 <div class="bite-pricing-cta">
-                    <a href="<?php echo esc_url( home_url( '/contact/?plan=hosting' ) ); ?>" class="bite-button">Request Access</a>
-                    <p class="bite-pricing-note" style="margin-top: 10px; font-size: 0.85em; color: #888;">
+                    <p class="bite-pricing-note" style="margin-bottom: 16px; font-size: 0.85em; color: #888;">
                         Need hosting? <a href="https://orangewidow.com" target="_blank" style="color: #ff6b35;">Get hosting from OrangeWidow</a>
                     </p>
+                    <a href="<?php echo esc_url( home_url( '/contact/?plan=hosting' ) ); ?>" class="bite-button">Request Access</a>
                 </div>
             </div>
             
