@@ -110,6 +110,30 @@ get_header();
                 <h3>CTR Efficiency Report</h3>
                 <p>Understand your anonymized vs. discoverable click ratios. Optimize for hidden traffic.</p>
             </div>
+            
+            <div class="bite-feature-card">
+                <div class="bite-feature-icon">
+                    <span class="material-icons">fact_check</span>
+                </div>
+                <h3>URL Inspection &amp; Index Tracking</h3>
+                <p>Know exactly which URLs Google has indexed. Track coverage status, mobile usability, and indexing issues for every page.</p>
+            </div>
+            
+            <div class="bite-feature-card">
+                <div class="bite-feature-icon">
+                    <span class="material-icons">account_tree</span>
+                </div>
+                <h3>Sitemap Monitoring</h3>
+                <p>Auto-detect sitemaps and track all your URLs. Get alerted when pages are added or removed from your site.</p>
+            </div>
+            
+            <div class="bite-feature-card">
+                <div class="bite-feature-icon">
+                    <span class="material-icons">security</span>
+                </div>
+                <h3>Security &amp; SSL Monitoring</h3>
+                <p>Daily security header scans and SSL Labs grading. Stay on top of HTTPS health and security configurations.</p>
+            </div>
         </div>
     </section>
 
@@ -174,7 +198,7 @@ get_header();
                     </ul>
                 </div>
                 <div class="bite-pricing-cta">
-                    <p class="bite-pricing-note" style="margin-bottom: 16px; font-size: 0.85em; color: #888;">
+                    <p class="bite-pricing-note" style="margin-top: -10px; margin-bottom: 28px; font-size: 0.85em; color: #888;">
                         Need hosting? <a href="https://orangewidow.com" target="_blank" style="color: #ff6b35;">Get hosting from OrangeWidow</a>
                     </p>
                     <a href="<?php echo esc_url( home_url( '/contact/?plan=hosting' ) ); ?>" class="bite-button">Request Access</a>
