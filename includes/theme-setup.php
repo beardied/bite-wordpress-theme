@@ -413,11 +413,12 @@ function bite_user_plan_profile_field( $user ) {
             <th><label for="bite_plan"><?php _e( 'Subscription Plan', 'bite-theme' ); ?></label></th>
             <td>
                 <select name="bite_plan" id="bite_plan">
-                    <option value="hosting" <?php selected( $plan, 'hosting' ); ?>><?php _e( 'OrangeWidow Hosting (Unlimited from hosting)', 'bite-theme' ); ?></option>
-                    <option value="solo" <?php selected( $plan, 'solo' ); ?>><?php _e( 'Solo (3 websites)', 'bite-theme' ); ?></option>
-                    <option value="pro" <?php selected( $plan, 'pro' ); ?>><?php _e( 'Pro (10 websites)', 'bite-theme' ); ?></option>
-                    <option value="agency" <?php selected( $plan, 'agency' ); ?>><?php _e( 'Agency (25 websites)', 'bite-theme' ); ?></option>
-                    <option value="enterprise" <?php selected( $plan, 'enterprise' ); ?>><?php _e( 'Enterprise (Unlimited)', 'bite-theme' ); ?></option>
+                    <option value="hosting" <?php selected( $plan, 'hosting' ); ?>><?php _e( 'OrangeWidow Hosting — £16/month (Unlimited)', 'bite-theme' ); ?></option>
+                    <option value="tester" <?php selected( $plan, 'tester' ); ?>><?php _e( 'Tester — Free (3 websites, internal use only)', 'bite-theme' ); ?></option>
+                    <option value="solo" <?php selected( $plan, 'solo' ); ?>><?php _e( 'Solo — £29/month (3 websites)', 'bite-theme' ); ?></option>
+                    <option value="pro" <?php selected( $plan, 'pro' ); ?>><?php _e( 'Pro — £59/month (10 websites)', 'bite-theme' ); ?></option>
+                    <option value="agency" <?php selected( $plan, 'agency' ); ?>><?php _e( 'Agency — £119/month (25 websites)', 'bite-theme' ); ?></option>
+                    <option value="enterprise" <?php selected( $plan, 'enterprise' ); ?>><?php _e( 'Enterprise — £199/month (Unlimited)', 'bite-theme' ); ?></option>
                 </select>
                 <p class="description">
                     <?php _e( 'Determines how many sites the user can add to their dashboard.', 'bite-theme' ); ?>
@@ -452,7 +453,7 @@ add_action( 'edit_user_profile_update', 'bite_save_user_plan_field' );
  * 13. Get user's BITE plan.
  *
  * @param int $user_id User ID (defaults to current user)
- * @return string Plan type: hosting, solo, pro, agency, enterprise
+ * @return string Plan type: hosting, solo, pro, agency, enterprise, tester
  */
 function bite_get_user_plan( $user_id = null ) {
     if ( ! $user_id ) {
@@ -477,7 +478,8 @@ function bite_get_user_site_limit( $user_id = null ) {
     $plan = bite_get_user_plan( $user_id );
     
     $limits = array(
-        'hosting'    => 0,      // Unlimited (from hosting)
+        'hosting'    => 0,      // Unlimited (OrangeWidow hosting customer)
+        'tester'     => 3,      // Free testing account
         'solo'       => 3,
         'pro'        => 10,
         'agency'     => 25,

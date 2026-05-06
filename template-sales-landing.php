@@ -153,15 +153,16 @@ get_header();
         
         <!-- First Row: 3 Cards -->
         <div class="bite-pricing-row bite-pricing-row-3">
-            <!-- Free for Hosting Customers -->
+            <!-- OrangeWidow Hosting (Discounted) -->
             <div class="bite-pricing-card bite-pricing-featured">
                 <div class="bite-pricing-badge">Best Value</div>
                 <div class="bite-pricing-header">
                     <h3>OrangeWidow Hosting</h3>
                     <div class="bite-pricing-price">
-                        <span class="bite-price">Free</span>
-                        <span class="bite-period">with hosting</span>
+                        <span class="bite-price">£16</span>
+                        <span class="bite-period">/month</span>
                     </div>
+                    <div style="font-size: 0.8em; color: #888; margin-top: 4px; text-decoration: line-through;">£29/month</div>
                 </div>
                 <div class="bite-pricing-features">
                     <ul>
@@ -169,6 +170,7 @@ get_header();
                         <li><span class="material-icons">check</span> Full feature access</li>
                         <li><span class="material-icons">check</span> Priority support</li>
                         <li><span class="material-icons">check</span> Daily data updates</li>
+                        <li><span class="material-icons">check</span> Discounted for hosting customers</li>
                     </ul>
                 </div>
                 <div class="bite-pricing-cta">

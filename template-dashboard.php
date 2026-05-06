@@ -145,6 +145,7 @@ if ( $user_connected ) {
 
 $plan_names = array(
     'hosting'    => 'OrangeWidow Hosting',
+    'tester'     => 'Tester',
     'solo'       => 'Solo',
     'pro'        => 'Pro',
     'agency'     => 'Agency',
